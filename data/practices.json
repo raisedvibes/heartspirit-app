@@ -1,0 +1,616 @@
+[
+  {
+    "id": "focused-breath-awareness",
+    "title": "Focused Breath Awareness - Observe your natural breath while repeating the mantra Hong-Sau.",
+    "category": "Mantra",
+    "media": {
+      "timer": true,
+      "audio": "",
+      "video": "",
+      "background": "PLACEHOLDER",
+      "image": ""
+    },
+    "duration": 5,
+    "steps": [
+      "1. Find a comfortable spot to sit quietly and watch your natural breath.",
+      "2. As you inhale, mentally say 'Hong' (rhymes with song).",
+      "3. As you exhale, mentally say 'Sau' (saw).",
+      "4. Let the breath be natural, without controlling it.",
+      "5. When the mind wanders, gently return to the mantra."
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Low",
+          "feelingtone": "Anxious",
+          "priority": 2
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Anxious",
+          "priority": 3
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Irritable",
+          "priority": 6
+        }
+      ]
+    }
+  },
+  {
+    "id": "breath-of-fire",
+    "title": "Breath of Fire - Breathe with equal inhale and exhale through the nose, feeling your naval naturally pump with rhythm.",
+    "category": "Breathwork",
+    "media": {
+      "timer": true,
+      "audio": "PLACEHOLDER",
+      "video": "",
+      "background": "",
+      "image": ""
+    },
+    "duration": 7,
+    "steps": [
+      "1. Sit with legs crossed or comfortably in a chair.",
+      "2. Breathe equal inhale and exhale through the nose.",
+      "3. Take your time getting to a perfect rhythm of equal inhale and exhale completely through your nose.",
+      "4. Youâ€™ll feel your naval naturally pump."
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Moderate",
+          "feelingtone": "Anxious",
+          "priority": 10
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Foggy",
+          "priority": 5
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Anxious",
+          "priority": 6
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Foggy",
+          "priority": 2
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Energized",
+          "priority": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "alternate-nostril-breath",
+    "title": "Alternate Nostril Breath - Balance the breath and mind by alternating between left and right nostrils, visualizing a rainbow flowing with each cycle.",
+    "category": "Breathwork",
+    "media": {
+      "timer": true,
+      "audio": "PLACEHOLDER",
+      "video": "",
+      "background": "",
+      "image": "PLACEHOLDER"
+    },
+    "duration": 5,
+    "steps": [
+      "1. Sit with legs crossed or comfortably in a chair.",
+      "2. Place your thumb above the right nostril and ring finger above the left. Use these fingers to alternately block each nostril.",
+      "3. Support your right elbow with your left hand if needed, but keep chest unrestricted.",
+      "4. Close right nostril with thumb, inhale deeply through left nostril for 5 seconds.",
+      "5. Open right nostril, close left, exhale through right for 5 seconds.",
+      "6. Inhale through right nostril for 5 seconds.",
+      "7. Close right nostril, exhale through left nostril for 5 seconds.",
+      "8. Visualize a rainbow flowing up one side on inhale, down the other side on exhale."
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Low",
+          "feelingtone": "Anxious",
+          "priority": 6
+        },
+        {
+          "energy": "Low",
+          "feelingtone": "Tired",
+          "priority": 3
+        },
+        {
+          "energy": "Low",
+          "feelingtone": "Foggy",
+          "priority": 7
+        },
+        {
+          "energy": "Low",
+          "feelingtone": "Angry",
+          "priority": 5
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Anxious",
+          "priority": 2
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Foggy",
+          "priority": 5
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Angry",
+          "priority": 4
+        }
+      ]
+    }
+  },
+  {
+    "id": "siri-gaitri-mantra",
+    "title": "Siri Gaitri Mantra - Tune in to this mantraâ€™s vibration to uplift and reset.",
+    "category": "Mantra",
+    "media": {
+      "timer": false,
+      "audio": "PLACEHOLDER",
+      "video": "",
+      "background": "",
+      "image": ""
+    },
+    "duration": 8,
+    "steps": [
+      "1. Sit comfortably with your spine straight, cross-legged or in a chair with feet flat. Rest your hands on your knees or lap.",
+      "2. Close your eyes gently and take a few deep breaths to center yourself.",
+      "3. When youâ€™re ready press play to begin chanting. RA MA DA SA, SA SAY SO HUNG",
+      "4. Let each sound resonate fully. Feel the vibration in your body.",
+      "5. As you chant, focus awareness on the energy centers: Ra â€“ root, Ma â€“ sacral, Da â€“ solar plexus, Sa â€“ heart/throat, Say â€“ third eye, So â€“ crown, Hung â€“ returning energy down to root.",
+      "6. Continue for 8 minutes, breathing naturally, letting the mantra carry your attention upward and back down.",
+      "7. At the end, take a deep breath in, hold gently, then exhale and sit in silence for a few moments."
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Moderate",
+          "feelingtone": "Tired",
+          "priority": 5
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Tired",
+          "priority": 5
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Anxious",
+          "priority": 6
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Irritable",
+          "priority": 8
+        },
+        {
+          "energy": "High",
+          "feelingtone": "Anxious",
+          "priority": 3
+        },
+        {
+          "energy": "High",
+          "feelingtone": "Calm",
+          "priority": 4
+        }
+      ]
+    }
+  },
+  {
+    "id": "sat-nam-mantra",
+    "title": "Sat Nam Mantra - Return to authentic self using this sound current.",
+    "category": "Mantra",
+    "media": {
+      "timer": false,
+      "audio": "PLACEHOLDER",
+      "video": "",
+      "background": "",
+      "image": ""
+    },
+    "duration": 7,
+    "steps": [
+      "1. Sit comfortably with your spine straight, cross-legged or in a chair with your feet grounded. Rest your hands on your knees or in your lap.",
+      "2. Close your eyes and take a few slow breaths, allowing your body to settle.",
+      "3. Begin chanting: SAT NAM (pronounced: 'Sut Naam').",
+      "4. As you chant Sat, feel the vibration rising from the base of your spine â€” a call to truth. As you chant Nam, let the sound flow forward, affirming your authentic self.",
+      "5. Allow each repetition to sink in and resonate through your whole body.",
+      "6. Chant for 7 minutes, reaffirming: 'Truth is my Identity.'",
+      "7. To end, take a deep breath in. Rest in the quiet presence of your authentic self."
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Moderate",
+          "feelingtone": "Tired",
+          "priority": 4
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Anxious",
+          "priority": 5
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Irritable",
+          "priority": 1
+        },
+        {
+          "energy": "High",
+          "feelingtone": "Anxious",
+          "priority": 6
+        }
+      ]
+    }
+  },
+  {
+    "id": "shamata-meditation",
+    "title": "Shamata Meditation - Create calm and concentration by resting the mind and bringing tranquility to the body.",
+    "category": "Meditation",
+    "media": {
+      "timer": false,
+      "audio": "PLACEHOLDER",
+      "video": "",
+      "background": "",
+      "image": ""
+    },
+    "duration": 10,
+    "steps": [
+      "1. Sit comfortably with spine straight, cross-legged or in a chair with feet flat on the floor. Rest hands on your knees or in your lap.",
+      "2. Gently close the eyes or soften the gaze.",
+      "3. Take a few slow, deep breaths. Allow your body to relax while remaining alert. Release any unnecessary tension in the face, shoulders, or hands.",
+      "4. Bring awareness fully to the inhale and exhale.",
+      "5. When thoughts arise or attention wanders, notice, then return to your breath.",
+      "6. Continue resting awareness, breathing naturally. Each time the mind drifts, return again to your breath.",
+      "7. Continue for set time."
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Moderate",
+          "feelingtone": "Tired",
+          "priority": 5
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Anxious",
+          "priority": 4
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Irritable",
+          "priority": 6
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Anxious",
+          "priority": 7
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Energized",
+          "priority": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": "visualization-breath",
+    "title": "Visualization Breath - Circulate energy up and down the spine to clear blockages and awaken inner peace.",
+    "category": "Breathwork",
+    "media": {
+      "timer": false,
+      "audio": "PLACEHOLDER",
+      "video": "",
+      "background": "",
+      "image": ""
+    },
+    "duration": 10,
+    "steps": [
+      "1. Sit comfortably with a straight spine.",
+      "2. Inhale slowly through the nose and imagine your breath as golden light rising from the base of your spine to the crown of your head.",
+      "3. Exhale and feel the golden energy flow gently down the spine to the tailbone.",
+      "4. Affirm with each breath: 'I am a channel for divine energy.'"
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Moderate",
+          "feelingtone": "Foggy",
+          "priority": 4
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Anxious",
+          "priority": 6
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Tired",
+          "priority": 6
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Irritable",
+          "priority": 7
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Calm",
+          "priority": 1
+        },
+        {
+          "energy": "High",
+          "feelingtone": "Tired",
+          "priority": 6
+        }
+      ]
+    }
+  },
+  {
+    "id": "om-mantra",
+    "title": "Om Mantra - A rhythmic breath and sound practice that uses the vibration of Om to deepen connection to source.",
+    "category": "Mantra",
+    "media": {
+      "timer": false,
+      "audio": "PLACEHOLDER",
+      "video": "",
+      "background": "",
+      "image": ""
+    },
+    "duration": 6,
+    "steps": [
+      "1. Sit comfortably with spine straight, cross-legged or in a chair with feet grounded. You may also lie down if you can maintain awareness. Rest hands on knees or in your lap.",
+      "2. Gently close your eyes and take a few slow breaths.",
+      "3. Focus on the inner ears, as though listening inside.",
+      "4. Inhale deeply through the nose. Open your mouth slightly in the shape of an 'O.'",
+      "5. Exhale with a long, steady 'Ooooommmmmmmmmmâ€¦' flowing from the chest.",
+      "6. Feel the vibration in the head and body.",
+      "7. Inhale fully through the nose â†’ chant Om on the exhale â†’ pause in silence.",
+      "8. Continue for the set time. End with a few quiet breaths."
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Moderate",
+          "feelingtone": "Tired",
+          "priority": 5
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Irritable",
+          "priority": 6
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Calm",
+          "priority": 1
+        },
+        {
+          "energy": "High",
+          "feelingtone": "Energized",
+          "priority": 4
+        }
+      ]
+    }
+  },
+  {
+    "id": "tighten-and-release",
+    "title": "Tighten and Release - A quick reset that uses full-body contraction to discharge stuck energy and release tension.",
+    "category": "Somatic",
+    "media": {
+      "timer": false,
+      "audio": "PLACEHOLDER",
+      "video": "",
+      "background": "",
+      "image": ""
+    },
+    "duration": 5,
+    "steps": [
+      "1. Stand with feet hip-width apart or sit upright in a chair. Keep your spine tall and shoulders relaxed.",
+      "2. Take a deep breath in through the nose. As you inhale, tense every muscle in your body from the feet upward: clench fists, squeeze legs and core, tighten face and jaw, engage the whole body.",
+      "3. Maintain the breath and the tension for 5â€“10 seconds.",
+      "4. Exhale forcefully through the mouth. Let all tension go in a sigh, shake, or loud 'HA!'",
+      "5. Rest for a moment. Notice sensations like tingling, lightness, or ease.",
+      "6. Continue the cycle for the set time."
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Moderate",
+          "feelingtone": "Tired",
+          "priority": 6
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Irritable",
+          "priority": 5
+        },
+        {
+          "energy": "Moderate",
+          "feelingtone": "Energized",
+          "priority": 2
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Anxious",
+          "priority": 5
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Energized",
+          "priority": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": "psychic-breath",
+    "title": "Psychic Breath - A controlled yogic breathing practice that creates a gentle ocean-like sound calming the nervous system.",
+    "category": "Breathwork",
+    "media": {
+      "timer": false,
+      "audio": "",
+      "video": "",
+      "background": "",
+      "image": ""
+    },
+    "duration": 10,
+    "steps": [
+      "1. Sit comfortably with spine straight. Close your eyes and relax your body.",
+      "2. Place the tongue in khechari mudra â€” folding it upward and backward so the underside touches the upper palate. Keep lips softly closed.",
+      "3. Allow the breath to become slow, even, and rhythmic.",
+      "4. Imagine the breath flowing in and out through the throat itself, as though through a small opening.",
+      "5. Exhale gently as if fogging up a mirror, but with the mouth closed. Listen for a soft whispering or ocean-like sound in the throat.",
+      "6. Keep this gentle throat contraction on both inhalation and exhalation.",
+      "7. Allow the abdomen to contract naturally on the exhale.",
+      "8. Continue for set time, letting the sound anchor your focus inward.",
+      "9. With additional practice, combine with jalandhar bandha (chin lock) and moola bandha (root lock) for deeper energetic effects."
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Good",
+          "feelingtone": "Anxious",
+          "priority": 2
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Energized",
+          "priority": 5
+        },
+        {
+          "energy": "High",
+          "feelingtone": "Irritable",
+          "priority": 6
+        }
+      ]
+    }
+  },
+  {
+    "id": "humming-bee-breath",
+    "title": "Humming Bee Breath - A steady humming sound to soothe the nervous system, quiet the mind, and direct awareness inward.",
+    "category": "Breathwork",
+    "media": {
+      "timer": false,
+      "audio": "",
+      "video": "",
+      "background": "",
+      "image": ""
+    },
+    "duration": 6,
+    "steps": [
+      "1. Sit comfortably with spine straight, cross-legged, or sitting upright in a chair. Rest hands on your knees. Relax the body fully.",
+      "2. Keep the mouth closed and teeth slightly apart throughout the practice.",
+      "3. Gently plug ears with index or middle fingers.",
+      "4. Bring attention to the center of the head, at the third eye.",
+      "5. Inhale deeply through the nose. On exhalation, produce a steady humming sound like a bee.",
+      "6. Let the hum be continuous, then inhale again without strain and repeat. Maintain focus on the sound and vibration.",
+      "7. Continue for set time."
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Low",
+          "feelingtone": "Tired",
+          "priority": 6
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Anxious",
+          "priority": 3
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Energized",
+          "priority": 4
+        }
+      ]
+    }
+  },
+  {
+    "id": "coherent-reset",
+    "title": "Coherent Reset - Calm the body, clear the mind, and return to safety.",
+    "category": "Breathwork",
+    "media": {
+      "timer": false,
+      "audio": "",
+      "video": "",
+      "background": "",
+      "image": ""
+    },
+    "duration": 6,
+    "steps": [
+      "1. Sit comfortably or lay down with spine straight.",
+      "2. Place one hand on your heart and one on your belly. Feel your feet or seat pressing into the ground.",
+      "3. Feel a heart-based emotion like gratitude, peace, or love.",
+      "4. Say silently or aloud: 'I choose to return to my body. I am safe to be here now.'",
+      "5. Deeply inhale and exhale through the nose.",
+      "6. Continue for set time."
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Low",
+          "feelingtone": "Foggy",
+          "priority": 4
+        },
+        {
+          "energy": "Low",
+          "feelingtone": "Anxious",
+          "priority": 2
+        }
+      ]
+    }
+  },
+  {
+    "id": "body-shake",
+    "title": "Body Shake - An intentional movement that helps release stored tension and emotion creating more freedom and flow in the body.",
+    "category": "Somatic",
+    "media": {
+      "timer": false,
+      "audio": "PLACEHOLDER",
+      "video": "",
+      "background": "",
+      "image": ""
+    },
+    "duration": 3,
+    "steps": [
+      "1. Find a safe, open space where you can move freely. Stand with feet grounded.",
+      "2. Take a few deep breaths and set an intention such as: 'I allow all energy to move through me and release with ease now.'",
+      "3. Allow your body to start shaking freely. Sway or bounce gently through the knees.",
+      "4. If it feels natural, let it build into free dance or flowing movement.",
+      "5. Breath is rhythmic (inhale through nose, exhale with sound like 'Ah!').",
+      "6. Repeat mentally: 'My body knows how to release and reset.' / 'I am safe to let go.' / 'Energy flows freely through me.'",
+      "7. Gradually reduce the intensity of movement. Come to stillness.",
+      "8. Place one hand on the heart, one on the belly. Take 3 deep breaths.",
+      "9. Notice sensations, warmth, tingling, or spaciousness in the body."
+    ],
+    "recommendations": {
+      "pairs": [
+        {
+          "energy": "Low",
+          "feelingtone": "Tired",
+          "priority": 4
+        },
+        {
+          "energy": "Low",
+          "feelingtone": "Irritable",
+          "priority": 6
+        },
+        {
+          "energy": "Good",
+          "feelingtone": "Tired",
+          "priority": 5
+        }
+      ]
+    }
+  }
+]
