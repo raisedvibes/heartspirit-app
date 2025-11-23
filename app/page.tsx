@@ -25,14 +25,16 @@ export default function HomePage() {
           className="text-center max-w-3xl mx-auto space-y-8"
         >
           {/* Logo/Brand */}
-          <motion.h1
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-5xl md:text-6xl lg:text-7xl font-bold text-white drop-shadow-2xl"
-          >
-            heartspirit
-          </motion.h1>
+         <motion.h1
+  className="
+    text-5xl md:text-6xl lg:text-7xl
+    font-alegreya font-bold
+    text-white drop-shadow-2xl
+  "
+>
+  heartspirit
+</motion.h1>
+
 
           {/* Tagline */}
           <motion.p
