@@ -43,4 +43,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </body>
     </html>
   )
+  import { Alegreya_Sans } from "next/font/google";
+
+const alegreya = Alegreya_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "700"], // pick what you need
+  variable: "--font-alegreya"
+});
+
+export const metadata = {
+  title: "Heartspirit",
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" className={alegreya.variable}>
+      <body>{children}</body>
+    </html>
+  );
+}
+
 }
