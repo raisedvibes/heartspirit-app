@@ -138,15 +138,14 @@
   --nav-h: 64px;
   --bottom-bar-h: 72px;
 
-  /* Removed broken blob URL - using gradient fallback instead */
-  --background-image: linear-gradient(135deg, #466d1d 0%, #36454f 100%);
+  /* Fern background image used by all pages */
+  --background-image: url("https://tajqnuta9fwavw6h.public.blob.vercel-storage.com/fern.truenature.png");
 
   /* Light/default mode base (matches Dashboard aesthetic) */
   --background: #0a0a0a;
   --foreground: #ffffff;
 }
 
-/* Fixed @theme inline syntax - removed duplicate block with broken syntax */
 @theme inline {
   /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
   --color-background: var(--background);
@@ -210,11 +209,11 @@
 
   body {
     @apply bg-background text-foreground;
-    /* Using gradient fallback instead of broken blob URL */
-    background: var(--background-image);
+    background-image: var(--background-image);
     background-size: cover;
     background-position: center top;
     background-attachment: fixed;
+    background-color: transparent !important; /* Removes white glow */
   }
 }
 
