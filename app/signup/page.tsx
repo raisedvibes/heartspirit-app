@@ -78,10 +78,7 @@ export default function SignupPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center p-4">
-      {/* 🎥 Video Background */}
-      <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0">
-        <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/283015_small-8jDnrzEeL7dNYzMKF9NBoGZn8bJtYC.mp4" type="video/mp4" />
-      </video>
+      <div className="absolute inset-0 bg-gradient-to-br from-[#466d1d] via-[#36454f] to-[#2a3a3f] z-0" />
 
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/50 z-10" />
