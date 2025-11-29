@@ -7,15 +7,10 @@ import { DecahedronPortal } from "@/components/DecahedronPortal"
 import { Rituals } from "@/components/dashboard/rituals"
 import { JournalQuickAccess } from "@/components/dashboard/journal-quick-access"
 import { Circles } from "@/components/dashboard/circles"
-import { Card, CardContent } from "@/components/ui/card"
 import { TranslucentCard } from "@/components/ui/translucent-card"
-import { MessageSquare } from "lucide-react"
 import Link from "next/link"
-import mantras from "@/data/mantras.json"
 
 export default function DashboardPage() {
-  const todayISO = new Date().toISOString().slice(0, 10)
-  const todayMantra = mantras.find((m) => m.date === todayISO)
   const [isSpeaking, setIsSpeaking] = useState(false)
 
   async function speakText(text: string) {
@@ -31,10 +26,8 @@ export default function DashboardPage() {
       console.log("[v0] Response status:", res.status)
       console.log("[v0] Response Content-Type:", res.headers.get("Content-Type"))
 
-      // Check if response is OK and is audio
       const contentType = res.headers.get("Content-Type") || ""
       if (!res.ok || !contentType.startsWith("audio/")) {
-        // Try to parse error as JSON
         let errorMsg = "Unknown error"
         try {
           const errorData = await res.json()
@@ -47,10 +40,7 @@ export default function DashboardPage() {
         return
       }
 
-      // Valid audio response - create blob and play
       const blob = await res.blob()
-      console.log("[v0] Blob created, size:", blob.size, "type:", blob.type)
-
       const url = URL.createObjectURL(blob)
       const audio = new Audio(url)
 
@@ -79,6 +69,7 @@ export default function DashboardPage() {
       <Navigation />
       <main className="app-main max-w-6xl mx-auto px-4 pb-10 md:pb-16 lg:pb-28">
         <div className="flex flex-col items-center justify-center w-full max-w-3xl mx-auto space-y-10 mt-12">
+
           {/* 🌌 Decahedron Voice Portal */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -99,34 +90,6 @@ export default function DashboardPage() {
             )}
           </motion.div>
 
-          {/* 🪶 Mantra Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
-            className="w-full"
-          >
-            <Card className="p-4 bg-white/20 backdrop-blur-md shadow-md rounded-2xl border border-white/30">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-accent" />
-                  <h3 className="text-base font-semibold text-card-foreground">Word</h3>
-                </div>
-                <Link
-                  href={`/journal?prompt=${encodeURIComponent(todayMantra?.text ?? "")}`}
-                  className="rounded-xl border border-white/30 px-3 py-1.5 text-sm text-muted-foreground hover:bg-white/10"
-                >
-                  Reflect
-                </Link>
-              </div>
-              <CardContent className="p-0">
-                <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
-                  {todayMantra ? `“${todayMantra.text}”` : "No mantra for today."}
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
-
           {/* 🕯 Daily Rituals + Journal + Circles */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full items-stretch">
             <TranslucentCard>
@@ -139,6 +102,7 @@ export default function DashboardPage() {
               <Circles />
             </TranslucentCard>
           </div>
+
         </div>
       </main>
     </div>
