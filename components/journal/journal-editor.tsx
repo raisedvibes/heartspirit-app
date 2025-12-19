@@ -26,7 +26,11 @@ const prompts = [
   "What intention do I set for tomorrow?",
 ]
 
-export function JournalEditor({ onClose, onSave, initialContent = "" }: JournalEditorProps) {
+export function JournalEditor({
+  onClose,
+  onSave,
+  initialContent = "",
+}: JournalEditorProps) {
   const [title, setTitle] = useState("")
   const [content, setContent] = useState(initialContent)
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null)
@@ -43,22 +47,30 @@ export function JournalEditor({ onClose, onSave, initialContent = "" }: JournalE
 
   return (
     <div className="space-y-6">
-      {/* Editor Header */}
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">New Entry</h2>
-        <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="sm" onClick={onClose} className="w-9 h-9 p-0">
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
+        <h2 className="text-lg font-semibold text-neutral-900">
+          New Entry
+        </h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClose}
+          className="w-9 h-9 p-0 text-neutral-600 hover:text-neutral-900"
+        >
+          <X className="w-4 h-4" />
+        </Button>
       </div>
 
       {/* Writing Prompts */}
-      <Card className="p-4 bg-card border-border shadow-sm">
+      <Card className="p-4 bg-white text-neutral-900 border-neutral-200 shadow-md">
         <div className="flex items-center mb-3">
           <Sparkles className="w-4 h-4 text-accent mr-2" />
-          <h3 className="text-sm font-semibold text-card-foreground">Writing Prompts</h3>
+          <h3 className="text-sm font-semibold">
+            Writing Prompts
+          </h3>
         </div>
+
         <div className="space-y-2">
           {prompts.map((prompt, index) => (
             <motion.button
@@ -66,10 +78,10 @@ export function JournalEditor({ onClose, onSave, initialContent = "" }: JournalE
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => usePrompt(prompt)}
-              className={`w-full p-2 text-left text-xs rounded-lg transition-all duration-200 ${
+              className={`w-full p-2 text-left text-xs rounded-lg border transition-all ${
                 selectedPrompt === prompt
-                  ? "bg-accent/10 text-accent border border-accent/20"
-                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                  ? "bg-accent/10 text-accent border-accent/30"
+                  : "bg-neutral-50 text-neutral-700 border-neutral-200 hover:bg-neutral-100"
               }`}
             >
               {prompt}
@@ -79,38 +91,49 @@ export function JournalEditor({ onClose, onSave, initialContent = "" }: JournalE
       </Card>
 
       {/* Editor Form */}
-      <Card className="p-6 bg-card border-border shadow-sm">
+      <Card className="p-6 bg-white text-neutral-900 border-neutral-200 shadow-lg">
         <div className="space-y-4">
-          {/* Title Input */}
+          {/* Title */}
           <div>
-            <label className="text-sm font-medium text-card-foreground mb-2 block">Title (optional)</label>
+            <label className="block mb-2 text-sm font-medium">
+              Title (optional)
+            </label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Give your entry a title..."
-              className="bg-input border-border focus:border-accent focus:ring-accent/20"
+              className="bg-white text-neutral-900 placeholder-neutral-400 border-neutral-300 focus:border-accent focus:ring-accent/20"
             />
           </div>
 
-          {/* Content Textarea */}
+          {/* Content */}
           <div>
-            <label className="text-sm font-medium text-card-foreground mb-2 block">Your thoughts</label>
+            <label className="block mb-2 text-sm font-medium">
+              Your thoughts
+            </label>
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Start writing your thoughts..."
-              className="min-h-[200px] bg-input border-border focus:border-accent focus:ring-accent/20 resize-none"
+              className="min-h-[200px] bg-white text-neutral-900 placeholder-neutral-400 border-neutral-300 focus:border-accent focus:ring-accent/20 resize-none"
             />
           </div>
 
           {/* Character Count */}
-          <div className="text-xs text-muted-foreground text-right">{content.length} characters</div>
+          <div className="text-xs text-neutral-500 text-right">
+            {content.length} characters
+          </div>
 
-          {/* Action Buttons */}
+          {/* Actions */}
           <div className="flex items-center justify-end space-x-3 pt-4">
-            <Button variant="outline" onClick={onClose} className="bg-transparent">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="border-neutral-300 text-neutral-700 hover:bg-neutral-100"
+            >
               Cancel
             </Button>
+
             <Button
               onClick={handleSave}
               disabled={!content.trim() && !title.trim()}

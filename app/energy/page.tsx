@@ -5,7 +5,6 @@ import { Navigation } from "@/components/layout/navigation"
 
 const practices = [
   { id: 1, title: "Focused Breath Awareness", duration: "5 min" },
-  { id: 2, title: "Hong-Sau Mantra", duration: "10 min" },
   { id: 3, title: "Heart Coherence", duration: "7 min" },
   { id: 4, title: "Grounding Visualization", duration: "5 min" },
   { id: 5, title: "Nadi Shodhana", duration: "4 min" },
