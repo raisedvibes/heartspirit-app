@@ -90,7 +90,7 @@ export default function LoginPage() {
               <h1 className="text-2xl font-semibold tracking-wide">
                 Enter Your Portal
               </h1>
-              <p className="text-white/70">Welcome back</p>
+           
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
