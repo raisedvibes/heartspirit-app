@@ -49,7 +49,7 @@ export default function HomePage() {
             transition={{ delay: 0.4, duration: 0.8 }}
             className="text-xl md:text-2xl text-white/90 leading-relaxed drop-shadow-lg"
           >
-            Your portal to energy alignment.
+           
           </motion.p>
 
           {/* Features */}
