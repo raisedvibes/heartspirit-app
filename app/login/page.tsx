@@ -76,9 +76,9 @@ export default function LoginPage() {
           </Link>
 
           <div className="flex items-center gap-3">
-            <Leaf className="w-5 h-5 text-white/80" />
+            
             <h1 className="text-xl font-semibold tracking-wide">
-              HeartSpirit
+              heartspirit
             </h1>
           </div>
         </div>
