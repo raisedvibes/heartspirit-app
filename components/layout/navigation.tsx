@@ -3,12 +3,10 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { User, Settings } from "lucide-react"
+import { Settings } from "lucide-react"
 import Link from "next/link"
-import { ProfileModal } from "./profile-modal"
 
 export function Navigation() {
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [hidden, setHidden] = useState(false)
   const [lastY, setLastY] = useState(0)
 
@@ -28,49 +26,32 @@ export function Navigation() {
   }
 
   return (
-    <>
-      <motion.nav
-        initial={false}
-        animate={{ y: hidden ? -64 : 0 }}
-        transition={{ type: "tween", duration: 0.2 }}
-        className="fixed top-0 left-0 right-0 z-50 bg-transparent"
-      >
-        <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-          {/* App Title */}
-          <button
-            onClick={scrollToTop}
-            className="text-lg font-semibold text-white cursor-pointer hover:text-white/90 transition-colors"
+    <motion.nav
+      initial={false}
+      animate={{ y: hidden ? -64 : 0 }}
+      transition={{ type: "tween", duration: 0.2 }}
+      className="fixed top-0 left-0 right-0 z-50 bg-transparent"
+    >
+      <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+        {/* App Title */}
+        <button
+          onClick={scrollToTop}
+          className="text-lg font-semibold text-white cursor-pointer hover:text-white/90 transition-colors"
+        >
+          heartspirit
+        </button>
+
+        {/* Settings Icon */}
+        <Link href="/settings" aria-label="Settings">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-9 h-9 p-0 text-white hover:bg-gradient-to-br hover:from-white/10 hover:to-white/5 hover:backdrop-blur-md hover:shadow-inner transition-all"
           >
-            heartspirit
-          </button>
-
-          {/* Icons */}
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-9 h-9 p-0 text-white hover:bg-gradient-to-br hover:from-white/10 hover:to-white/5 hover:backdrop-blur-md hover:shadow-inner transition-all"
-              onClick={() => setIsProfileModalOpen(true)}
-            >
-              <User className="w-4 h-4" />
-            </Button>
-            <Link href="/settings">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-9 h-9 p-0 text-white hover:bg-gradient-to-br hover:from-white/10 hover:to-white/5 hover:backdrop-blur-md hover:shadow-inner transition-all"
-              >
-                <Settings className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </motion.nav>
-
-      <ProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-      />
-    </>
+            <Settings className="w-4 h-4" />
+          </Button>
+        </Link>
+      </div>
+    </motion.nav>
   )
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { Navigation } from "@/components/layout/navigation"
-import { Card } from "@/components/ui/card"
+import { TranslucentCard } from "@/components/ui/translucent-card"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
@@ -29,75 +29,66 @@ export default function SettingsPage() {
   })
 
   const toggleSection = (section: keyof typeof openSections) => {
-    setOpenSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }))
+    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
   }
+
+  const SectionHeader = ({
+    section,
+    icon: Icon,
+    title,
+  }: {
+    section: keyof typeof openSections
+    icon: React.ElementType
+    title: string
+  }) => (
+    <button onClick={() => toggleSection(section)} className="w-full p-2">
+      <div className="flex items-center justify-between rounded-xl px-3 py-3 hover:bg-background/40 transition-colors">
+        <div className="flex items-center gap-3">
+          <Icon className="w-5 h-5 text-accent" />
+          <h2 className="text-base font-semibold">{title}</h2>
+        </div>
+        <ChevronDown className={`w-4 h-4 transition-transform ${openSections[section] ? "rotate-180" : ""}`} />
+      </div>
+    </button>
+  )
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/5">
       <Navigation />
-      
-<main className="app-main max-w-6xl mx-auto px-4">
+
+      <main className="app-main max-w-6xl mx-auto px-4">
         <div className="space-y-4">
           <div className="flex items-center gap-3 px-1">
             <Link href="/dashboard">
-          <Button variant="ghost" size="icon">
-  <ArrowLeft className="w-4 h-4" />
-</Button>
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
             </Link>
-          
           </div>
 
-          <Card className="overflow-hidden">
-            <button
-              onClick={() => toggleSection("profile")}
-              className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <User className="w-5 h-5 text-accent" />
-                <h2 className="text-base font-semibold">Profile & Account</h2>
-              </div>
-              <ChevronDown className={`w-4 h-4 transition-transform ${openSections.profile ? "rotate-180" : ""}`} />
-            </button>
-            <div
-              className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-96" : "max-h-0"}`}
-            >
+          {/* Profile & Account */}
+          <TranslucentCard>
+            <SectionHeader section="profile" icon={User} title="Profile & Account" />
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-96" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-3">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-background/30 border border-border/30">
                   <div>
                     <p className="font-medium text-sm">Sarah Johnson</p>
                     <p className="text-xs text-muted-foreground">sarah.johnson@email.com</p>
                   </div>
-                  <Button
-  size="sm"
-  className="bg-accent hover:bg-accent text-accent-foreground"
->
-  <Edit className="w-3 h-3 mr-1" />
-  Edit
-</Button>
+                  <Button size="sm" className="bg-accent hover:bg-accent text-accent-foreground">
+                    <Edit className="w-3 h-3 mr-1" />
+                    Edit
+                  </Button>
                 </div>
               </div>
             </div>
-          </Card>
+          </TranslucentCard>
 
-          <Card className="overflow-hidden">
-            <button
-              onClick={() => toggleSection("notifications")}
-              className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-accent" />
-                <h2 className="text-base font-semibold">Notifications</h2>
-              </div>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${openSections.notifications ? "rotate-180" : ""}`}
-              />
-            </button>
-            <div
-              className={`overflow-hidden transition-all duration-300 ${openSections.notifications ? "max-h-96" : "max-h-0"}`}
-            >
+          {/* Notifications */}
+          <TranslucentCard>
+            <SectionHeader section="notifications" icon={Bell} title="Notifications" />
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.notifications ? "max-h-96" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -145,24 +136,12 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-          </Card>
+          </TranslucentCard>
 
-          <Card className="overflow-hidden">
-            <button
-              onClick={() => toggleSection("personalization")}
-              className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Palette className="w-5 h-5 text-accent" />
-                <h2 className="text-base font-semibold">Personalization</h2>
-              </div>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${openSections.personalization ? "rotate-180" : ""}`}
-              />
-            </button>
-            <div
-              className={`overflow-hidden transition-all duration-300 ${openSections.personalization ? "max-h-96" : "max-h-0"}`}
-            >
+          {/* Personalization */}
+          <TranslucentCard>
+            <SectionHeader section="personalization" icon={Palette} title="Personalization" />
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.personalization ? "max-h-96" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="theme" className="text-sm font-medium">
@@ -195,22 +174,12 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-          </Card>
+          </TranslucentCard>
 
-          <Card className="overflow-hidden">
-            <button
-              onClick={() => toggleSection("data")}
-              className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Database className="w-5 h-5 text-accent" />
-                <h2 className="text-base font-semibold">Data & Tracking</h2>
-              </div>
-              <ChevronDown className={`w-4 h-4 transition-transform ${openSections.data ? "rotate-180" : ""}`} />
-            </button>
-            <div
-              className={`overflow-hidden transition-all duration-300 ${openSections.data ? "max-h-96" : "max-h-0"}`}
-            >
+          {/* Data & Tracking */}
+          <TranslucentCard>
+            <SectionHeader section="data" icon={Database} title="Data & Tracking" />
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.data ? "max-h-96" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -238,38 +207,28 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-          </Card>
+          </TranslucentCard>
 
-          <Card className="overflow-hidden">
-            <button
-              onClick={() => toggleSection("support")}
-              className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <HelpCircle className="w-5 h-5 text-accent" />
-                <h2 className="text-base font-semibold">Support & Legal</h2>
-              </div>
-              <ChevronDown className={`w-4 h-4 transition-transform ${openSections.support ? "rotate-180" : ""}`} />
-            </button>
-            <div
-              className={`overflow-hidden transition-all duration-300 ${openSections.support ? "max-h-96" : "max-h-0"}`}
-            >
+          {/* Support & Legal */}
+          <TranslucentCard>
+            <SectionHeader section="support" icon={HelpCircle} title="Support & Legal" />
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.support ? "max-h-96" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-2">
-                <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+                <Button variant="ghost" size="sm" className="w-full justify-start h-9 hover:bg-background/40">
                   Help
                 </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+                <Button variant="ghost" size="sm" className="w-full justify-start h-9 hover:bg-background/40">
                   Contact Support
                 </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+                <Button variant="ghost" size="sm" className="w-full justify-start h-9 hover:bg-background/40">
                   Privacy Policy
                 </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+                <Button variant="ghost" size="sm" className="w-full justify-start h-9 hover:bg-background/40">
                   Terms of Use
                 </Button>
               </div>
             </div>
-          </Card>
+          </TranslucentCard>
         </div>
       </main>
     </div>
