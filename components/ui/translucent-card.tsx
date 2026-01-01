@@ -2,7 +2,11 @@
 
 import { cn } from "@/lib/utils"
 
-export function TranslucentCard({
+/**
+ * Default export (keeps existing imports working):
+ *   import TranslucentCard from "@/components/ui/translucent-card"
+ */
+export default function TranslucentCard({
   className,
   children,
 }: {
@@ -12,9 +16,7 @@ export function TranslucentCard({
   return (
     <div
       className={cn(
-        // Main glass look
         "rounded-2xl bg-white/20 backdrop-blur-md shadow-md border border-white/30 text-white",
-        // Force children (like <CardContent>) to drop backgrounds & shadows
         "[&>*]:bg-transparent [&>*]:shadow-none [&>*]:border-0",
         className
       )}
@@ -23,3 +25,9 @@ export function TranslucentCard({
     </div>
   )
 }
+
+/**
+ * Named export (fixes any leftover imports like):
+ *   import { TranslucentCard } from "@/components/ui/translucent-card"
+ */
+export { TranslucentCard }
