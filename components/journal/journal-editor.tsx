@@ -98,7 +98,7 @@ export function JournalEditor({ onClose, onSave, initialContent = "" }: JournalE
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Give your entry a title..."
+              placeholder="Entry title..."
               className="bg-white text-neutral-900 placeholder-neutral-400 border-white/30 focus:border-accent focus:ring-accent/20"
             />
           </div>
