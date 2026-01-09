@@ -9,14 +9,17 @@ export default function HomePage() {
   return (
     <div className="relative min-h-screen flex flex-col">
       {/* Video Background */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="absolute inset-0 w-full h-full object-cover z-0"
-      >
-        <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/283015_small-8jDnrzEeL7dNYzMKF9NBoGZn8bJtYC.mp4" type="video/mp4" />
+      <video autoPlay loop muted playsInline preload="auto" className="absolute inset-0 w-full h-full object-cover z-0">
+        <source
+          src="https://tajqnuta9fwavw6h.public.blob.vercel-storage.com/desktop.heartspirit.mp4"
+          type="video/mp4"
+          media="(min-width: 769px)"
+        />
+        <source
+          src="https://tajqnuta9fwavw6h.public.blob.vercel-storage.com/mobilevideo.heartspirit.mp4"
+          type="video/mp4"
+          media="(max-width: 768px)"
+        />
       </video>
 
       {/* Dark overlay */}
@@ -30,7 +33,6 @@ export default function HomePage() {
           transition={{ duration: 0.8 }}
           className="text-center max-w-3xl mx-auto space-y-8"
         >
-
           {/* Brand Header */}
           <motion.h1
             className="
@@ -48,9 +50,7 @@ export default function HomePage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.8 }}
             className="text-xl md:text-2xl text-white/90 leading-relaxed drop-shadow-lg"
-          >
-           
-          </motion.p>
+          ></motion.p>
 
           {/* Features */}
           <motion.div
@@ -106,7 +106,6 @@ export default function HomePage() {
               </Button>
             </Link>
           </motion.div>
-
         </motion.div>
       </div>
     </div>

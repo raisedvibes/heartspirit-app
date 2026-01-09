@@ -65,10 +65,10 @@ export function EnergyCheck({ userName }: { userName?: string }) {
         {step === "feeling" && (
           <div className="space-y-4 sm:space-y-6">
             <div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-2 text-center sm:text-left text-gray-800">
+              <h3 className="text-base font-semibold text-card-foreground">
                 How do you feel right now{namePart}?
               </h3>
-              <p className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+              <p className="text-xs sm:text-sm text-center sm:text-left text-slate-300">
                 Choose what feels closest.
               </p>
             </div>

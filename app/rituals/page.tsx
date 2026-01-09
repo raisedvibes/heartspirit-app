@@ -20,14 +20,35 @@ import {
 } from "@/lib/rituals"
 
 // ---------- styles ----------
+// Higher contrast day-cells so icons/buttons never disappear on light glass.
 const statusStyle: Record<Mark, string> = {
-  empty: "bg-white/10 border border-white/20 hover:bg-white/20",
-  yes: "bg-emerald-500/80 border border-emerald-300 text-white hover:bg-emerald-400/80",
-  no: "bg-rose-500/80 border border-rose-300 text-white hover:bg-rose-400/80",
-  skip: "bg-white/10 border border-white/30 text-white/70 hover:bg-white/20",
+  empty:
+    "bg-black/25 border border-white/25 text-white/90 hover:bg-black/35 hover:border-white/35 shadow-[0_10px_30px_-22px_rgba(0,0,0,0.85)]",
+  yes: "bg-emerald-500/85 border border-emerald-300/70 text-white hover:bg-emerald-400/85 shadow-[0_10px_30px_-22px_rgba(0,0,0,0.85)]",
+  no: "bg-rose-500/85 border border-rose-300/70 text-white hover:bg-rose-400/85 shadow-[0_10px_30px_-22px_rgba(0,0,0,0.85)]",
+  skip:
+    "bg-black/20 border border-white/30 text-white/85 hover:bg-black/30 hover:border-white/40 shadow-[0_10px_30px_-22px_rgba(0,0,0,0.85)]",
 }
 
 const GRID = "grid-cols-[minmax(0,2fr)_repeat(7,minmax(0,1fr))_auto_auto]"
+
+// Unified “on-glass” action button style (Edit/Delete/etc) just for this page.
+const ACTION_BTN =
+  "text-xs rounded-lg border border-white/28 bg-black/20 px-2 py-1 text-white/90 backdrop-blur-sm " +
+  "shadow-[0_10px_30px_-22px_rgba(0,0,0,0.8)] hover:bg-black/30 hover:border-white/40 transition"
+
+// Delete uses same base but red-tinted hover for clarity.
+const DELETE_BTN =
+  "text-xs rounded-lg border border-rose-300/25 bg-rose-500/10 px-2 py-1 text-rose-200 backdrop-blur-sm " +
+  "shadow-[0_10px_30px_-22px_rgba(0,0,0,0.8)] hover:bg-rose-500/18 hover:border-rose-300/45 hover:text-rose-100 transition"
+
+// Tag pill slightly stronger so it’s always readable on light glass.
+const TAG_PILL =
+  "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/20 border border-white/25 text-white/90 text-xs backdrop-blur-sm"
+
+const CARD_WRAP =
+  "rounded-2xl p-4 bg-white/10 backdrop-blur-xl border border-white/20 " +
+  "shadow-[0_18px_60px_-34px_rgba(0,0,0,0.8)] hover:bg-white/14 hover:border-white/30 transition"
 
 // ---------- helpers ----------
 const parseTags = (input?: string) =>
@@ -192,7 +213,7 @@ export default function RitualsPage() {
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:text-white shadow-md"
+              className="rounded-xl bg-black/25 border border-white/25 text-white hover:bg-black/35 hover:text-white shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] backdrop-blur-md"
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
@@ -203,9 +224,10 @@ export default function RitualsPage() {
         <div className="mb-4">
           <button
             onClick={() => setShowAdd((v) => !v)}
-            className="inline-flex items-center rounded-xl bg-white/20 border border-white/30 
-                       backdrop-blur-md text-white px-4 py-2 text-sm font-medium shadow-md 
-                       hover:bg-white/30 transition"
+            className="inline-flex items-center rounded-xl bg-black/25 border border-white/25 
+                       backdrop-blur-md text-white px-4 py-2 text-sm font-medium 
+                       shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)]
+                       hover:bg-black/35 hover:border-white/35 transition"
           >
             + Add Ritual
           </button>
@@ -215,42 +237,42 @@ export default function RitualsPage() {
         {showAdd && (
           <div
             className="mb-4 rounded-2xl p-4 
-                       bg-white/20 backdrop-blur-md 
-                       border border-white/30 shadow-md 
+                       bg-white/14 backdrop-blur-xl 
+                       border border-white/25 shadow-[0_18px_60px_-34px_rgba(0,0,0,0.85)]
                        grid sm:grid-cols-3 gap-3"
           >
             <div className="sm:col-span-1">
-              <label className="text-sm text-white/80">Name</label>
+              <label className="text-sm text-white/85">Name</label>
               <input
                 className="mt-1 w-full rounded-xl 
-                           bg-white/10 border border-white/25 
-                           text-white placeholder:text-white/40 
-                           px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/60"
+                           bg-black/20 border border-white/25 
+                           text-white placeholder:text-white/45 
+                           px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/70"
                 value={addName}
                 onChange={(e) => setAddName(e.target.value)}
                 placeholder="e.g., Morning Meditation"
               />
             </div>
             <div>
-              <label className="text-sm text-white/80">Tags (comma-separated)</label>
+              <label className="text-sm text-white/85">Tags (comma-separated)</label>
               <input
                 className="mt-1 w-full rounded-xl 
-                           bg-white/10 border border-white/25 
-                           text-white placeholder:text-white/40 
-                           px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/60"
+                           bg-black/20 border border-white/25 
+                           text-white placeholder:text-white/45 
+                           px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/70"
                 value={addTags}
                 onChange={(e) => setAddTags(e.target.value)}
                 placeholder="breathwork, morning"
               />
             </div>
             <div>
-              <label className="text-sm text-white/80">Reminder (optional)</label>
+              <label className="text-sm text-white/85">Reminder (optional)</label>
               <input
                 type="time"
                 className="mt-1 w-full rounded-xl 
-                           bg-white/10 border border-white/25 
-                           text-white placeholder:text-white/40 
-                           px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/60"
+                           bg-black/20 border border-white/25 
+                           text-white placeholder:text-white/45 
+                           px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/70"
                 value={addReminder}
                 onChange={(e) => setAddReminder(e.target.value)}
               />
@@ -260,16 +282,16 @@ export default function RitualsPage() {
             <div className="sm:col-span-3 flex justify-end gap-2">
               <button
                 className="px-4 py-2 rounded-xl 
-                           bg-white/10 text-white/80 
-                           hover:bg-white/20 transition border border-white/25"
+                           bg-black/20 text-white/90 
+                           hover:bg-black/30 transition border border-white/25 backdrop-blur-sm"
                 onClick={() => setShowAdd(false)}
               >
                 Cancel
               </button>
               <button
                 className="px-4 py-2 rounded-xl 
-                           bg-accent/80 text-white 
-                           hover:bg-accent shadow-md transition"
+                           bg-accent/85 text-white 
+                           hover:bg-accent shadow-[0_14px_50px_-28px_rgba(0,0,0,0.85)] transition"
                 onClick={addRitual}
               >
                 Add
@@ -278,87 +300,116 @@ export default function RitualsPage() {
           </div>
         )}
 
-        {/* Week Navigator */}
-        <div className="mb-3 flex flex-col gap-2 sm:gap-3">
-          <div className="flex items-center justify-center sm:justify-between">
-            <div className="text-sm sm:text-base font-medium text-white/80">
-              {formatWeekRange(weekISO)}
+        {/* Week Navigator (date range integrated into the same bar) */}
+        <div className="mb-4 rounded-2xl p-3 bg-white/12 backdrop-blur-xl border border-white/22 shadow-[0_16px_50px_-32px_rgba(0,0,0,0.8)]">
+          {/* Mobile */}
+          <div className="sm:hidden space-y-2">
+            <div className="text-center text-sm font-medium text-white/85">{formatWeekRange(weekISO)}</div>
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-white border border-white/28 bg-black/20 hover:bg-black/30 backdrop-blur-md"
+                onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Back
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-white border border-white/28 bg-black/20 hover:bg-black/30 backdrop-blur-md"
+                onClick={() => setWeekAnchor(new Date())}
+              >
+                Today
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className={`text-white border border-white/28 bg-black/20 hover:bg-black/30 backdrop-blur-md ${
+                  nextDisabled ? "opacity-40 cursor-not-allowed hover:bg-black/20" : ""
+                }`}
+                onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}
+                disabled={nextDisabled}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
-          <div className="flex items-center justify-center sm:justify-between gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-white border border-white/30 bg-white/10 hover:bg-white/20 backdrop-blur-md"
-              onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Back
-            </Button>
+          {/* Desktop */}
+          <div className="hidden sm:grid grid-cols-3 items-center gap-2">
+            <div className="justify-self-start">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-white border border-white/28 bg-black/20 hover:bg-black/30 backdrop-blur-md"
+                onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Back
+              </Button>
+            </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-white border border-white/30 bg-white/10 hover:bg-white/20 backdrop-blur-md"
-              onClick={() => setWeekAnchor(new Date())}
-            >
-              Today
-            </Button>
+            <div className="text-center text-sm sm:text-base font-medium text-white/85">
+              {formatWeekRange(weekISO)}
+            </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className={`text-white border border-white/30 bg-white/10 hover:bg-white/20 backdrop-blur-md ${
-                nextDisabled ? "opacity-40 cursor-not-allowed hover:bg-white/10" : ""
-              }`}
-              onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}
-              disabled={nextDisabled}
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <div className="justify-self-end flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-white border border-white/28 bg-black/20 hover:bg-black/30 backdrop-blur-md"
+                onClick={() => setWeekAnchor(new Date())}
+              >
+                Today
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className={`text-white border border-white/28 bg-black/20 hover:bg-black/30 backdrop-blur-md ${
+                  nextDisabled ? "opacity-40 cursor-not-allowed hover:bg-black/20" : ""
+                }`}
+                onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}
+                disabled={nextDisabled}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Desktop Header */}
-        <div
-          className="hidden sm:block rounded-2xl p-3 
-                     bg-white/15 backdrop-blur-md 
-                     border border-white/30 shadow-md"
-        >
+        <div className="hidden sm:block rounded-2xl p-3 bg-white/12 backdrop-blur-xl border border-white/22 shadow-[0_16px_50px_-32px_rgba(0,0,0,0.8)]">
           <div className={`grid ${GRID} gap-2 items-center`}>
             {WEEK_LABELS_MON_START.map((d) => (
-              <div key={d} className="text-center text-sm font-medium text-white/85">
+              <div key={d} className="text-center text-sm font-medium text-white/90">
                 {d}
               </div>
             ))}
-            <div className="text-right text-sm font-medium text-white/80">Record</div>
+            <div className="text-right text-sm font-medium text-white/85">Record</div>
             <div className="w-12" />
           </div>
         </div>
 
         {/* List */}
         {rituals.length === 0 ? (
-          <div className="text-center py-12">
-            <div
-              className="w-16 h-16 mx-auto mb-4 rounded-full 
-                         bg-white/20 border border-white/30 
-                         backdrop-blur-md grid place-items-center text-white text-2xl"
-            >
-              +
+          <div className="mt-6">
+            <div className={`${CARD_WRAP} text-center py-10`}>
+              <h3 className="text-lg font-medium text-white mb-1">No rituals yet</h3>
+              <p className="text-white/85 mb-5">Add your first ritual to begin tracking.</p>
+              <button
+                onClick={() => setShowAdd(true)}
+                className="inline-flex items-center rounded-xl bg-black/25 border border-white/25 backdrop-blur-md text-white px-4 py-2 text-sm font-medium shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] hover:bg-black/35 hover:border-white/35 transition"
+              >
+                + Add Ritual
+              </button>
             </div>
-            <h3 className="text-lg font-medium text-white mb-1">No rituals yet</h3>
-            <p className="text-white/80 mb-5">Add your first ritual to begin tracking.</p>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="inline-flex items-center rounded-xl 
-                         bg-white/20 border border-white/30 
-                         backdrop-blur-md text-white px-4 py-2 
-                         text-sm font-medium shadow-md hover:bg-white/30 transition"
-            >
-              + Add Ritual
-            </button>
           </div>
         ) : (
           <div className="mt-3 space-y-3">
@@ -366,13 +417,7 @@ export default function RitualsPage() {
               const streak = computeStreak(r.history, today)
 
               return (
-                <div
-                  key={r.id}
-                  className="rounded-2xl p-4 
-                             bg-white/15 backdrop-blur-md 
-                             border border-white/30 shadow-md 
-                             hover:bg-white/20 transition"
-                >
+                <div key={r.id} className={CARD_WRAP}>
                   {/* Desktop row */}
                   <div className={`hidden sm:grid ${GRID} items-center gap-2`} data-rit-row>
                     {/* Left: name + tags */}
@@ -380,32 +425,19 @@ export default function RitualsPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-medium text-white truncate">{r.name}</h3>
                         {r.tags.map((t, i) => (
-                          <span
-                            key={i}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg 
-                                       bg-white/10 border border-white/25 
-                                       text-white/85 text-xs"
-                          >
+                          <span key={i} className={TAG_PILL}>
                             {t}
                           </span>
                         ))}
-                        {r.reminder && <span className="text-xs text-white/70">{r.reminder}</span>}
+                        {r.reminder && <span className="text-xs text-white/80">{r.reminder}</span>}
                       </div>
 
                       {/* Actions */}
                       <div className="mt-2 flex gap-2 flex-wrap">
-                        <button
-                          className="text-xs rounded-lg border border-white/30 bg-white/10 
-                                     px-2 py-1 text-white/85 hover:bg-white/20 transition"
-                          onClick={() => startEdit(r)}
-                        >
+                        <button className={ACTION_BTN} onClick={() => startEdit(r)}>
                           Edit
                         </button>
-                        <button
-                          className="text-xs rounded-lg px-2 py-1 
-                                     text-rose-300 hover:text-rose-400 hover:bg-rose-500/10 transition"
-                          onClick={() => removeRitual(r.id)}
-                        >
+                        <button className={DELETE_BTN} onClick={() => removeRitual(r.id)}>
                           Delete
                         </button>
                       </div>
@@ -421,17 +453,15 @@ export default function RitualsPage() {
                           data-day-idx={idx}
                           onClick={(e) => (disabled ? undefined : openMenuForDay(e, r.id, iso))}
                           className={`mx-auto w-8 h-8 rounded-xl transition 
-                                      focus:outline-none focus:ring-2 focus:ring-accent/70 
+                                      focus:outline-none focus:ring-2 focus:ring-accent/75 
                                       focus:ring-offset-1 focus:ring-offset-transparent 
-                                      ${statusStyle[s]} ${
-                            disabled ? "opacity-40 cursor-not-allowed" : ""
-                          }`}
+                                      ${statusStyle[s]} ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
                           title={iso}
                           aria-label={`${iso} status`}
                         >
-                          {s === "yes" && <span className="font-bold text-xs">✓</span>}
-                          {s === "no" && <span className="font-bold text-xs">✗</span>}
-                          {s === "skip" && <span className="font-bold text-xs">−</span>}
+                          {s === "yes" && <span className="font-bold text-xs drop-shadow-sm">✓</span>}
+                          {s === "no" && <span className="font-bold text-xs drop-shadow-sm">✗</span>}
+                          {s === "skip" && <span className="font-bold text-xs drop-shadow-sm">−</span>}
                         </button>
                       )
                     })}
@@ -439,10 +469,7 @@ export default function RitualsPage() {
                     {/* Streak */}
                     <div className="text-right">
                       {streak >= 3 && (
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-full 
-                                     bg-amber-400/20 text-amber-200 text-xs font-semibold"
-                        >
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-400/20 text-amber-200 text-xs font-semibold border border-amber-200/20">
                           🔥 {streak}
                         </span>
                       )}
@@ -457,36 +484,23 @@ export default function RitualsPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-medium text-white truncate">{r.name}</h3>
                           {r.tags.map((t, i) => (
-                            <span
-                              key={i}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg 
-                                         bg-white/10 border border-white/25 
-                                         text-white/85 text-xs"
-                            >
+                            <span key={i} className={TAG_PILL}>
                               {t}
                             </span>
                           ))}
                         </div>
 
-                        <div className="mt-1 text-xs text-white/70 flex items-center gap-2">
+                        <div className="mt-1 text-xs text-white/80 flex items-center gap-2">
                           {r.reminder && <span>{r.reminder}</span>}
-                          {streak >= 3 && <span className="opacity-80">• 🔥 {streak}</span>}
+                          {streak >= 3 && <span className="opacity-90">• 🔥 {streak}</span>}
                         </div>
                       </div>
 
                       <div className="flex gap-2 shrink-0">
-                        <button
-                          className="text-xs rounded-lg border border-white/30 bg-white/10 
-                                     px-2 py-1 text-white/85 hover:bg-white/20 transition"
-                          onClick={() => startEdit(r)}
-                        >
+                        <button className={ACTION_BTN} onClick={() => startEdit(r)}>
                           Edit
                         </button>
-                        <button
-                          className="text-xs rounded-lg px-2 py-1 
-                                     text-rose-300 hover:text-rose-400 hover:bg-rose-500/10 transition"
-                          onClick={() => removeRitual(r.id)}
-                        >
+                        <button className={DELETE_BTN} onClick={() => removeRitual(r.id)}>
                           Delete
                         </button>
                       </div>
@@ -495,10 +509,7 @@ export default function RitualsPage() {
                     {/* Mobile day labels */}
                     <div className="grid grid-cols-7 gap-1">
                       {WEEK_LABELS_MON_START.map((d) => (
-                        <div
-                          key={d}
-                          className="text-center text-[10px] leading-none font-medium text-white/70"
-                        >
+                        <div key={d} className="text-center text-[10px] leading-none font-medium text-white/80">
                           {d[0]}
                         </div>
                       ))}
@@ -515,17 +526,15 @@ export default function RitualsPage() {
                             data-day-idx={idx}
                             onClick={(e) => (disabled ? undefined : openMenuForDay(e, r.id, iso))}
                             className={`w-7 h-7 rounded-xl transition 
-                                        focus:outline-none focus:ring-2 focus:ring-accent/70 
+                                        focus:outline-none focus:ring-2 focus:ring-accent/75 
                                         focus:ring-offset-1 focus:ring-offset-transparent 
-                                        ${statusStyle[s]} ${
-                              disabled ? "opacity-40 cursor-not-allowed" : ""
-                            }`}
+                                        ${statusStyle[s]} ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
                             title={iso}
                             aria-label={`${iso} status`}
                           >
-                            {s === "yes" && <span className="font-bold text-[10px]">✓</span>}
-                            {s === "no" && <span className="font-bold text-[10px]">✗</span>}
-                            {s === "skip" && <span className="font-bold text-[10px]">−</span>}
+                            {s === "yes" && <span className="font-bold text-[10px] drop-shadow-sm">✓</span>}
+                            {s === "no" && <span className="font-bold text-[10px] drop-shadow-sm">✗</span>}
+                            {s === "skip" && <span className="font-bold text-[10px] drop-shadow-sm">−</span>}
                           </button>
                         )
                       })}
@@ -552,58 +561,45 @@ export default function RitualsPage() {
       {/* Edit modal */}
       {editing && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm grid place-items-center p-4"
+          className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm grid place-items-center p-4"
           onClick={() => setEditing(null)}
         >
           <div
             className="w-full max-w-md rounded-2xl 
-                       bg-white/10 border border-white/30 
-                       backdrop-blur-xl p-5 shadow-2xl text-white"
+                       bg-white/12 border border-white/25 
+                       backdrop-blur-xl p-5 shadow-[0_24px_90px_-50px_rgba(0,0,0,0.95)] text-white"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal header */}
             <div className="mb-3">
-              <span
-                className="inline-block rounded-md bg-white/10 px-2 py-0.5 
-                           text-xs font-semibold tracking-wide text-white 
-                           border border-white/30"
-              >
+              <span className="inline-block rounded-md bg-black/20 px-2 py-0.5 text-xs font-semibold tracking-wide text-white border border-white/25">
                 EDIT
               </span>
               <h2 className="mt-2 text-lg font-semibold text-white">Ritual</h2>
             </div>
 
             {/* Fields */}
-            <label className="block text-sm text-white/80">Name</label>
+            <label className="block text-sm text-white/85">Name</label>
             <input
-              className="mt-1 w-full rounded-xl 
-                         bg-white/10 border border-white/25 
-                         text-white placeholder:text-white/40 
-                         px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/70"
+              className="mt-1 w-full rounded-xl bg-black/20 border border-white/25 text-white placeholder:text-white/45 px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/75"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
             />
 
             <div className="mt-3">
-              <label className="block text-sm text-white/80">Tags (comma-separated)</label>
+              <label className="block text-sm text-white/85">Tags (comma-separated)</label>
               <input
-                className="mt-1 w-full rounded-xl 
-                           bg-white/10 border border-white/25 
-                           text-white placeholder:text-white/40 
-                           px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/70"
+                className="mt-1 w-full rounded-xl bg-black/20 border border-white/25 text-white placeholder:text-white/45 px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/75"
                 value={editTags}
                 onChange={(e) => setEditTags(e.target.value)}
               />
             </div>
 
             <div className="mt-3">
-              <label className="block text-sm text-white/80">Reminder (optional)</label>
+              <label className="block text-sm text-white/85">Reminder (optional)</label>
               <input
                 type="time"
-                className="mt-1 w-full rounded-xl 
-                           bg-white/10 border border-white/25 
-                           text-white placeholder:text-white/40 
-                           px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/70"
+                className="mt-1 w-full rounded-xl bg-black/20 border border-white/25 text-white placeholder:text-white/45 px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/75"
                 value={editReminder}
                 onChange={(e) => setEditReminder(e.target.value)}
               />
@@ -612,17 +608,13 @@ export default function RitualsPage() {
             {/* Modal Actions */}
             <div className="mt-5 flex justify-end gap-2">
               <button
-                className="px-4 py-2 rounded-xl 
-                           bg-white/10 text-white/85 
-                           hover:bg-white/20 transition border border-white/25"
+                className="px-4 py-2 rounded-xl bg-black/20 text-white/95 hover:bg-black/30 transition border border-white/25 backdrop-blur-sm"
                 onClick={() => setEditing(null)}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 rounded-xl 
-                           bg-accent/80 text-white 
-                           hover:bg-accent shadow-md transition"
+                className="px-4 py-2 rounded-xl bg-accent/85 text-white hover:bg-accent shadow-[0_14px_50px_-28px_rgba(0,0,0,0.85)] transition"
                 onClick={saveEdit}
               >
                 Save
@@ -655,37 +647,35 @@ function DayToolbar({
   return (
     <div className="fixed inset-0 z-40" onClick={onClose}>
       <div
-        className="absolute z-50 rounded-xl 
-                   bg-white/15 backdrop-blur-md 
-                   border border-white/30 shadow-xl"
+        className="absolute z-50 rounded-xl bg-black/35 backdrop-blur-xl border border-white/22 shadow-[0_24px_80px_-48px_rgba(0,0,0,0.95)]"
         style={{ left, top: y, width: w }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="absolute -top-2 left-6 h-0 w-0 border-x-8 border-x-transparent border-b-8 border-white/30" />
-        <div className="absolute -top-[7px] left-[calc(1.5rem+1px)] h-0 w-0 border-x-7 border-x-transparent border-b-7 border-white/20" />
+        <div className="absolute -top-2 left-6 h-0 w-0 border-x-8 border-x-transparent border-b-8 border-white/25" />
+        <div className="absolute -top-[7px] left-[calc(1.5rem+1px)] h-0 w-0 border-x-7 border-x-transparent border-b-7 border-black/35" />
 
-        <div className="flex items-stretch divide-x divide-white/20">
+        <div className="grid grid-cols-4 divide-x divide-white/15">
           <button
             onClick={() => onSelect("empty")}
-            className="flex-1 px-3 py-2 text-sm text-white/85 hover:bg-white/15"
+            className="px-3 py-2 text-sm text-white/90 hover:bg-white/10 transition"
           >
             Erase
           </button>
           <button
             onClick={() => onSelect("yes")}
-            className="flex-1 px-3 py-2 text-sm text-emerald-200 hover:bg-emerald-500/15"
+            className="px-3 py-2 text-sm text-emerald-200 hover:bg-emerald-500/15 transition"
           >
             Yes
           </button>
           <button
             onClick={() => onSelect("no")}
-            className="flex-1 px-3 py-2 text-sm text-rose-200 hover:bg-rose-500/15"
+            className="px-3 py-2 text-sm text-rose-200 hover:bg-rose-500/15 transition"
           >
             No
           </button>
           <button
             onClick={() => onSelect("skip")}
-            className="flex-1 px-3 py-2 text-sm text-white/80 hover:bg-white/12"
+            className="px-3 py-2 text-sm text-white/85 hover:bg-white/10 transition"
           >
             Skip
           </button>

@@ -36,7 +36,7 @@ export function Navigation() {
         {/* App Title */}
         <button
           onClick={scrollToTop}
-          className="text-lg font-semibold text-white cursor-pointer hover:text-white/90 transition-colors"
+          className="text-lg font-semibold text-white cursor-pointer hover:text-white/90 transition-colors shadow-none"
         >
           heartspirit
         </button>

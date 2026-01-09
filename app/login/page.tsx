@@ -6,15 +6,12 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { ArrowLeft, Eye, EyeOff, Leaf } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@supabase/supabase-js"
 
 // Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -49,8 +46,17 @@ export default function LoginPage() {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center p-4">
       {/* Background Video */}
-      <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0">
-        <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/283015_small-8jDnrzEeL7dNYzMKF9NBoGZn8bJtYC.mp4" type="video/mp4" />
+      <video autoPlay loop muted playsInline preload="auto" className="absolute inset-0 w-full h-full object-cover z-0">
+        <source
+          src="https://tajqnuta9fwavw6h.public.blob.vercel-storage.com/desktop.heartspirit.mp4"
+          type="video/mp4"
+          media="(min-width: 769px)"
+        />
+        <source
+          src="https://tajqnuta9fwavw6h.public.blob.vercel-storage.com/mobilevideo.heartspirit.mp4"
+          type="video/mp4"
+          media="(max-width: 768px)"
+        />
       </video>
 
       {/* Dark overlay */}
@@ -66,20 +72,13 @@ export default function LoginPage() {
         {/* Header */}
         <div className="flex items-center mb-10 text-white">
           <Link href="/">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-9 h-9 p-0 mr-4 text-white hover:bg-white/10 rounded-xl"
-            >
+            <Button variant="ghost" size="sm" className="w-9 h-9 p-0 mr-4 text-white hover:bg-white/10 rounded-xl">
               <ArrowLeft className="w-4 h-4" />
             </Button>
           </Link>
 
           <div className="flex items-center gap-3">
-            
-            <h1 className="text-xl font-semibold tracking-wide">
-              heartspirit
-            </h1>
+            <h1 className="text-xl font-semibold tracking-wide">heartspirit</h1>
           </div>
         </div>
 
@@ -87,10 +86,7 @@ export default function LoginPage() {
         <Card className="p-6 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-lg text-white">
           <div className="space-y-6 text-white">
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-semibold tracking-wide">
-                Enter Your Portal
-              </h1>
-           
+              <h1 className="text-2xl font-semibold tracking-wide">Enter Your Portal</h1>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -137,10 +133,7 @@ export default function LoginPage() {
 
               {/* Forgot Password */}
               <div className="text-right">
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-accent hover:text-accent/80"
-                >
+                <Link href="/forgot-password" className="text-sm text-accent hover:text-accent/80">
                   Forgot password?
                 </Link>
               </div>
@@ -173,10 +166,7 @@ export default function LoginPage() {
             {/* Sign Up */}
             <div className="text-center">
               <span className="text-sm text-white/70">Don't have an account? </span>
-              <Link
-                href="/signup"
-                className="text-sm text-accent hover:text-accent/80 font-medium"
-              >
+              <Link href="/signup" className="text-sm text-accent hover:text-accent/80 font-medium">
                 Create account
               </Link>
             </div>

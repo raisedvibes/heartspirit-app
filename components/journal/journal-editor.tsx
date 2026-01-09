@@ -20,17 +20,24 @@ interface JournalEditorProps {
 
 const prompts = [
   "What am I grateful for today?",
-  "How did I honor my energy today?",
   "What brought me peace?",
-  "What challenged me and how did I grow?",
-  "What intention do I set for tomorrow?",
+  "How did I honor my energy today?",
+  "What challenged me and how did I respond?",
+  "My intention is...",
 ]
 
-export function JournalEditor({
-  onClose,
-  onSave,
-  initialContent = "",
-}: JournalEditorProps) {
+// Same “portal glass” recipe as Rituals/Journal + New Entry button
+const GLASS_CARD =
+  "bg-black/25 backdrop-blur-xl border border-white/25 text-white " +
+  "shadow-[0_18px_60px_-34px_rgba(0,0,0,0.85)]"
+
+const GLASS_CARD_HOVER = "hover:bg-black/30 hover:border-white/35 transition"
+
+const GLASS_ICON_BTN =
+  "w-9 h-9 p-0 rounded-xl bg-black/20 border border-white/20 text-white/80 " +
+  "hover:bg-black/30 hover:border-white/35 hover:text-white transition backdrop-blur-md"
+
+export function JournalEditor({ onClose, onSave, initialContent = "" }: JournalEditorProps) {
   const [title, setTitle] = useState("")
   const [content, setContent] = useState(initialContent)
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null)
@@ -49,26 +56,18 @@ export function JournalEditor({
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-neutral-900">
-          New Entry
-        </h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          className="w-9 h-9 p-0 text-neutral-600 hover:text-neutral-900"
-        >
+        <h2 className="text-lg font-semibold text-white">Journal Entry</h2>
+
+        <Button variant="ghost" size="sm" onClick={onClose} className={GLASS_ICON_BTN}>
           <X className="w-4 h-4" />
         </Button>
       </div>
 
       {/* Writing Prompts */}
-      <Card className="p-4 bg-white text-neutral-900 border-neutral-200 shadow-md">
+      <Card className={`p-4 rounded-2xl ${GLASS_CARD} ${GLASS_CARD_HOVER}`}>
         <div className="flex items-center mb-3">
           <Sparkles className="w-4 h-4 text-accent mr-2" />
-          <h3 className="text-sm font-semibold">
-            Writing Prompts
-          </h3>
+          <h3 className="text-sm font-semibold text-white">Reflections</h3>
         </div>
 
         <div className="space-y-2">
@@ -78,10 +77,10 @@ export function JournalEditor({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => usePrompt(prompt)}
-              className={`w-full p-2 text-left text-xs rounded-lg border transition-all ${
+              className={`w-full p-2 text-left text-xs rounded-lg border transition-all backdrop-blur-sm ${
                 selectedPrompt === prompt
-                  ? "bg-accent/10 text-accent border-accent/30"
-                  : "bg-neutral-50 text-neutral-700 border-neutral-200 hover:bg-neutral-100"
+                  ? "bg-accent/20 text-white border-accent/40"
+                  : "bg-black/20 text-white/85 border-white/20 hover:bg-black/30 hover:border-white/30"
               }`}
             >
               {prompt}
@@ -91,57 +90,58 @@ export function JournalEditor({
       </Card>
 
       {/* Editor Form */}
-      <Card className="p-6 bg-white text-neutral-900 border-neutral-200 shadow-lg">
+      <Card className={`p-6 rounded-2xl ${GLASS_CARD} ${GLASS_CARD_HOVER}`}>
         <div className="space-y-4">
           {/* Title */}
           <div>
-            <label className="block mb-2 text-sm font-medium">
-              Title (optional)
-            </label>
+            <label className="block mb-2 text-sm font-medium text-white/90">Title (optional)</label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Give your entry a title..."
-              className="bg-white text-neutral-900 placeholder-neutral-400 border-neutral-300 focus:border-accent focus:ring-accent/20"
+              className="bg-white text-neutral-900 placeholder-neutral-400 border-white/30 focus:border-accent focus:ring-accent/20"
             />
           </div>
 
           {/* Content */}
           <div>
-            <label className="block mb-2 text-sm font-medium">
-              Your thoughts
-            </label>
+            <label className="block mb-2 text-sm font-medium text-white/90">Your thoughts</label>
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Start writing your thoughts..."
-              className="min-h-[200px] bg-white text-neutral-900 placeholder-neutral-400 border-neutral-300 focus:border-accent focus:ring-accent/20 resize-none"
+              className="min-h-[200px] bg-white text-neutral-900 placeholder-neutral-400 border-white/30 focus:border-accent focus:ring-accent/20 resize-none"
             />
           </div>
 
           {/* Character Count */}
-          <div className="text-xs text-neutral-500 text-right">
-            {content.length} characters
-          </div>
+          <div className="text-xs text-white/70 text-right">{content.length} characters</div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="border-neutral-300 text-neutral-700 hover:bg-neutral-100"
-            >
-              Cancel
-            </Button>
+         <div className="flex items-center justify-between pt-4">
+  {/* Cancel — quiet, NO hover change */}
+  <Button
+    variant="ghost"
+    onClick={onClose}
+    className="text-white/55 hover:bg-transparent hover:text-white/55"
+  >
+    Cancel
+  </Button>
 
-            <Button
-              onClick={handleSave}
-              disabled={!content.trim() && !title.trim()}
-              className="bg-accent hover:bg-accent/90 text-accent-foreground"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save Entry
-            </Button>
+  {/* Save — primary, hover gets brighter (white lift) */}
+ <Button
+  onClick={handleSave}
+  disabled={!content.trim() && !title.trim()}
+  className="rounded-xl bg-black/30 border border-white/25 text-white
+             shadow-[0_12px_40px_-26px_rgba(0,0,0,0.85)]
+             backdrop-blur-md transition-colors
+             enabled:hover:bg-white/12 enabled:hover:border-white/55
+             disabled:opacity-40 disabled:cursor-not-allowed"
+>
+  <Save className="w-4 h-4 mr-2" />
+  Save Entry
+</Button>
+
           </div>
         </div>
       </Card>
