@@ -8,6 +8,19 @@ import { Users, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { CircleCard } from "@/components/community/circle-card"
 
+// Matches the Journal "glass" vibe
+const GLASS_BTN =
+  "rounded-xl bg-black/25 border border-white/25 text-white backdrop-blur-md " +
+  "shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] hover:bg-black/35 hover:border-white/35 transition"
+
+const GLASS_CHIP =
+  "rounded-xl bg-black/20 border border-white/25 text-white backdrop-blur-md " +
+  "hover:bg-black/30 hover:border-white/35 transition"
+
+const GLASS_CHIP_ACTIVE =
+  "rounded-xl bg-black/35 border border-white/35 text-white backdrop-blur-md " +
+  "shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] transition"
+
 // Mock data for circles
 const mockCircles = [
   {
@@ -55,11 +68,10 @@ const mockCircles = [
     image: "/sunrise-morning-meditation.png",
     tags: ["Morning", "Mindfulness", "Intention"],
   },
-]
+] as const
 
 export default function CommunityPage() {
-  const [filterFrequency, setFilterFrequency] =
-    useState<"All" | "Weekly" | "Monthly">("All")
+  const [filterFrequency, setFilterFrequency] = useState<"All" | "Weekly" | "Monthly">("All")
   const [joinedCircles, setJoinedCircles] = useState<string[]>([])
 
   const filteredCircles = mockCircles.filter((circle) => {
@@ -68,9 +80,7 @@ export default function CommunityPage() {
 
   const handleJoinCircle = (circleId: string) => {
     setJoinedCircles((prev) =>
-      prev.includes(circleId)
-        ? prev.filter((id) => id !== circleId)
-        : [...prev, circleId]
+      prev.includes(circleId) ? prev.filter((id) => id !== circleId) : [...prev, circleId]
     )
   }
 
@@ -79,19 +89,11 @@ export default function CommunityPage() {
       <Navigation />
 
       <main className="app-main max-w-6xl mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           {/* Header */}
-          <div className="flex items-center justify-between mb-6 w-full">
+          <div className="flex items-center justify-between mb-6 w-full pt-4">
             <Link href="/dashboard" className="shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 shadow-md"
-              >
+              <Button variant="ghost" size="icon" className={GLASS_BTN}>
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
@@ -111,14 +113,10 @@ export default function CommunityPage() {
                 {(["All", "Weekly", "Monthly"] as const).map((filter) => (
                   <Button
                     key={filter}
-                    variant={filterFrequency === filter ? "default" : "outline"}
+                    variant="ghost"
                     size="sm"
                     onClick={() => setFilterFrequency(filter)}
-                    className={
-                      filterFrequency === filter
-                        ? "bg-accent text-accent-foreground"
-                        : "bg-white/20 text-white border-white/30 hover:bg-white/30"
-                    }
+                    className={filterFrequency === filter ? GLASS_CHIP_ACTIVE : GLASS_CHIP}
                   >
                     {filter}
                   </Button>

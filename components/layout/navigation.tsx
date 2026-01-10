@@ -17,13 +17,10 @@ export function Navigation() {
       else if (y < lastY - 6) setHidden(false)
       setLastY(y)
     }
+
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
   }, [lastY])
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
 
   return (
     <motion.nav
@@ -33,13 +30,13 @@ export function Navigation() {
       className="fixed top-0 left-0 right-0 z-50 bg-transparent"
     >
       <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-        {/* App Title */}
-        <button
-          onClick={scrollToTop}
-          className="text-lg font-semibold text-white cursor-pointer hover:text-white/90 transition-colors shadow-none"
+        {/* App Title → Dashboard */}
+        <Link
+          href="/dashboard"
+          className="text-lg font-semibold text-white hover:text-white/90 transition-colors"
         >
           heartspirit
-        </button>
+        </Link>
 
         {/* Settings Icon */}
         <Link href="/settings" aria-label="Settings">
