@@ -13,14 +13,6 @@ const GLASS_BTN =
   "rounded-xl bg-black/25 border border-white/25 text-white backdrop-blur-md " +
   "shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] hover:bg-black/35 hover:border-white/35 transition"
 
-const GLASS_CHIP =
-  "rounded-xl bg-black/20 border border-white/25 text-white backdrop-blur-md " +
-  "hover:bg-black/30 hover:border-white/35 transition"
-
-const GLASS_CHIP_ACTIVE =
-  "rounded-xl bg-black/35 border border-white/35 text-white backdrop-blur-md " +
-  "shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] transition"
-
 // Mock data for circles
 const mockCircles = [
   {
@@ -71,12 +63,7 @@ const mockCircles = [
 ] as const
 
 export default function CommunityPage() {
-  const [filterFrequency, setFilterFrequency] = useState<"All" | "Weekly" | "Monthly">("All")
   const [joinedCircles, setJoinedCircles] = useState<string[]>([])
-
-  const filteredCircles = mockCircles.filter((circle) => {
-    return filterFrequency === "All" || circle.frequency === filterFrequency
-  })
 
   const handleJoinCircle = (circleId: string) => {
     setJoinedCircles((prev) =>
@@ -89,7 +76,11 @@ export default function CommunityPage() {
       <Navigation />
 
       <main className="app-main max-w-6xl mx-auto px-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
           {/* Header */}
           <div className="flex items-center justify-between mb-6 w-full pt-4">
             <Link href="/dashboard" className="shrink-0">
@@ -99,34 +90,16 @@ export default function CommunityPage() {
             </Link>
           </div>
 
-          {/* Browse All */}
+          {/* Circles */}
           <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="mt-6"
           >
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <h2 className="text-lg font-semibold text-white">Browse All Circles</h2>
-
-              <div className="flex gap-2">
-                {(["All", "Weekly", "Monthly"] as const).map((filter) => (
-                  <Button
-                    key={filter}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setFilterFrequency(filter)}
-                    className={filterFrequency === filter ? GLASS_CHIP_ACTIVE : GLASS_CHIP}
-                  >
-                    {filter}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {filteredCircles.length > 0 ? (
+            {mockCircles.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredCircles.map((circle, index) => (
+                {mockCircles.map((circle, index) => (
                   <motion.div
                     key={circle.id}
                     initial={{ opacity: 0, y: 16 }}
