@@ -73,7 +73,7 @@ export default function HomePage() {
 
             <div className="flex flex-col items-center space-y-2 text-white">
               <Users className="w-8 h-8" />
-              <h3 className="font-semibold">Community Circles</h3>
+              <h3 className="font-semibold">Circles</h3>
               <p className="text-sm text-white/70"></p>
             </div>
           </motion.div>

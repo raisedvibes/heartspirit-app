@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { href: "/energy", label: "Energy", Icon: BatteryCharging },
   { href: "/rituals", label: "Rituals", Icon: Flame },
   { href: "/journal", label: "Journal", Icon: NotebookText },
-  { href: "/community", label: "Circles", Icon: Users },
+  { href: "/circles", label: "Circles", Icon: Users },
 ]
 
 const ALLOWED_PREFIXES = [
@@ -18,7 +18,7 @@ const ALLOWED_PREFIXES = [
   "/energy",
   "/rituals",
   "/journal",
-  "/community",
+  "/circles",
   "/practice", // ✅ allow nav on practice pages too
 ]
 

@@ -6,7 +6,7 @@ import { Navigation } from "@/components/layout/navigation"
 import { Button } from "@/components/ui/button"
 import { Users, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { CircleCard } from "@/components/community/circle-card"
+import { CircleCard } from "@/components/circles/circle-card"
 import { createClient } from "@/lib/supabase/client"
 
 // Matches the Journal "glass" vibe
@@ -19,28 +19,19 @@ type CircleRow = {
   name: string
   description: string | null
   frequency: "Weekly" | "Monthly"
-  member_count: number
   image_url: string | null
   tags: string[] | null
   is_published: boolean
   starts_at: string | null
+  payment_url: string | null
   created_at: string
   updated_at: string
 }
 
-export default function CommunityPage() {
+export default function CirclesPage() {
   const [circles, setCircles] = useState<CircleRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-
-  // NOTE: still local-only for now (next step is circle_memberships table)
-  const [joinedCircles, setJoinedCircles] = useState<string[]>([])
-
-  const handleJoinCircle = (circleId: string) => {
-    setJoinedCircles((prev) =>
-      prev.includes(circleId) ? prev.filter((id) => id !== circleId) : [...prev, circleId]
-    )
-  }
 
   useEffect(() => {
     const supabase = createClient()
@@ -52,7 +43,7 @@ export default function CommunityPage() {
       const { data, error } = await supabase
         .from("circles")
         .select(
-          "id,name,description,frequency,member_count,image_url,tags,is_published,starts_at,created_at,updated_at"
+          "id,name,description,frequency,image_url,tags,is_published,starts_at,payment_url,created_at,updated_at"
         )
         .eq("is_published", true)
         .order("created_at", { ascending: false })
@@ -72,16 +63,21 @@ export default function CommunityPage() {
 
   const hasCircles = useMemo(() => circles.length > 0, [circles])
 
+  const handleJoin = (circle: CircleRow) => {
+    const url = circle.payment_url?.trim()
+    if (!url) {
+      alert("Join link not set yet for this circle. Please check back soon.")
+      return
+    }
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
+
   return (
     <div className="min-h-screen text-white">
       <Navigation />
 
       <main className="app-main max-w-6xl mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           {/* Header */}
           <div className="flex items-center justify-between mb-6 w-full pt-4">
             <Link href="/dashboard" className="shrink-0">
@@ -120,12 +116,11 @@ export default function CommunityPage() {
                         name: circle.name,
                         description: circle.description ?? "",
                         frequency: circle.frequency,
-                        memberCount: circle.member_count ?? 0,
                         image: circle.image_url ?? "/placeholder.svg",
                         tags: circle.tags ?? [],
                       }}
-                      isJoined={joinedCircles.includes(circle.id)}
-                      onJoin={() => handleJoinCircle(circle.id)}
+                      isJoined={false}
+                      onJoin={() => handleJoin(circle)}
                     />
                   </motion.div>
                 ))}

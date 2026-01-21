@@ -26,7 +26,7 @@ export function Circles() {
       {/* 🌿 Unified button hover style */}
       <div className="mt-4 flex justify-end">
         <Link
-          href="/community"
+          href="/circles"
           className="rounded-xl border border-white/30 px-3 py-1.5 text-sm text-muted-foreground hover:bg-white/10 transition-all"
         >
           Join

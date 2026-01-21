@@ -1,7 +1,6 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Users } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 
@@ -15,7 +14,6 @@ export function CircleCard({
     name: string
     description: string
     frequency: string
-    memberCount: number
     image: string
     tags: string[]
   }
@@ -46,31 +44,31 @@ export function CircleCard({
       {/* Content */}
       <div className="p-4 space-y-3">
         <h3 className="text-lg font-semibold text-white">{circle.name}</h3>
-        <p className="text-sm text-white/80 line-clamp-3">{circle.description}</p>
+
+        <p className="text-sm text-white/80 line-clamp-3">
+          {circle.description}
+        </p>
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-2">
-          {circle.tags.map((tag, i) => (
-            <span
-              key={i}
-              className="
-                text-xs px-2 py-1 rounded-lg
-                bg-white/10 border border-white/20
-                text-white/80
-              "
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+        {circle.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {circle.tags.map((tag, i) => (
+              <span
+                key={i}
+                className="
+                  text-xs px-2 py-1 rounded-lg
+                  bg-white/10 border border-white/20
+                  text-white/80
+                "
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-1 text-white/80 text-sm">
-            <Users className="w-4 h-4" />
-            {circle.memberCount}
-          </div>
-
+        <div className="flex items-center justify-end pt-2">
           <Button
             size="sm"
             onClick={onJoin}

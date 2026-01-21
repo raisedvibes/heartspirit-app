@@ -289,7 +289,7 @@ export default function AdminCirclesPage() {
               </Link>
               <div>
                 <h1 className="text-2xl font-bold">Manage Circles</h1>
-                <p className="text-sm text-white/70">Create, publish, and update circles shown on {`/community`}.</p>
+                <p className="text-sm text-white/70">Create, publish, and update circles shown on {`/circles`}.</p>
               </div>
             </div>
 
