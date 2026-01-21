@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { ArrowLeft, Plus, Trash2, Pencil, X, Check, Eye, EyeOff, RefreshCcw } from "lucide-react"
 
 import { Navigation } from "@/components/layout/navigation"
@@ -25,6 +24,7 @@ type Circle = {
   description: string | null
   frequency: Frequency
   member_count: number
+  payment_url: string | null
   image_url: string | null
   tags: string[] | null
   is_published: boolean
@@ -36,6 +36,7 @@ type Circle = {
 type Draft = {
   name: string
   description: string
+  payment_url: string
   frequency: Frequency
   image_url: string
   tags: string
@@ -51,8 +52,6 @@ function normalizeCircles(payload: any): Circle[] {
 }
 
 export default function AdminCirclesPage() {
-  const router = useRouter()
-
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -66,6 +65,7 @@ export default function AdminCirclesPage() {
   const [createDraft, setCreateDraft] = useState<Draft>({
     name: "",
     description: "",
+    payment_url: "", // ✅ added (was missing)
     frequency: "Weekly",
     image_url: "",
     tags: "",
@@ -107,12 +107,7 @@ export default function AdminCirclesPage() {
       })
       .filter((c) => {
         if (!q) return true
-        const hay = [
-          c.name,
-          c.description ?? "",
-          c.frequency,
-          ...(c.tags ?? []),
-        ].join(" ").toLowerCase()
+        const hay = [c.name, c.description ?? "", c.frequency, ...(c.tags ?? [])].join(" ").toLowerCase()
         return hay.includes(q)
       })
   }, [circles, query, filter])
@@ -132,9 +127,10 @@ export default function AdminCirclesPage() {
       description: circle.description ?? "",
       frequency: circle.frequency ?? "Weekly",
       image_url: circle.image_url ?? "",
+      payment_url: circle.payment_url ?? "",
       tags: (circle.tags ?? []).join(", "),
       is_published: !!circle.is_published,
-      starts_at: circle.starts_at ? circle.starts_at.slice(0, 16) : "", // works for datetime-local
+      starts_at: circle.starts_at ? circle.starts_at.slice(0, 16) : "",
     })
   }
 
@@ -158,6 +154,7 @@ export default function AdminCirclesPage() {
         body: JSON.stringify({
           name: createDraft.name.trim(),
           description: createDraft.description.trim() || null,
+          payment_url: createDraft.payment_url.trim() || null, // ✅ added
           frequency: createDraft.frequency,
           image_url: createDraft.image_url.trim() || null,
           tags: parseTags(createDraft.tags),
@@ -168,7 +165,6 @@ export default function AdminCirclesPage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error ?? "Failed to create circle")
 
-      // re-fetch for source of truth (keeps order consistent)
       await fetchList()
 
       setCreating(false)
@@ -177,6 +173,7 @@ export default function AdminCirclesPage() {
         description: "",
         frequency: "Weekly",
         image_url: "",
+        payment_url: "",
         tags: "",
         is_published: true,
         starts_at: "",
@@ -205,6 +202,7 @@ export default function AdminCirclesPage() {
           id,
           name: editDraft.name.trim(),
           description: editDraft.description.trim() || null,
+          payment_url: editDraft.payment_url.trim() || null, // ✅ added
           frequency: editDraft.frequency,
           image_url: editDraft.image_url.trim() || null,
           tags: parseTags(editDraft.tags),
@@ -273,12 +271,7 @@ export default function AdminCirclesPage() {
       <Navigation />
 
       <main className="app-main max-w-6xl mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-          className="pt-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="pt-4">
           {/* Header */}
           <div className="flex items-center justify-between gap-3 mb-6">
             <div className="flex items-center gap-3">
@@ -299,12 +292,7 @@ export default function AdminCirclesPage() {
                 Refresh
               </Button>
 
-              <Button
-                variant="ghost"
-                className={GLASS_BTN}
-                onClick={() => setCreating((v) => !v)}
-                disabled={saving}
-              >
+              <Button variant="ghost" className={GLASS_BTN} onClick={() => setCreating((v) => !v)} disabled={saving}>
                 {creating ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
                 {creating ? "Close" : "New Circle"}
               </Button>
@@ -413,6 +401,20 @@ export default function AdminCirclesPage() {
                   />
                 </div>
 
+                {/* ✅ Payment URL */}
+                <div className="md:col-span-2">
+                  <label className="text-xs text-white/70">Payment URL (Join link)</label>
+                  <input
+                    value={createDraft.payment_url}
+                    onChange={(e) => setCreateDraft((d) => ({ ...d, payment_url: e.target.value }))}
+                    className="mt-1 w-full rounded-xl bg-black/20 border border-white/20 text-white px-4 py-2 outline-none focus:border-white/35"
+                    placeholder="https://your-wix-site.com/..."
+                  />
+                  <p className="mt-1 text-xs text-white/50">
+                    This link opens when someone taps “Join” in the app.
+                  </p>
+                </div>
+
                 <div className="md:col-span-2">
                   <label className="text-xs text-white/70">Tags (comma-separated)</label>
                   <input
@@ -453,9 +455,7 @@ export default function AdminCirclesPage() {
           <div className={`p-4 ${GLASS_CARD}`}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold">Circles</h2>
-              <div className="text-xs text-white/60">
-                {loading ? "Loading…" : `${filtered.length} shown`}
-              </div>
+              <div className="text-xs text-white/60">{loading ? "Loading…" : `${filtered.length} shown`}</div>
             </div>
 
             {loading ? (
@@ -473,13 +473,23 @@ export default function AdminCirclesPage() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <div className="font-semibold text-white truncate">{c.name}</div>
-                              <span className="text-xs text-white/60">
-                                • {c.frequency} • {c.is_published ? "Published" : "Draft"}
-                              </span>
+                              <span className="text-xs text-white/60">• {c.frequency} • {c.is_published ? "Published" : "Draft"}</span>
                             </div>
+
                             {c.description ? (
                               <div className="text-sm text-white/70 mt-1 line-clamp-2">{c.description}</div>
                             ) : null}
+
+                            {/* ✅ Show join link status */}
+                            {c.payment_url ? (
+                              <div className="text-xs text-white/60 mt-2 break-all">
+                                Join link: <span className="text-white/80">{c.payment_url}</span>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-white/60 mt-2">
+                                Join link: <span className="text-white/70">Not set</span>
+                              </div>
+                            )}
 
                             {c.tags?.length ? (
                               <div className="mt-2 flex flex-wrap gap-2">
@@ -582,6 +592,20 @@ export default function AdminCirclesPage() {
                               onChange={(e) => setEditDraft((d) => (d ? { ...d, image_url: e.target.value } : d))}
                               className="mt-1 w-full rounded-xl bg-black/20 border border-white/20 text-white px-4 py-2 outline-none focus:border-white/35"
                             />
+                          </div>
+
+                          {/* ✅ Payment URL in Edit */}
+                          <div className="md:col-span-2">
+                            <label className="text-xs text-white/70">Payment URL (Join link)</label>
+                            <input
+                              value={editDraft?.payment_url ?? ""}
+                              onChange={(e) => setEditDraft((d) => (d ? { ...d, payment_url: e.target.value } : d))}
+                              className="mt-1 w-full rounded-xl bg-black/20 border border-white/20 text-white px-4 py-2 outline-none focus:border-white/35"
+                              placeholder="https://your-wix-site.com/..."
+                            />
+                            <p className="mt-1 text-xs text-white/50">
+                              This link opens when someone taps “Join” in the app.
+                            </p>
                           </div>
 
                           <div className="md:col-span-2">
