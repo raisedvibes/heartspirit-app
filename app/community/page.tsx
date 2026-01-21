@@ -1,68 +1,39 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { Navigation } from "@/components/layout/navigation"
 import { Button } from "@/components/ui/button"
 import { Users, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { CircleCard } from "@/components/community/circle-card"
+import { createClient } from "@/lib/supabase/client"
 
 // Matches the Journal "glass" vibe
 const GLASS_BTN =
   "rounded-xl bg-black/25 border border-white/25 text-white backdrop-blur-md " +
   "shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] hover:bg-black/35 hover:border-white/35 transition"
 
-// Mock data for circles
-const mockCircles = [
-  {
-    id: "1",
-    name: "7-Day Breathwork Reset",
-    description: "Transform your energy through daily breathwork practices and mindful awareness.",
-    frequency: "Weekly",
-    memberCount: 127,
-    image: "/peaceful-meditation-breathwork.png",
-    tags: ["Breathwork", "Energy", "Mindfulness"],
-  },
-  {
-    id: "2",
-    name: "Moon Cycle Meditation",
-    description: "Align with lunar rhythms through guided meditation and reflection practices.",
-    frequency: "Monthly",
-    memberCount: 89,
-    image: "/moon-meditation-night-sky.png",
-    tags: ["Meditation", "Lunar", "Reflection"],
-  },
-  {
-    id: "3",
-    name: "Nature Connection Circle",
-    description: "Weekly gatherings to deepen your relationship with the natural world.",
-    frequency: "Weekly",
-    memberCount: 156,
-    image: "/forest-nature-connection.png",
-    tags: ["Nature", "Connection", "Grounding"],
-  },
-  {
-    id: "4",
-    name: "Chakra Healing Journey",
-    description: "Monthly deep dive into chakra balancing and energy healing practices.",
-    frequency: "Monthly",
-    memberCount: 73,
-    image: "/chakra-healing-energy-colors.png",
-    tags: ["Chakra", "Healing", "Energy"],
-  },
-  {
-    id: "5",
-    name: "Morning Mindfulness",
-    description: "Start your day with intention through guided morning practices.",
-    frequency: "Weekly",
-    memberCount: 203,
-    image: "/sunrise-morning-meditation.png",
-    tags: ["Morning", "Mindfulness", "Intention"],
-  },
-] as const
+type CircleRow = {
+  id: string
+  name: string
+  description: string | null
+  frequency: "Weekly" | "Monthly"
+  member_count: number
+  image_url: string | null
+  tags: string[] | null
+  is_published: boolean
+  starts_at: string | null
+  created_at: string
+  updated_at: string
+}
 
 export default function CommunityPage() {
+  const [circles, setCircles] = useState<CircleRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  // NOTE: still local-only for now (next step is circle_memberships table)
   const [joinedCircles, setJoinedCircles] = useState<string[]>([])
 
   const handleJoinCircle = (circleId: string) => {
@@ -70,6 +41,36 @@ export default function CommunityPage() {
       prev.includes(circleId) ? prev.filter((id) => id !== circleId) : [...prev, circleId]
     )
   }
+
+  useEffect(() => {
+    const supabase = createClient()
+
+    const load = async () => {
+      setLoading(true)
+      setLoadError(null)
+
+      const { data, error } = await supabase
+        .from("circles")
+        .select(
+          "id,name,description,frequency,member_count,image_url,tags,is_published,starts_at,created_at,updated_at"
+        )
+        .eq("is_published", true)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        setLoadError(error.message)
+        setCircles([])
+      } else {
+        setCircles((data as CircleRow[]) ?? [])
+      }
+
+      setLoading(false)
+    }
+
+    load()
+  }, [])
+
+  const hasCircles = useMemo(() => circles.length > 0, [circles])
 
   return (
     <div className="min-h-screen text-white">
@@ -97,9 +98,16 @@ export default function CommunityPage() {
             transition={{ duration: 0.5 }}
             className="mt-6"
           >
-            {mockCircles.length > 0 ? (
+            {loading ? (
+              <div className="text-sm text-white/70">Loading circles…</div>
+            ) : loadError ? (
+              <div className="text-sm text-white/70">
+                <div className="font-medium text-white">Couldn’t load circles</div>
+                <div className="mt-1">{loadError}</div>
+              </div>
+            ) : hasCircles ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {mockCircles.map((circle, index) => (
+                {circles.map((circle, index) => (
                   <motion.div
                     key={circle.id}
                     initial={{ opacity: 0, y: 16 }}
@@ -107,7 +115,15 @@ export default function CommunityPage() {
                     transition={{ delay: 0.04 * index, duration: 0.45 }}
                   >
                     <CircleCard
-                      circle={circle}
+                      circle={{
+                        id: circle.id,
+                        name: circle.name,
+                        description: circle.description ?? "",
+                        frequency: circle.frequency,
+                        memberCount: circle.member_count ?? 0,
+                        image: circle.image_url ?? "/placeholder.svg",
+                        tags: circle.tags ?? [],
+                      }}
                       isJoined={joinedCircles.includes(circle.id)}
                       onJoin={() => handleJoinCircle(circle.id)}
                     />
@@ -125,7 +141,7 @@ export default function CommunityPage() {
                   <Users className="w-8 h-8 text-white/80" />
                 </div>
                 <h3 className="text-lg font-medium text-white mb-2">No circles found</h3>
-                <p className="text-white/70">No circles yet. Check back soon or join a challenge.</p>
+                <p className="text-white/70">No circles yet. Check back soon.</p>
               </motion.div>
             )}
           </motion.section>

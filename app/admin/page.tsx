@@ -77,7 +77,9 @@ export default function AdminHome() {
           <Button onClick={() => router.push("/admin/settings")}>
             Admin Settings
           </Button>
-
+<Button onClick={() => router.push("/admin/circles")}>
+  Manage Circles
+</Button>
           {/* TEMP: Test button to validate circles admin -> supabase pipeline */}
           <div className="pt-2">
             <Button onClick={testCreateCircle} disabled={creating}>
