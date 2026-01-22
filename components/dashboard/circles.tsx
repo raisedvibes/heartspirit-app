@@ -23,7 +23,6 @@ export function Circles() {
 
     const loadNext = async () => {
       setLoading(true)
-
       const now = new Date().toISOString()
 
       const { data } = await supabase
@@ -48,28 +47,22 @@ export function Circles() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
-      className="bg-card rounded-xl p-6 shadow-md border border-border/50 h-full flex flex-col"
+      className="rounded-xl p-6 h-full flex flex-col bg-transparent border-0 shadow-none"
     >
       <div className="flex-1">
         <div className="flex items-center gap-3 mb-2">
           <Users className="h-5 w-5 text-accent" />
-          <h3 className="text-base font-semibold text-card-foreground">
-            Circles
-          </h3>
+          <h3 className="text-base font-semibold text-white">Circles</h3>
         </div>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">
-            Loading upcoming circle…
-          </p>
+          <p className="text-sm text-white/80">Loading upcoming circle…</p>
         ) : nextCircle ? (
           <div className="space-y-1">
-            <p className="text-sm font-medium text-card-foreground">
-              Next: {nextCircle.name}
-            </p>
+            <p className="text-sm font-medium text-white">Next: {nextCircle.name}</p>
 
             {nextCircle.starts_at && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80">
                 {new Date(nextCircle.starts_at).toLocaleDateString(undefined, {
                   weekday: "long",
                   month: "short",
@@ -80,28 +73,19 @@ export function Circles() {
             )}
 
             {nextCircle.description && (
-              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                {nextCircle.description}
-              </p>
+              <p className="text-xs text-white/80 line-clamp-2 mt-1">{nextCircle.description}</p>
             )}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            No upcoming circles scheduled.
-          </p>
+          <p className="text-sm text-white/80">No upcoming circles scheduled.</p>
         )}
       </div>
 
-      {/* CTA */}
+      {/* CTA (kept light, not darkened) */}
       <div className="mt-4 flex justify-end">
         <Link
           href="/circles"
-          className="
-            rounded-xl border border-white/30
-            px-3 py-1.5 text-sm
-            text-muted-foreground
-            hover:bg-white/10 transition-all
-          "
+          className="rounded-xl border border-white/30 px-3 py-1.5 text-sm text-white/85 hover:bg-white/10 hover:text-white transition-all"
         >
           Learn more
         </Link>

@@ -65,10 +65,10 @@ export function EnergyCheck({ userName }: { userName?: string }) {
         {step === "feeling" && (
           <div className="space-y-4 sm:space-y-6">
             <div>
-              <h3 className="text-base font-semibold text-card-foreground">
+              <h3 className="text-base font-semibold text-white">
                 How do you feel right now{namePart}?
               </h3>
-              <p className="text-xs sm:text-sm text-center sm:text-left text-slate-300">
+              <p className="text-xs sm:text-sm text-center sm:text-left text-white/80">
                 Choose what feels closest.
               </p>
             </div>
@@ -84,8 +84,8 @@ export function EnergyCheck({ userName }: { userName?: string }) {
                     onClick={() => handleFeelingSelect(feeling.id)}
                     className="w-full p-3 sm:p-4 lg:p-5 rounded-lg border-2 border-white/40 bg-white/10 hover:border-accent hover:bg-accent/20 transition-all duration-200 flex flex-col items-center justify-center text-center"
                   >
-                    <Icon className="w-7 h-7 sm:w-8 sm:h-8 mb-2 text-gray-800" />
-                    <span className="block text-center text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">
+                    <Icon className="w-7 h-7 sm:w-8 sm:h-8 mb-2 text-white" />
+                    <span className="block text-center text-xs sm:text-sm font-medium text-white whitespace-nowrap">
                       {feeling.name}
                     </span>
                   </motion.button>
@@ -103,19 +103,18 @@ export function EnergyCheck({ userName }: { userName?: string }) {
           >
             <div className="text-center">
               <div className="p-4 sm:p-6 rounded-lg bg-accent/20 border border-accent/40">
-                <h4 className="text-sm sm:text-base font-semibold text-accent mb-2 sm:mb-3">
+                <h4 className="text-sm sm:text-base font-semibold text-white mb-2 sm:mb-3">
                   {recommendedPractice.title}
                 </h4>
 
-                <p className="text-xs sm:text-sm mb-4 sm:mb-6 leading-relaxed text-gray-700">
+                <p className="text-xs sm:text-sm mb-4 sm:mb-6 leading-relaxed text-white/85">
                   {recommendedPractice.description}
                 </p>
 
-                {/* ✅ Use the *exact* “Choose Another” button style (outline) as the Start button */}
                 <Button
                   onClick={handleStartPractice}
                   variant="outline"
-                  className="w-full text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-3 bg-transparent border-white/40 hover:border-accent/60"
+                  className="w-full text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-3 bg-transparent border-white/40 text-white hover:text-white hover:border-accent/60"
                 >
                   Start Practice ({recommendedPractice.duration} min)
                 </Button>

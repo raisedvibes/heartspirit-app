@@ -13,7 +13,6 @@ interface JournalEditorProps {
   onSave?: (entry: {
     title: string
     content: string
-    mood?: "peaceful" | "grateful" | "centered" | "intentional"
   }) => void
   initialContent?: string
 }
@@ -26,7 +25,7 @@ const prompts = [
   "My intention is...",
 ]
 
-// Same “portal glass” recipe as Rituals/Journal + New Entry button
+// Same glass recipe you’re already using
 const GLASS_CARD =
   "bg-black/25 backdrop-blur-xl border border-white/25 text-white " +
   "shadow-[0_18px_60px_-34px_rgba(0,0,0,0.85)]"
@@ -34,8 +33,8 @@ const GLASS_CARD =
 const GLASS_CARD_HOVER = "hover:bg-black/30 hover:border-white/35 transition"
 
 const GLASS_ICON_BTN =
-  "w-9 h-9 p-0 rounded-xl bg-black/20 border border-white/20 text-white/80 " +
-  "hover:bg-black/30 hover:border-white/35 hover:text-white transition backdrop-blur-md"
+  "w-9 h-9 p-0 rounded-xl bg-black/20 border border-white/20 text-white " +
+  "hover:bg-black/30 hover:border-white/35 transition backdrop-blur-md"
 
 export function JournalEditor({ onClose, onSave, initialContent = "" }: JournalEditorProps) {
   const [title, setTitle] = useState("")
@@ -56,17 +55,17 @@ export function JournalEditor({ onClose, onSave, initialContent = "" }: JournalE
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Journal Entry</h2>
+        <h2 className="text-lg font-semibold text-white">Journal</h2>
 
         <Button variant="ghost" size="sm" onClick={onClose} className={GLASS_ICON_BTN}>
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4 text-white" />
         </Button>
       </div>
 
       {/* Writing Prompts */}
       <Card className={`p-4 rounded-2xl ${GLASS_CARD} ${GLASS_CARD_HOVER}`}>
         <div className="flex items-center mb-3">
-          <Sparkles className="w-4 h-4 text-accent mr-2" />
+          <Sparkles className="w-4 h-4 text-white mr-2" />
           <h3 className="text-sm font-semibold text-white">Reflections</h3>
         </div>
 
@@ -94,54 +93,74 @@ export function JournalEditor({ onClose, onSave, initialContent = "" }: JournalE
         <div className="space-y-4">
           {/* Title */}
           <div>
-            <label className="block mb-2 text-sm font-medium text-white/90">Title (optional)</label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Entry title..."
-              className="bg-white text-neutral-900 placeholder-neutral-400 border-white/30 focus:border-accent focus:ring-accent/20"
-            />
+            <label className="block mb-2 text-sm font-medium text-white/90">
+              Title (optional)
+            </label>
+           <Input
+  value={title}
+  onChange={(e) => setTitle(e.target.value)}
+  placeholder="Entry title..."
+  className="
+    bg-black/20 text-white placeholder-white/40
+    backdrop-blur-sm
+    border-white/20
+    focus:border-white/40 focus:ring-accent/20
+  "
+/>
+
           </div>
 
           {/* Content */}
           <div>
-            <label className="block mb-2 text-sm font-medium text-white/90">Your thoughts</label>
+            <label className="block mb-2 text-sm font-medium text-white/90">
+              Your thoughts
+            </label>
             <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Start writing your thoughts..."
-              className="min-h-[200px] bg-white text-neutral-900 placeholder-neutral-400 border-white/30 focus:border-accent focus:ring-accent/20 resize-none"
-            />
+  value={content}
+  onChange={(e) => setContent(e.target.value)}
+  placeholder="Start writing your thoughts..."
+  className="
+    min-h-[200px] resize-none
+    bg-black/20 text-white placeholder-white/40
+    backdrop-blur-sm
+    border-white/20
+    focus:border-white/40 focus:ring-accent/20
+  "
+/>
+
           </div>
 
           {/* Character Count */}
-          <div className="text-xs text-white/70 text-right">{content.length} characters</div>
+          <div className="text-xs text-white/70 text-right">
+            {content.length} characters
+          </div>
 
           {/* Actions */}
-         <div className="flex items-center justify-between pt-4">
-  {/* Cancel — quiet, NO hover change */}
-  <Button
-    variant="ghost"
-    onClick={onClose}
-    className="text-white/55 hover:bg-transparent hover:text-white/55"
-  >
-    Cancel
-  </Button>
+          <div className="flex items-center justify-between pt-4">
+            {/* Cancel */}
+            <Button
+              variant="ghost"
+              onClick={onClose}
+              className="text-white/55 hover:bg-transparent hover:text-white/55"
+            >
+              Cancel
+            </Button>
 
-  {/* Save — primary, hover gets brighter (white lift) */}
- <Button
-  onClick={handleSave}
-  disabled={!content.trim() && !title.trim()}
-  className="rounded-xl bg-black/30 border border-white/25 text-white
-             shadow-[0_12px_40px_-26px_rgba(0,0,0,0.85)]
-             backdrop-blur-md transition-colors
-             enabled:hover:bg-white/12 enabled:hover:border-white/55
-             disabled:opacity-40 disabled:cursor-not-allowed"
->
-  <Save className="w-4 h-4 mr-2" />
-  Save Entry
-</Button>
-
+            {/* Save */}
+            <Button
+              onClick={handleSave}
+              disabled={!content.trim() && !title.trim()}
+              className="
+                rounded-xl bg-black/30 border border-white/25 text-white
+                shadow-[0_12px_40px_-26px_rgba(0,0,0,0.85)]
+                backdrop-blur-md transition-colors
+                enabled:hover:bg-white/12 enabled:hover:border-white/55
+                disabled:opacity-40 disabled:cursor-not-allowed
+              "
+            >
+              <Save className="w-4 h-4 mr-2 text-white" />
+              Save Entry
+            </Button>
           </div>
         </div>
       </Card>
