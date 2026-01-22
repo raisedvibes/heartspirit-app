@@ -69,17 +69,18 @@ export function CircleCard({
 
         {/* Footer */}
         <div className="flex items-center justify-end pt-2">
-          <Button
-            size="sm"
-            onClick={onJoin}
-            className="
-              rounded-xl px-4 py-1.5 text-sm
-              bg-white/10 border border-white/20
-              text-white hover:bg-white/20 backdrop-blur-md
-            "
-          >
-            {isJoined ? "Joined" : "Join"}
-          </Button>
+        <Button
+  size="sm"
+  onClick={onJoin}
+  className="
+    rounded-xl px-4 py-1.5 text-sm
+    bg-white/10 border border-white/20
+    text-white hover:bg-white/20 backdrop-blur-md
+  "
+>
+  Reserve
+</Button>
+
         </div>
       </div>
     </motion.div>
