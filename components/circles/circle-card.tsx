@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { TranslucentCard } from "@/components/ui/translucent-card"
+import TranslucentCard from "@/components/ui/translucent-card"
 
 export function CircleCard({
   circle,
@@ -26,7 +26,7 @@ export function CircleCard({
       <TranslucentCard className="overflow-hidden">
         {/* Image */}
         <div className="relative w-full h-40 sm:h-44">
-          <Image src={circle.image} alt={circle.name} fill className="object-cover" />
+          <Image src={circle.image || "/placeholder.svg"} alt={circle.name} fill className="object-cover" />
           {/* subtle top fade so text area feels grounded */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/0 to-black/0" />
         </div>

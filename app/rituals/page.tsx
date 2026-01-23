@@ -6,7 +6,7 @@ import { useMemo, useState, useEffect } from "react"
 import Link from "next/link"
 import { Navigation } from "@/components/layout/navigation"
 import { Button } from "@/components/ui/button"
-import { TranslucentCard } from "@/components/ui/translucent-card"
+import TranslucentCard from "@/components/ui/translucent-card"
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react"
 
 import {

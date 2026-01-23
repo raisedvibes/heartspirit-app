@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Navigation } from "@/components/layout/navigation"
 import { EnergyCheck } from "@/components/dashboard/energy-check"
-import { TranslucentCard } from "@/components/ui/translucent-card"
+import TranslucentCard from "@/components/ui/translucent-card"
 import { ActionRow } from "@/components/ui/action-row"
 import { createClient } from "@/lib/supabase/client"
 
@@ -33,10 +33,10 @@ function parseYYYYMMDDLocal(dateStr: string) {
 
 function getFallbackSeasonBoundaries(year: number) {
   return {
-    spring: new Date(year, 2, 20, 0, 0, 0, 0), // Mar 20
-    summer: new Date(year, 5, 20, 0, 0, 0, 0), // Jun 20
-    autumn: new Date(year, 8, 22, 0, 0, 0, 0), // Sep 22
-    winter: new Date(year, 11, 21, 0, 0, 0, 0), // Dec 21
+    spring: new Date(year, 2, 20, 0, 0, 0, 0),
+    summer: new Date(year, 5, 20, 0, 0, 0, 0),
+    autumn: new Date(year, 8, 22, 0, 0, 0, 0),
+    winter: new Date(year, 11, 21, 0, 0, 0, 0),
   }
 }
 
@@ -120,8 +120,8 @@ export default function EnergyPage() {
           </div>
 
           {/* 🗓 Today */}
-          <TranslucentCard className="p-4 sm:p-6 lg:p-8 overflow-hidden">
-            <div className="space-y-4 sm:space-y-6 max-w-[720px] mx-auto">
+          <TranslucentCard className="w-full p-4 sm:p-6 lg:p-8 overflow-hidden">
+            <div className="space-y-4 sm:space-y-6">
               <h3 className="text-base font-semibold text-white">Today</h3>
 
               <div className="space-y-2 sm:space-y-3 lg:space-y-4">
@@ -138,8 +138,8 @@ export default function EnergyPage() {
           </TranslucentCard>
 
           {/* 🍃 Seasonal */}
-          <TranslucentCard className="p-4 sm:p-6 lg:p-8 overflow-hidden">
-            <div className="space-y-4 sm:space-y-6 max-w-[720px] mx-auto">
+          <TranslucentCard className="w-full p-4 sm:p-6 lg:p-8 overflow-hidden">
+            <div className="space-y-4 sm:space-y-6">
               <h3 className="text-base font-semibold text-white">{season}</h3>
 
               <div className="space-y-2 sm:space-y-3 lg:space-y-4">

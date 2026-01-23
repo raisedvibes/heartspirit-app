@@ -1,8 +1,10 @@
 "use client"
 
+import React from "react"
+
 import { cn } from "@/lib/utils"
 
-export function TranslucentCard({
+export default function TranslucentCard({
   className,
   children,
 }: {

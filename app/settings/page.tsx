@@ -1,7 +1,9 @@
 "use client"
 
+import React from "react"
+
 import { Navigation } from "@/components/layout/navigation"
-import { TranslucentCard } from "@/components/ui/translucent-card"
+import TranslucentCard from "@/components/ui/translucent-card"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
