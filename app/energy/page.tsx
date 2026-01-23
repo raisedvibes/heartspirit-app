@@ -1,14 +1,10 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Navigation } from "@/components/layout/navigation"
-import { DecahedronPortal } from "@/components/DecahedronPortal"
-import { Rituals } from "@/components/dashboard/rituals"
-import { JournalQuickAccess } from "@/components/dashboard/journal-quick-access"
-import { Circles } from "@/components/dashboard/circles"
 import { EnergyCheck } from "@/components/dashboard/energy-check"
 import { TranslucentCard } from "@/components/ui/translucent-card"
+import { ActionRow } from "@/components/ui/action-row"
 import { createClient } from "@/lib/supabase/client"
 
 type ProfileRow = {
@@ -16,130 +12,148 @@ type ProfileRow = {
   full_name: string | null
 }
 
-export default function DashboardPage() {
-  const [isSpeaking, setIsSpeaking] = useState(false)
+type SeasonKey = "Winter" | "Spring" | "Summer" | "Autumn"
+
+type SeasonDatesRow = {
+  year: number
+  spring_equinox: string // YYYY-MM-DD
+  summer_solstice: string // YYYY-MM-DD
+  autumn_equinox: string // YYYY-MM-DD
+  winter_solstice: string // YYYY-MM-DD
+}
+
+function toLocalStartOfDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
+}
+
+function parseYYYYMMDDLocal(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number)
+  return new Date(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0)
+}
+
+function getFallbackSeasonBoundaries(year: number) {
+  return {
+    spring: new Date(year, 2, 20, 0, 0, 0, 0), // Mar 20
+    summer: new Date(year, 5, 20, 0, 0, 0, 0), // Jun 20
+    autumn: new Date(year, 8, 22, 0, 0, 0, 0), // Sep 22
+    winter: new Date(year, 11, 21, 0, 0, 0, 0), // Dec 21
+  }
+}
+
+function computeSeason(
+  today: Date,
+  boundaries: { spring: Date; summer: Date; autumn: Date; winter: Date },
+): SeasonKey {
+  const t = toLocalStartOfDay(today)
+  if (t >= boundaries.winter || t < boundaries.spring) return "Winter"
+  if (t >= boundaries.spring && t < boundaries.summer) return "Spring"
+  if (t >= boundaries.summer && t < boundaries.autumn) return "Summer"
+  return "Autumn"
+}
+
+export default function EnergyPage() {
   const [userName, setUserName] = useState<string | undefined>(undefined)
+  const [season, setSeason] = useState<SeasonKey>("Winter")
+
+  const todayPractices = useMemo(
+    () => [
+      { title: "Open the Portal", subtitle: "morning" },
+      { title: "Hold the Frequency", subtitle: "mid-day" },
+      { title: "Return to Source", subtitle: "evening" },
+    ],
+    [],
+  )
 
   useEffect(() => {
     const supabase = createClient()
 
-    const loadName = async () => {
+    const load = async () => {
       const { data: auth } = await supabase.auth.getUser()
       const user = auth?.user
-      if (!user) return
 
-      // Future-proof: will automatically work once you create profiles + write to it
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name, full_name")
-        .eq("id", user.id)
-        .maybeSingle<ProfileRow>()
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name, full_name")
+          .eq("id", user.id)
+          .maybeSingle<ProfileRow>()
 
-      const name =
-        profile?.display_name?.trim() ||
-        profile?.full_name?.trim() ||
-        undefined
+        const name =
+          profile?.display_name?.trim() || profile?.full_name?.trim() || undefined
+        if (name) setUserName(name)
+      }
 
-      if (name) setUserName(name)
-    }
+      const now = new Date()
+      const year = now.getFullYear()
 
-    loadName()
-  }, [])
+      const { data: seasonDates } = await supabase
+        .from("season_dates")
+        .select("year, spring_equinox, summer_solstice, autumn_equinox, winter_solstice")
+        .eq("year", year)
+        .maybeSingle<SeasonDatesRow>()
 
-  async function speakText(text: string) {
-    console.log("[v0] speakText called with:", text)
-    try {
-      setIsSpeaking(true)
-      const res = await fetch("/api/speak", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      })
-
-      console.log("[v0] Response status:", res.status)
-      console.log("[v0] Response Content-Type:", res.headers.get("Content-Type"))
-
-      const contentType = res.headers.get("Content-Type") || ""
-      if (!res.ok || !contentType.startsWith("audio/")) {
-        let errorMsg = "Unknown error"
-        try {
-          const errorData = await res.json()
-          errorMsg = errorData.error || errorMsg
-        } catch {
-          errorMsg = await res.text()
+      if (seasonDates) {
+        const boundaries = {
+          spring: parseYYYYMMDDLocal(seasonDates.spring_equinox),
+          summer: parseYYYYMMDDLocal(seasonDates.summer_solstice),
+          autumn: parseYYYYMMDDLocal(seasonDates.autumn_equinox),
+          winter: parseYYYYMMDDLocal(seasonDates.winter_solstice),
         }
-        console.error("[v0] API error:", errorMsg)
-        alert(`Voice error: ${errorMsg}`)
-        return
+        setSeason(computeSeason(now, boundaries))
+      } else {
+        setSeason(computeSeason(now, getFallbackSeasonBoundaries(year)))
       }
-
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const audio = new Audio(url)
-
-      audio.onerror = (e) => {
-        console.error("[v0] Audio element error:", e)
-        URL.revokeObjectURL(url)
-      }
-
-      audio.onended = () => {
-        console.log("[v0] Audio playback ended")
-        URL.revokeObjectURL(url)
-      }
-
-      await audio.play()
-      console.log("[v0] Audio playing successfully")
-    } catch (error) {
-      console.error("[v0] Error during voice playback:", error)
-      alert(`Voice playback failed: ${error instanceof Error ? error.message : "Unknown error"}`)
-    } finally {
-      setIsSpeaking(false)
     }
-  }
+
+    load()
+  }, [])
 
   return (
     <div className="min-h-screen max-w-full overflow-x-hidden">
       <Navigation />
 
       <main className="app-main max-w-6xl mx-auto px-4 pb-10 md:pb-16 lg:pb-28">
-        <div className="flex flex-col items-center justify-center w-full max-w-3xl mx-auto space-y-10 mt-12">
-          {/* 🌌 Decahedron Voice Portal */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1.2 }}
-            className="relative flex flex-col items-center justify-center w-full"
-          >
-            <DecahedronPortal onClick={() => speakText("How’s your energy, Friend?")} />
-            {isSpeaking && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
-                className="text-sm text-accent mt-4"
-              >
-                Listening to your energy...
-              </motion.p>
-            )}
-          </motion.div>
-
+        <div className="flex flex-col items-center justify-center w-full max-w-3xl mx-auto space-y-6 mt-12">
           {/* ✅ Energy Check */}
-          <EnergyCheck userName={userName} />
-
-          {/* 🕯 Daily Rituals + Journal + Circles */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full items-stretch">
-            <TranslucentCard>
-              <Rituals />
-            </TranslucentCard>
-
-            <TranslucentCard>
-              <JournalQuickAccess />
-            </TranslucentCard>
-
-            <TranslucentCard>
-              <Circles />
-            </TranslucentCard>
+          <div className="w-full">
+            <EnergyCheck userName={userName} />
           </div>
+
+          {/* 🗓 Today */}
+          <TranslucentCard className="p-4 sm:p-6 lg:p-8 overflow-hidden">
+            <div className="space-y-4 sm:space-y-6 max-w-[720px] mx-auto">
+              <h3 className="text-base font-semibold text-white">Today</h3>
+
+              <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+                {todayPractices.map((p) => (
+                  <ActionRow
+                    key={p.title}
+                    title={p.title}
+                    subtitle={p.subtitle}
+                    onClick={() => console.log("[energy] today practice clicked:", p.title)}
+                  />
+                ))}
+              </div>
+            </div>
+          </TranslucentCard>
+
+          {/* 🍃 Seasonal */}
+          <TranslucentCard className="p-4 sm:p-6 lg:p-8 overflow-hidden">
+            <div className="space-y-4 sm:space-y-6 max-w-[720px] mx-auto">
+              <h3 className="text-base font-semibold text-white">{season}</h3>
+
+              <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+                <ActionRow
+                  title="Seasonal Practice (Placeholder)"
+                  onClick={() => console.log("[energy] seasonal placeholder 1")}
+                />
+                <ActionRow
+                  title="Seasonal Practice (Placeholder)"
+                  onClick={() => console.log("[energy] seasonal placeholder 2")}
+                />
+              </div>
+            </div>
+          </TranslucentCard>
         </div>
       </main>
     </div>
