@@ -15,6 +15,13 @@ type ProfileRow = {
   full_name: string | null
 }
 
+function isV0PreviewHost() {
+  if (typeof window === "undefined") return false
+  const host = window.location.hostname.toLowerCase()
+  // covers common v0 preview host patterns
+  return host.includes("v0") || host.includes("vercel.app")
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [ready, setReady] = useState(false)
@@ -24,6 +31,14 @@ export default function DashboardPage() {
     const supabase = createClient()
 
     const load = async () => {
+      // ✅ v0/preview bypass so you can see the UI in v0.dev
+      // (Live/prod still requires auth.)
+      const allowPreview = isV0PreviewHost()
+      if (allowPreview) {
+        setReady(true)
+        return
+      }
+
       // 1) Require auth
       const { data: auth } = await supabase.auth.getUser()
       const user = auth?.user
