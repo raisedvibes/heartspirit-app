@@ -6,6 +6,7 @@ import { useMemo, useState, useEffect } from "react"
 import Link from "next/link"
 import { Navigation } from "@/components/layout/navigation"
 import { Button } from "@/components/ui/button"
+import { TranslucentCard } from "@/components/ui/translucent-card"
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react"
 
 import {
@@ -20,7 +21,7 @@ import {
 } from "@/lib/rituals"
 
 // ---------- styles ----------
-// Higher contrast day-cells so icons/buttons never disappear on light glass.
+// Higher contrast day-cells so icons/buttons never disappear on glass.
 const statusStyle: Record<Mark, string> = {
   empty:
     "bg-black/25 border border-white/25 text-white/90 hover:bg-black/35 hover:border-white/35 shadow-[0_10px_30px_-22px_rgba(0,0,0,0.85)]",
@@ -42,13 +43,9 @@ const DELETE_BTN =
   "text-xs rounded-lg border border-rose-300/25 bg-rose-500/10 px-2 py-1 text-rose-200 backdrop-blur-sm " +
   "shadow-[0_10px_30px_-22px_rgba(0,0,0,0.8)] hover:bg-rose-500/18 hover:border-rose-300/45 hover:text-rose-100 transition"
 
-// Tag pill slightly stronger so it’s always readable on light glass.
+// Tag pill slightly stronger so it’s always readable on glass.
 const TAG_PILL =
   "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/20 border border-white/25 text-white/90 text-xs backdrop-blur-sm"
-
-const CARD_WRAP =
-  "rounded-2xl p-4 bg-white/10 backdrop-blur-xl border border-white/20 " +
-  "shadow-[0_18px_60px_-34px_rgba(0,0,0,0.8)] hover:bg-white/14 hover:border-white/30 transition"
 
 // ---------- helpers ----------
 const parseTags = (input?: string) =>
@@ -77,9 +74,7 @@ function formatWeekRange(weekDays: string[]) {
   const year = (d: Date) => d.getFullYear()
 
   if (sameYear) {
-    if (sameMonth) {
-      return `${monthName(start)} ${day(start)}–${day(end)}, ${year(start)}`
-    }
+    if (sameMonth) return `${monthName(start)} ${day(start)}–${day(end)}, ${year(start)}`
     return `${shortMonth(start)} ${day(start)} – ${shortMonth(end)} ${day(end)}, ${year(start)}`
   }
   return `${shortMonth(start)} ${day(start)}, ${year(start)} – ${shortMonth(end)} ${day(end)}, ${year(end)}`
@@ -235,12 +230,7 @@ export default function RitualsPage() {
 
         {/* Add form */}
         {showAdd && (
-          <div
-            className="mb-4 rounded-2xl p-4 
-                       bg-white/14 backdrop-blur-xl 
-                       border border-white/25 shadow-[0_18px_60px_-34px_rgba(0,0,0,0.85)]
-                       grid sm:grid-cols-3 gap-3"
-          >
+          <TranslucentCard className="mb-4 p-4 grid sm:grid-cols-3 gap-3">
             <div className="sm:col-span-1">
               <label className="text-sm text-white/85">Name</label>
               <input
@@ -278,7 +268,6 @@ export default function RitualsPage() {
               />
             </div>
 
-            {/* Add Form Actions */}
             <div className="sm:col-span-3 flex justify-end gap-2">
               <button
                 className="px-4 py-2 rounded-xl 
@@ -297,11 +286,11 @@ export default function RitualsPage() {
                 Add
               </button>
             </div>
-          </div>
+          </TranslucentCard>
         )}
 
-        {/* Week Navigator (date range integrated into the same bar) */}
-        <div className="mb-4 rounded-2xl p-3 bg-white/12 backdrop-blur-xl border border-white/22 shadow-[0_16px_50px_-32px_rgba(0,0,0,0.8)]">
+        {/* Week Navigator */}
+        <TranslucentCard className="mb-4 p-3">
           {/* Mobile */}
           <div className="sm:hidden space-y-2">
             <div className="text-center text-sm font-medium text-white/85">{formatWeekRange(weekISO)}</div>
@@ -354,9 +343,7 @@ export default function RitualsPage() {
               </Button>
             </div>
 
-            <div className="text-center text-sm sm:text-base font-medium text-white/85">
-              {formatWeekRange(weekISO)}
-            </div>
+            <div className="text-center text-sm sm:text-base font-medium text-white/85">{formatWeekRange(weekISO)}</div>
 
             <div className="justify-self-end flex items-center gap-2">
               <Button
@@ -382,10 +369,10 @@ export default function RitualsPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </TranslucentCard>
 
         {/* Desktop Header */}
-        <div className="hidden sm:block rounded-2xl p-3 bg-white/12 backdrop-blur-xl border border-white/22 shadow-[0_16px_50px_-32px_rgba(0,0,0,0.8)]">
+        <TranslucentCard className="hidden sm:block p-3">
           <div className={`grid ${GRID} gap-2 items-center`}>
             {WEEK_LABELS_MON_START.map((d) => (
               <div key={d} className="text-center text-sm font-medium text-white/90">
@@ -395,12 +382,12 @@ export default function RitualsPage() {
             <div className="text-right text-sm font-medium text-white/85">Record</div>
             <div className="w-12" />
           </div>
-        </div>
+        </TranslucentCard>
 
         {/* List */}
         {rituals.length === 0 ? (
           <div className="mt-6">
-            <div className={`${CARD_WRAP} text-center py-10`}>
+            <TranslucentCard className="text-center py-10">
               <h3 className="text-lg font-medium text-white mb-1">No rituals yet</h3>
               <p className="text-white/85 mb-5">Add your first ritual to begin tracking.</p>
               <button
@@ -409,7 +396,7 @@ export default function RitualsPage() {
               >
                 + Add Ritual
               </button>
-            </div>
+            </TranslucentCard>
           </div>
         ) : (
           <div className="mt-3 space-y-3">
@@ -417,7 +404,7 @@ export default function RitualsPage() {
               const streak = computeStreak(r.history, today)
 
               return (
-                <div key={r.id} className={CARD_WRAP}>
+                <TranslucentCard key={r.id} className="p-4">
                   {/* Desktop row */}
                   <div className={`hidden sm:grid ${GRID} items-center gap-2`} data-rit-row>
                     {/* Left: name + tags */}
@@ -432,7 +419,6 @@ export default function RitualsPage() {
                         {r.reminder && <span className="text-xs text-white/80">{r.reminder}</span>}
                       </div>
 
-                      {/* Actions */}
                       <div className="mt-2 flex gap-2 flex-wrap">
                         <button className={ACTION_BTN} onClick={() => startEdit(r)}>
                           Edit
@@ -506,7 +492,6 @@ export default function RitualsPage() {
                       </div>
                     </div>
 
-                    {/* Mobile day labels */}
                     <div className="grid grid-cols-7 gap-1">
                       {WEEK_LABELS_MON_START.map((d) => (
                         <div key={d} className="text-center text-[10px] leading-none font-medium text-white/80">
@@ -515,7 +500,6 @@ export default function RitualsPage() {
                       ))}
                     </div>
 
-                    {/* Mobile day cells */}
                     <div className="grid grid-cols-7 gap-1" data-rit-row>
                       {weekISO.map((iso, idx) => {
                         const s: Mark = r.history[iso] ?? "empty"
@@ -540,7 +524,7 @@ export default function RitualsPage() {
                       })}
                     </div>
                   </div>
-                </div>
+                </TranslucentCard>
               )
             })}
           </div>
@@ -565,12 +549,9 @@ export default function RitualsPage() {
           onClick={() => setEditing(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl 
-                       bg-white/12 border border-white/25 
-                       backdrop-blur-xl p-5 shadow-[0_24px_90px_-50px_rgba(0,0,0,0.95)] text-white"
+            className="w-full max-w-md rounded-2xl bg-black/25 border border-white/25 backdrop-blur-xl p-5 shadow-[0_24px_90px_-50px_rgba(0,0,0,0.95)] text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal header */}
             <div className="mb-3">
               <span className="inline-block rounded-md bg-black/20 px-2 py-0.5 text-xs font-semibold tracking-wide text-white border border-white/25">
                 EDIT
@@ -578,7 +559,6 @@ export default function RitualsPage() {
               <h2 className="mt-2 text-lg font-semibold text-white">Ritual</h2>
             </div>
 
-            {/* Fields */}
             <label className="block text-sm text-white/85">Name</label>
             <input
               className="mt-1 w-full rounded-xl bg-black/20 border border-white/25 text-white placeholder:text-white/45 px-3 py-2 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent/75"
@@ -605,7 +585,6 @@ export default function RitualsPage() {
               />
             </div>
 
-            {/* Modal Actions */}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 className="px-4 py-2 rounded-xl bg-black/20 text-white/95 hover:bg-black/30 transition border border-white/25 backdrop-blur-sm"
@@ -655,28 +634,16 @@ function DayToolbar({
         <div className="absolute -top-[7px] left-[calc(1.5rem+1px)] h-0 w-0 border-x-7 border-x-transparent border-b-7 border-black/35" />
 
         <div className="grid grid-cols-4 divide-x divide-white/15">
-          <button
-            onClick={() => onSelect("empty")}
-            className="px-3 py-2 text-sm text-white/90 hover:bg-white/10 transition"
-          >
+          <button onClick={() => onSelect("empty")} className="px-3 py-2 text-sm text-white/90 hover:bg-white/10 transition">
             Erase
           </button>
-          <button
-            onClick={() => onSelect("yes")}
-            className="px-3 py-2 text-sm text-emerald-200 hover:bg-emerald-500/15 transition"
-          >
+          <button onClick={() => onSelect("yes")} className="px-3 py-2 text-sm text-emerald-200 hover:bg-emerald-500/15 transition">
             Yes
           </button>
-          <button
-            onClick={() => onSelect("no")}
-            className="px-3 py-2 text-sm text-rose-200 hover:bg-rose-500/15 transition"
-          >
+          <button onClick={() => onSelect("no")} className="px-3 py-2 text-sm text-rose-200 hover:bg-rose-500/15 transition">
             No
           </button>
-          <button
-            onClick={() => onSelect("skip")}
-            className="px-3 py-2 text-sm text-white/85 hover:bg-white/10 transition"
-          >
+          <button onClick={() => onSelect("skip")} className="px-3 py-2 text-sm text-white/85 hover:bg-white/10 transition">
             Skip
           </button>
         </div>

@@ -9,11 +9,6 @@ import Link from "next/link"
 import { CircleCard } from "@/components/circles/circle-card"
 import { createClient } from "@/lib/supabase/client"
 
-// Matches the Journal "glass" vibe
-const GLASS_BTN =
-  "rounded-xl bg-black/25 border border-white/25 text-white backdrop-blur-md " +
-  "shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] hover:bg-black/35 hover:border-white/35 transition"
-
 type CircleRow = {
   id: string
   name: string
@@ -42,9 +37,7 @@ export default function CirclesPage() {
 
       const { data, error } = await supabase
         .from("circles")
-        .select(
-          "id,name,description,frequency,image_url,tags,is_published,starts_at,payment_url,created_at,updated_at"
-        )
+        .select("id,name,description,frequency,image_url,tags,is_published,starts_at,payment_url,created_at,updated_at")
         .eq("is_published", true)
         .order("created_at", { ascending: false })
 
@@ -81,7 +74,11 @@ export default function CirclesPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6 w-full pt-4">
             <Link href="/dashboard" className="shrink-0">
-              <Button variant="ghost" size="icon" className={GLASS_BTN}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl bg-black/25 border border-white/25 text-white hover:bg-black/35 hover:text-white shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] backdrop-blur-md"
+              >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>

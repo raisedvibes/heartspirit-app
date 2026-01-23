@@ -54,7 +54,9 @@ export function EnergyCheck({ userName }: { userName?: string }) {
   const recommendedPractice = getRecommendedPractice()
 
   const handleStartPractice = () => {
-    if (recommendedPractice) router.push(`/practice/${recommendedPractice.id}`)
+    if (recommendedPractice) {
+      router.push(`/practice/${recommendedPractice.id}`)
+    }
   }
 
   const namePart = userName?.trim() ? `, ${userName.trim()}` : ""
@@ -82,7 +84,13 @@ export function EnergyCheck({ userName }: { userName?: string }) {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleFeelingSelect(feeling.id)}
-                    className="w-full p-3 sm:p-4 lg:p-5 rounded-lg border-2 border-white/40 bg-white/10 hover:border-accent hover:bg-accent/20 transition-all duration-200 flex flex-col items-center justify-center text-center"
+                    className="
+                      w-full p-3 sm:p-4 lg:p-5 rounded-lg
+                      border-2 border-white/20 bg-black/20
+                      hover:border-white/40 hover:bg-white/10
+                      transition-all duration-200
+                      flex flex-col items-center justify-center text-center
+                    "
                   >
                     <Icon className="w-7 h-7 sm:w-8 sm:h-8 mb-2 text-white" />
                     <span className="block text-center text-xs sm:text-sm font-medium text-white whitespace-nowrap">
@@ -114,7 +122,12 @@ export function EnergyCheck({ userName }: { userName?: string }) {
                 <Button
                   onClick={handleStartPractice}
                   variant="outline"
-                  className="w-full text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-3 bg-transparent border-white/40 text-white hover:text-white hover:border-accent/60"
+                  className="
+                    w-full text-xs sm:text-sm
+                    px-4 sm:px-6 py-2 sm:py-3
+                    bg-transparent border-white/40 text-white
+                    hover:text-white hover:border-accent/60
+                  "
                 >
                   Start Practice ({recommendedPractice.duration} min)
                 </Button>
