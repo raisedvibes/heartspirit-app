@@ -1,32 +1,29 @@
 "use client"
 
-import React from "react"
-
+import React, { useState } from "react"
+import Link from "next/link"
 import { Navigation } from "@/components/layout/navigation"
 import TranslucentCard from "@/components/ui/translucent-card"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, User, Bell, Palette, Database, HelpCircle, Edit, Download, Trash2, ChevronDown } from "lucide-react"
-import Link from "next/link"
-import { useState } from "react"
+import { ArrowLeft, User, Bell, Shield, HelpCircle, Edit, Download, Trash2, ChevronDown } from "lucide-react"
 
 export default function SettingsPage() {
+  // Notifications
   const [dailyCheckIn, setDailyCheckIn] = useState(true)
-  const [weeklyReport, setWeeklyReport] = useState(true)
+  const [weeklyReport, setWeeklyReport] = useState(false)
   const [communityCircles, setCommunityCircles] = useState(false)
-  const [ritualHistory, setRitualHistory] = useState(true)
   const [checkInTime, setCheckInTime] = useState("09:00")
-  const [theme, setTheme] = useState("system")
-  const [focusWord, setFocusWord] = useState("")
+
+  // Privacy / local data
+  const [saveHistoryOnDevice, setSaveHistoryOnDevice] = useState(true)
 
   const [openSections, setOpenSections] = useState({
     profile: false,
     notifications: false,
-    personalization: false,
-    data: false,
+    privacy: false,
     support: false,
   })
 
@@ -54,6 +51,31 @@ export default function SettingsPage() {
     </button>
   )
 
+  // TODO: wire these to your local storage / IndexedDB layer
+  const handleExportData = async () => {
+    // Placeholder. You’ll export local journal + ritual history JSON.
+    console.log("Export data (local)")
+
+    // Example (later): const payload = await exportLocalData()
+    // downloadFile(JSON.stringify(payload, null, 2), "heartspirit-data.json")
+  }
+
+  const handleClearHistory = async () => {
+    // Placeholder. You’ll clear local journal + ritual history.
+    console.log("Clear history (local)")
+
+    // Example (later): await clearLocalHistory()
+  }
+
+  const handleToggleSaveHistory = (next: boolean) => {
+    setSaveHistoryOnDevice(next)
+
+    // What this SHOULD mean:
+    // - ON: your app writes check-ins / completions / journal to local storage
+    // - OFF: your app stops saving new entries locally
+    // (Optional: ask “Clear existing history?” if turning OFF)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/5">
       <Navigation />
@@ -68,9 +90,9 @@ export default function SettingsPage() {
             </Link>
           </div>
 
-          {/* Profile & Account */}
+          {/* Profile & Account (contact info) */}
           <TranslucentCard>
-            <SectionHeader section="profile" icon={User} title="Profile & Account" />
+            <SectionHeader section="profile" icon={User} title="Profile & Contact" />
             <div className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-96" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-3">
                 <div className="flex items-center justify-between p-3 rounded-lg bg-background/30 border border-border/30">
@@ -83,6 +105,10 @@ export default function SettingsPage() {
                     Edit
                   </Button>
                 </div>
+
+                <p className="text-xs text-muted-foreground px-1">
+                  We only use your contact info for account access and support. Your journal + ritual history stays on your device.
+                </p>
               </div>
             </div>
           </TranslucentCard>
@@ -90,7 +116,7 @@ export default function SettingsPage() {
           {/* Notifications */}
           <TranslucentCard>
             <SectionHeader section="notifications" icon={Bell} title="Notifications" />
-            <div className={`overflow-hidden transition-all duration-300 ${openSections.notifications ? "max-h-96" : "max-h-0"}`}>
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.notifications ? "max-h-[520px]" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -114,15 +140,16 @@ export default function SettingsPage() {
                       onChange={(e) => setCheckInTime(e.target.value)}
                       className="w-28 h-8"
                     />
+                    <p className="text-xs text-muted-foreground">Reminders depend on device/browser support.</p>
                   </div>
                 )}
 
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <Label htmlFor="weekly-report" className="text-sm font-medium">
-                      Weekly Energy Report
+                      Weekly Reflection
                     </Label>
-                    <p className="text-xs text-muted-foreground">Get weekly insights</p>
+                    <p className="text-xs text-muted-foreground">A gentle weekly recap (generated on your device)</p>
                   </div>
                   <Switch id="weekly-report" checked={weeklyReport} onCheckedChange={setWeeklyReport} />
                 </div>
@@ -140,72 +167,59 @@ export default function SettingsPage() {
             </div>
           </TranslucentCard>
 
-          {/* Personalization */}
+          {/* Privacy & Data */}
           <TranslucentCard>
-            <SectionHeader section="personalization" icon={Palette} title="Personalization" />
-            <div className={`overflow-hidden transition-all duration-300 ${openSections.personalization ? "max-h-96" : "max-h-0"}`}>
+            <SectionHeader section="privacy" icon={Shield} title="Privacy & Data" />
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.privacy ? "max-h-[620px]" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="theme" className="text-sm font-medium">
-                    Theme
-                  </Label>
-                  <Select value={theme} onValueChange={setTheme}>
-                    <SelectTrigger className="w-full h-9">
-                      <SelectValue placeholder="Select theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="system">System</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="rounded-lg bg-background/25 border border-border/30 p-3 space-y-2">
+                  <p className="text-sm font-medium">What we keep</p>
+                  <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
+                    <li>Your email/contact info (for account access + support)</li>
+                    <li>App content you stream (practices, audio/video) is delivered from our servers</li>
+                    <li>Community content (only if you post in Circles)</li>
+                  </ul>
+
+                  <p className="text-sm font-medium pt-2">What we don’t keep</p>
+                  <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
+                    <li>Your journal entries are not stored on our servers</li>
+                    <li>Your ritual history and check-ins are not stored on our servers</li>
+                    <li>We don’t sell your personal data</li>
+                  </ul>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="focus-word" className="text-sm font-medium">
-                    Focus Word/Intent
-                  </Label>
-                  <Input
-                    id="focus-word"
-                    placeholder="Enter your daily focus word..."
-                    value={focusWord}
-                    onChange={(e) => setFocusWord(e.target.value)}
-                    className="h-9"
-                  />
-                  <p className="text-xs text-muted-foreground">Appears in your daily check-ins</p>
-                </div>
-              </div>
-            </div>
-          </TranslucentCard>
-
-          {/* Data & Tracking */}
-          <TranslucentCard>
-            <SectionHeader section="data" icon={Database} title="Data & Tracking" />
-            <div className={`overflow-hidden transition-all duration-300 ${openSections.data ? "max-h-96" : "max-h-0"}`}>
-              <div className="p-4 pt-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <Label htmlFor="ritual-history" className="text-sm font-medium">
-                      Ritual History
+                    <Label htmlFor="save-history" className="text-sm font-medium">
+                      Save my history on this device
                     </Label>
-                    <p className="text-xs text-muted-foreground">Track ritual completion</p>
+                    <p className="text-xs text-muted-foreground">
+                      Keeps your journal, check-ins, and ritual history stored locally on your device.
+                    </p>
                   </div>
-                  <Switch id="ritual-history" checked={ritualHistory} onCheckedChange={setRitualHistory} />
+                  <Switch id="save-history" checked={saveHistoryOnDevice} onCheckedChange={handleToggleSaveHistory} />
                 </div>
 
                 <div className="space-y-2">
-                  <Button variant="outline" size="sm" className="w-full justify-start h-9 bg-transparent">
+                  <Button onClick={handleExportData} variant="outline" size="sm" className="w-full justify-start h-9 bg-transparent">
                     <Download className="w-3 h-3 mr-2" />
-                    Export Data
+                    Export My Data
                   </Button>
+
                   <Button
+                    onClick={handleClearHistory}
                     variant="outline"
                     size="sm"
                     className="w-full justify-start text-destructive hover:text-destructive h-9 bg-transparent"
                   >
                     <Trash2 className="w-3 h-3 mr-2" />
-                    Clear Data
+                    Clear Local History
                   </Button>
+
+                  <p className="text-[11px] leading-snug text-muted-foreground px-1">
+                    Clearing local history removes journal entries, ritual completion, and check-ins from this device.
+                    This can’t be undone.
+                  </p>
                 </div>
               </div>
             </div>
