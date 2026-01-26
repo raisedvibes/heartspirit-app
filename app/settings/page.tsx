@@ -230,17 +230,11 @@ export default function SettingsPage() {
   <SectionHeader section="support" icon={HelpCircle} title="Support & Legal" />
   <div className={`overflow-hidden transition-all duration-300 ${openSections.support ? "max-h-96" : "max-h-0"}`}>
     <div className="p-4 pt-0 space-y-2">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="w-full justify-start h-9 hover:bg-background/40"
-        onClick={() => {
-          window.location.href =
-            "mailto:support@heartspirit.earth?subject=Heartspirit%20Support%20Request"
-        }}
-      >
-        Help
-      </Button>
+      <Link href="/support" className="block">
+        <Button variant="ghost" size="sm" className="w-full justify-start h-9 hover:bg-background/40">
+          Help
+        </Button>
+      </Link>
 
       <Link href="/privacy" className="block">
         <Button variant="ghost" size="sm" className="w-full justify-start h-9 hover:bg-background/40">
