@@ -19,6 +19,16 @@ export default function DashboardPage() {
     const supabase = createClient()
 
     const load = async () => {
+      // ✅ Preview bypass (v0 / design testing)
+      const isPreview =
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("preview") === "1"
+
+      if (isPreview) {
+        setReady(true)
+        return
+      }
+
       // 1) Require auth
       const { data: auth } = await supabase.auth.getUser()
       const user = auth?.user
