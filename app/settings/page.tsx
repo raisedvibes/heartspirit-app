@@ -28,7 +28,8 @@ export default function SettingsPage() {
   const [profileError, setProfileError] = useState<string | null>(null)
   const [profile, setProfile] = useState<{ full_name: string; email: string }>({ full_name: "", email: "" })
 
-  const [editOpen, setEditOpen] = useState(false)
+  // Inline edit mode (no modal)
+  const [editingProfile, setEditingProfile] = useState(false)
   const [editName, setEditName] = useState("")
   const [editEmail, setEditEmail] = useState("")
   const [saveProfileLoading, setSaveProfileLoading] = useState(false)
@@ -51,7 +52,7 @@ export default function SettingsPage() {
 
         const user = authData?.user
         if (!user) {
-          // Settings should already be behind /login guard, but keep safe fallback:
+          // /settings should be behind /login, but keep a safe fallback.
           setProfileLoading(false)
           return
         }
@@ -67,7 +68,6 @@ export default function SettingsPage() {
         if (error) throw error
 
         if (!data) {
-          // Create the row if missing
           const { error: insertErr } = await supabase.from("profiles").insert({
             id: user.id,
             email: fallbackEmail || null,
@@ -116,14 +116,7 @@ export default function SettingsPage() {
     </button>
   )
 
-  const openEditProfile = () => {
-    setProfileError(null)
-    setEditName(profile.full_name ?? "")
-    setEditEmail(profile.email ?? "")
-    setEditOpen(true)
-  }
-
-  const saveProfileToSupabase = async () => {
+  const saveProfileToSupabase = async (): Promise<boolean> => {
     try {
       setProfileError(null)
       setSaveProfileLoading(true)
@@ -149,9 +142,10 @@ export default function SettingsPage() {
       if (error) throw error
 
       setProfile({ full_name: name, email })
-      setEditOpen(false)
+      return true
     } catch (e: any) {
       setProfileError(e?.message ?? "Could not save profile")
+      return false
     } finally {
       setSaveProfileLoading(false)
     }
@@ -184,114 +178,104 @@ export default function SettingsPage() {
             </Link>
           </div>
 
-          {/* Profile & Contact */}
+          {/* Profile & Contact (inline edit, no modal) */}
           <TranslucentCard>
             <SectionHeader section="profile" icon={User} title="Profile & Contact" />
-            <div className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-[720px]" : "max-h-0"}`}>
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-[820px]" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-background/30 border border-border/30">
-                  <div>
-                    <p className="font-medium text-sm">
-                      {profileLoading ? "Loading..." : profile.full_name || "Your name"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {profileLoading ? "" : profile.email || "your@email.com"}
-                    </p>
-                  </div>
+                <div className="p-3 rounded-lg bg-background/30 border border-border/30 space-y-3">
+                  {!editingProfile ? (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">
+                          {profileLoading ? "Loading..." : profile.full_name || "Your name"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {profileLoading ? "" : profile.email || "your@email.com"}
+                        </p>
+                      </div>
 
-                  <Button
-                    size="sm"
-                    onClick={openEditProfile}
-                    disabled={profileLoading}
-                    className="bg-accent hover:bg-accent text-accent-foreground disabled:opacity-50"
-                  >
-                    <Edit className="w-3 h-3 mr-1" />
-                    Edit
-                  </Button>
+                      <Button
+                        size="sm"
+                        disabled={profileLoading}
+                        className="bg-accent hover:bg-accent text-accent-foreground disabled:opacity-50"
+                        onClick={() => {
+                          setProfileError(null)
+                          setEditName(profile.full_name ?? "")
+                          setEditEmail(profile.email ?? "")
+                          setEditingProfile(true)
+                        }}
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        Edit
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="profile-name" className="text-sm font-medium">
+                          Name
+                        </Label>
+                        <Input
+                          id="profile-name"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="h-9 bg-background/30 border-border/40"
+                          placeholder="Your name"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="profile-email" className="text-sm font-medium">
+                          Email
+                        </Label>
+                        <Input
+                          id="profile-email"
+                          type="email"
+                          value={editEmail}
+                          onChange={(e) => setEditEmail(e.target.value)}
+                          className="h-9 bg-background/30 border-border/40"
+                          placeholder="you@email.com"
+                        />
+                        <p className="text-[11px] leading-snug text-muted-foreground">
+                          This updates the email we use for support and contact. Your sign-in email may require a separate change.
+                        </p>
+                      </div>
+
+                      {profileError && <p className="text-xs text-destructive">{profileError}</p>}
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1 bg-transparent border-border/40"
+                          onClick={() => {
+                            setProfileError(null)
+                            setEditingProfile(false)
+                          }}
+                        >
+                          Cancel
+                        </Button>
+
+                        <Button
+                          className="flex-1 bg-accent hover:bg-accent text-accent-foreground"
+                          disabled={saveProfileLoading}
+                          onClick={async () => {
+                            const ok = await saveProfileToSupabase()
+                            if (ok) setEditingProfile(false)
+                          }}
+                        >
+                          {saveProfileLoading ? "Saving..." : "Save"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {profileError && <p className="text-xs text-destructive px-1">{profileError}</p>}
+                {profileError && !editingProfile && <p className="text-xs text-destructive px-1">{profileError}</p>}
 
                 <p className="text-xs text-muted-foreground px-1">
                   We only use your contact info for account access and support. Your journal + ritual history stays on your device.
                 </p>
-
-                {/* Themed modal */}
-                {editOpen && (
-                  <div
-                    className="fixed inset-0 z-50 flex items-center justify-center px-4"
-                    role="dialog"
-                    aria-modal="true"
-                    onClick={() => setEditOpen(false)}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/25 to-black/40 backdrop-blur-sm" />
-
-                    <div className="relative w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-                      <TranslucentCard>
-                        <div className="p-5 space-y-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <h3 className="text-base font-semibold">Edit Profile</h3>
-                              <p className="text-xs text-muted-foreground">
-                                Contact info used for account access + support.
-                              </p>
-                            </div>
-
-                            <Button variant="ghost" size="sm" onClick={() => setEditOpen(false)}>
-                              Close
-                            </Button>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-name">Name</Label>
-                            <Input
-                              id="edit-name"
-                              value={editName}
-                              onChange={(e) => setEditName(e.target.value)}
-                              className="h-9 bg-background/30 border-border/40"
-                              placeholder="Your name"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-email">Email</Label>
-                            <Input
-                              id="edit-email"
-                              type="email"
-                              value={editEmail}
-                              onChange={(e) => setEditEmail(e.target.value)}
-                              className="h-9 bg-background/30 border-border/40"
-                              placeholder="you@email.com"
-                            />
-                            <p className="text-[11px] leading-snug text-muted-foreground">
-                              This updates the email we use for support and contact. Your sign-in email may require a separate change.
-                            </p>
-                          </div>
-
-                          {profileError && <p className="text-xs text-destructive">{profileError}</p>}
-
-                          <div className="flex gap-2 pt-1">
-                            <Button
-                              variant="outline"
-                              className="flex-1 bg-transparent border-border/40"
-                              onClick={() => setEditOpen(false)}
-                            >
-                              Cancel
-                            </Button>
-
-                            <Button
-                              className="flex-1 bg-accent hover:bg-accent text-accent-foreground"
-                              onClick={saveProfileToSupabase}
-                              disabled={saveProfileLoading}
-                            >
-                              {saveProfileLoading ? "Saving..." : "Save"}
-                            </Button>
-                          </div>
-                        </div>
-                      </TranslucentCard>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </TranslucentCard>
