@@ -70,11 +70,9 @@ export default function LoginPage() {
         className="relative z-20 w-full max-w-sm mx-auto"
       >
         {/* Header */}
-       
          <div className="flex items-center gap-3">
             <h1 className="text-xl font-semibold tracking-wide">heartspirit</h1>
           </div>
-        </div>
 
         {/* Login Card */}
         <Card className="p-6 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-lg text-white">
