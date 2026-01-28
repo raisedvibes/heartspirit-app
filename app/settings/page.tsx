@@ -23,9 +23,7 @@ export default function SettingsPage() {
   // Privacy / local data
   const [saveHistoryOnDevice, setSaveHistoryOnDevice] = useState(true)
 
-  // Auth / Profile (Supabase)
-  const [isSignedIn, setIsSignedIn] = useState(false)
-
+  // Profile (Supabase)
   const [profileLoading, setProfileLoading] = useState(true)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [profile, setProfile] = useState<{ full_name: string; email: string }>({ full_name: "", email: "" })
@@ -52,9 +50,8 @@ export default function SettingsPage() {
         if (authErr) throw authErr
 
         const user = authData?.user
-        setIsSignedIn(!!user)
-
         if (!user) {
+          // Settings should already be behind /login guard, but keep safe fallback:
           setProfileLoading(false)
           return
         }
@@ -70,6 +67,7 @@ export default function SettingsPage() {
         if (error) throw error
 
         if (!data) {
+          // Create the row if missing
           const { error: insertErr } = await supabase.from("profiles").insert({
             id: user.id,
             email: fallbackEmail || null,
@@ -186,7 +184,7 @@ export default function SettingsPage() {
             </Link>
           </div>
 
-          {/* Profile & Contact (contact info) */}
+          {/* Profile & Contact */}
           <TranslucentCard>
             <SectionHeader section="profile" icon={User} title="Profile & Contact" />
             <div className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-[720px]" : "max-h-0"}`}>
@@ -204,7 +202,7 @@ export default function SettingsPage() {
                   <Button
                     size="sm"
                     onClick={openEditProfile}
-                    disabled={profileLoading || !isSignedIn}
+                    disabled={profileLoading}
                     className="bg-accent hover:bg-accent text-accent-foreground disabled:opacity-50"
                   >
                     <Edit className="w-3 h-3 mr-1" />
@@ -213,12 +211,6 @@ export default function SettingsPage() {
                 </div>
 
                 {profileError && <p className="text-xs text-destructive px-1">{profileError}</p>}
-
-                {!profileLoading && !isSignedIn && (
-                  <p className="text-xs text-muted-foreground px-1">
-                    You’re not signed in. Sign in to edit your profile.
-                  </p>
-                )}
 
                 <p className="text-xs text-muted-foreground px-1">
                   We only use your contact info for account access and support. Your journal + ritual history stays on your device.
