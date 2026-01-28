@@ -289,14 +289,16 @@ export default function SignupPage() {
             </form>
 
             {/* Login Link */}
-            <div className="text-center">
-              <span className="text-sm text-white/70">Already have an account? </span>
-              <Link
-                href="/login"
-                className="text-sm text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
-              >
-                Sign in
-              </Link>
+            <div className="text-center space-y-1">
+  <span className="text-sm text-white/70">Already have an account?</span>
+
+  <div>
+    <Link
+      href="/login"
+      className="text-sm text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
+    >
+      Sign in
+    </Link>
             </div>
           </div>
         </Card>
