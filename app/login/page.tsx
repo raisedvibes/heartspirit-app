@@ -70,14 +70,8 @@ export default function LoginPage() {
         className="relative z-20 w-full max-w-sm mx-auto"
       >
         {/* Header */}
-        <div className="flex items-center mb-10 text-white">
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="w-9 h-9 p-0 mr-4 text-white hover:bg-white/10 rounded-xl">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-
-          <div className="flex items-center gap-3">
+       
+         <div className="flex items-center gap-3">
             <h1 className="text-xl font-semibold tracking-wide">heartspirit</h1>
           </div>
         </div>
