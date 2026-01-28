@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowLeft, Eye, EyeOff, Leaf, Check } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, Check } from "lucide-react"
 import Link from "next/link"
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase/client"
 
-// Supabase client
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+const supabase = createClient()
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -41,16 +40,26 @@ export default function SignupPage() {
     }
 
     setIsLoading(true)
-    const { error } = await supabase.auth.signUp({
-      email: formData.email,
+
+    const { data, error } = await supabase.auth.signUp({
+      email: formData.email.trim(),
       password: formData.password,
-      options: { data: { full_name: formData.name } },
+      options: {
+        data: { full_name: formData.name.trim() },
+      },
     })
 
     setIsLoading(false)
 
     if (error) {
+      console.log("SIGNUP ERROR:", error)
       setError(error.message)
+      return
+    }
+
+    // If email confirmation is ON, session may be null. Send them to /login either way.
+    if (!data?.session) {
+      setError("Check your email to confirm your account, then sign in.")
       return
     }
 
@@ -107,7 +116,6 @@ export default function SignupPage() {
           </Link>
 
           <div className="flex items-center gap-3">
-          
             <h1 className="text-xl font-semibold tracking-wide">heartspirit</h1>
           </div>
         </div>
@@ -188,11 +196,11 @@ export default function SignupPage() {
                       ))}
                     </div>
                     <div className="flex items-center space-x-4 text-xs text-white/70">
-                      <div className={`flex items-center ${formData.password.length >= 8 ? "text-accent" : ""}`}>
+                      <div className={`flex items-center ${formData.password.length >= 8 ? "text-white/90" : ""}`}>
                         <Check className="w-3 h-3 mr-1" />
                         8+ characters
                       </div>
-                      <div className={`flex items-center ${/[A-Z]/.test(formData.password) ? "text-accent" : ""}`}>
+                      <div className={`flex items-center ${/[A-Z]/.test(formData.password) ? "text-white/90" : ""}`}>
                         <Check className="w-3 h-3 mr-1" />
                         Uppercase
                       </div>
@@ -239,11 +247,17 @@ export default function SignupPage() {
                 />
                 <label htmlFor="terms" className="text-sm text-white/70 leading-relaxed">
                   I agree to the{" "}
-                  <Link href="/terms" className="text-accent hover:text-accent/80">
+                  <Link
+                    href="/terms"
+                    className="text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
+                  >
                     Terms of Service
                   </Link>{" "}
                   and{" "}
-                  <Link href="/privacy" className="text-accent hover:text-accent/80">
+                  <Link
+                    href="/privacy"
+                    className="text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
+                  >
                     Privacy Policy
                   </Link>
                 </label>
@@ -277,7 +291,10 @@ export default function SignupPage() {
             {/* Login Link */}
             <div className="text-center">
               <span className="text-sm text-white/70">Already have an account? </span>
-              <Link href="/login" className="text-sm text-accent hover:text-accent/80 font-medium">
+              <Link
+                href="/login"
+                className="text-sm text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
+              >
                 Sign in
               </Link>
             </div>
