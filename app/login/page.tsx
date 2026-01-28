@@ -133,7 +133,10 @@ export default function LoginPage() {
 
               {/* Forgot Password */}
               <div className="text-right">
-                <Link href="/forgot-password" className="text-sm text-accent hover:text-accent/80">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
+                >
                   Forgot password?
                 </Link>
               </div>
@@ -166,7 +169,7 @@ export default function LoginPage() {
             {/* Sign Up */}
             <div className="text-center">
               <span className="text-sm text-white/70">Don&apos;t have an account? </span>
-              <Link href="/signup" className="text-sm text-accent hover:text-accent/80 font-medium">
+              <Link href="/signup" className="text-sm text-white/70 hover:text-white/90 underline-offset-4 hover:underline">
                 Create account
               </Link>
             </div>
