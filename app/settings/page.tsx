@@ -23,7 +23,9 @@ export default function SettingsPage() {
   // Privacy / local data
   const [saveHistoryOnDevice, setSaveHistoryOnDevice] = useState(true)
 
-  // Profile (Supabase)
+  // Auth / Profile (Supabase)
+  const [isSignedIn, setIsSignedIn] = useState(false)
+
   const [profileLoading, setProfileLoading] = useState(true)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [profile, setProfile] = useState<{ full_name: string; email: string }>({ full_name: "", email: "" })
@@ -50,6 +52,8 @@ export default function SettingsPage() {
         if (authErr) throw authErr
 
         const user = authData?.user
+        setIsSignedIn(!!user)
+
         if (!user) {
           setProfileLoading(false)
           return
@@ -66,7 +70,6 @@ export default function SettingsPage() {
         if (error) throw error
 
         if (!data) {
-          // Create the row if missing
           const { error: insertErr } = await supabase.from("profiles").insert({
             id: user.id,
             email: fallbackEmail || null,
@@ -186,7 +189,7 @@ export default function SettingsPage() {
           {/* Profile & Contact (contact info) */}
           <TranslucentCard>
             <SectionHeader section="profile" icon={User} title="Profile & Contact" />
-            <div className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-[520px]" : "max-h-0"}`}>
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-[720px]" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-3">
                 <div className="flex items-center justify-between p-3 rounded-lg bg-background/30 border border-border/30">
                   <div>
@@ -197,11 +200,12 @@ export default function SettingsPage() {
                       {profileLoading ? "" : profile.email || "your@email.com"}
                     </p>
                   </div>
+
                   <Button
                     size="sm"
                     onClick={openEditProfile}
-                    disabled={profileLoading}
-                    className="bg-accent hover:bg-accent text-accent-foreground"
+                    disabled={profileLoading || !isSignedIn}
+                    className="bg-accent hover:bg-accent text-accent-foreground disabled:opacity-50"
                   >
                     <Edit className="w-3 h-3 mr-1" />
                     Edit
@@ -210,52 +214,89 @@ export default function SettingsPage() {
 
                 {profileError && <p className="text-xs text-destructive px-1">{profileError}</p>}
 
+                {!profileLoading && !isSignedIn && (
+                  <p className="text-xs text-muted-foreground px-1">
+                    You’re not signed in. Sign in to edit your profile.
+                  </p>
+                )}
+
                 <p className="text-xs text-muted-foreground px-1">
                   We only use your contact info for account access and support. Your journal + ritual history stays on your device.
                 </p>
 
+                {/* Themed modal */}
                 {editOpen && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-                    <div className="w-full max-w-md rounded-2xl bg-background/95 backdrop-blur border border-border/40 shadow-xl p-5 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-base font-semibold">Edit Profile</h3>
-                        <Button variant="ghost" size="sm" onClick={() => setEditOpen(false)}>
-                          Close
-                        </Button>
-                      </div>
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center px-4"
+                    role="dialog"
+                    aria-modal="true"
+                    onClick={() => setEditOpen(false)}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/25 to-black/40 backdrop-blur-sm" />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-name">Name</Label>
-                        <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} />
-                      </div>
+                    <div className="relative w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+                      <TranslucentCard>
+                        <div className="p-5 space-y-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <h3 className="text-base font-semibold">Edit Profile</h3>
+                              <p className="text-xs text-muted-foreground">
+                                Contact info used for account access + support.
+                              </p>
+                            </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-email">Email</Label>
-                        <Input
-                          id="edit-email"
-                          type="email"
-                          value={editEmail}
-                          onChange={(e) => setEditEmail(e.target.value)}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          This updates the email we use for support and contact. Your sign-in email may require a separate change.
-                        </p>
-                      </div>
+                            <Button variant="ghost" size="sm" onClick={() => setEditOpen(false)}>
+                              Close
+                            </Button>
+                          </div>
 
-                      {profileError && <p className="text-xs text-destructive">{profileError}</p>}
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-name">Name</Label>
+                            <Input
+                              id="edit-name"
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              className="h-9 bg-background/30 border-border/40"
+                              placeholder="Your name"
+                            />
+                          </div>
 
-                      <div className="flex gap-2">
-                        <Button variant="outline" className="flex-1" onClick={() => setEditOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button
-                          className="flex-1 bg-accent hover:bg-accent text-accent-foreground"
-                          onClick={saveProfileToSupabase}
-                          disabled={saveProfileLoading}
-                        >
-                          {saveProfileLoading ? "Saving..." : "Save"}
-                        </Button>
-                      </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-email">Email</Label>
+                            <Input
+                              id="edit-email"
+                              type="email"
+                              value={editEmail}
+                              onChange={(e) => setEditEmail(e.target.value)}
+                              className="h-9 bg-background/30 border-border/40"
+                              placeholder="you@email.com"
+                            />
+                            <p className="text-[11px] leading-snug text-muted-foreground">
+                              This updates the email we use for support and contact. Your sign-in email may require a separate change.
+                            </p>
+                          </div>
+
+                          {profileError && <p className="text-xs text-destructive">{profileError}</p>}
+
+                          <div className="flex gap-2 pt-1">
+                            <Button
+                              variant="outline"
+                              className="flex-1 bg-transparent border-border/40"
+                              onClick={() => setEditOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+
+                            <Button
+                              className="flex-1 bg-accent hover:bg-accent text-accent-foreground"
+                              onClick={saveProfileToSupabase}
+                              disabled={saveProfileLoading}
+                            >
+                              {saveProfileLoading ? "Saving..." : "Save"}
+                            </Button>
+                          </div>
+                        </div>
+                      </TranslucentCard>
                     </div>
                   </div>
                 )}
@@ -266,11 +307,7 @@ export default function SettingsPage() {
           {/* Notifications */}
           <TranslucentCard>
             <SectionHeader section="notifications" icon={Bell} title="Notifications" />
-            <div
-              className={`overflow-hidden transition-all duration-300 ${
-                openSections.notifications ? "max-h-[520px]" : "max-h-0"
-              }`}
-            >
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.notifications ? "max-h-[520px]" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
