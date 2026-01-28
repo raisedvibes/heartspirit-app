@@ -8,10 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase/client"
 
-// Supabase client
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+const supabase = createClient()
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -32,6 +31,7 @@ export default function LoginPage() {
     setIsLoading(false)
 
     if (error) {
+      console.log("LOGIN ERROR:", error)
       setError(error.message)
       return
     }
@@ -165,7 +165,7 @@ export default function LoginPage() {
 
             {/* Sign Up */}
             <div className="text-center">
-              <span className="text-sm text-white/70">Don't have an account? </span>
+              <span className="text-sm text-white/70">Don&apos;t have an account? </span>
               <Link href="/signup" className="text-sm text-accent hover:text-accent/80 font-medium">
                 Create account
               </Link>
