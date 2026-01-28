@@ -251,7 +251,7 @@ export default function SignupPage() {
                     href="/terms"
                     className="text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
                   >
-                    Terms of Service
+                    Terms of Use
                   </Link>{" "}
                   and{" "}
                   <Link
