@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import { useState, type FormEvent } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +15,9 @@ const supabase = createClient()
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -23,10 +25,8 @@ export default function SignupPage() {
     confirmPassword: "",
     agreeToTerms: false,
   })
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
 
@@ -34,6 +34,7 @@ export default function SignupPage() {
       setError("Passwords don't match")
       return
     }
+
     if (!formData.agreeToTerms) {
       setError("You must agree to the Terms and Privacy Policy")
       return
@@ -57,7 +58,7 @@ export default function SignupPage() {
       return
     }
 
-    // If email confirmation is ON, session may be null. Send them to /login either way.
+    // If email confirmation is ON, session may be null.
     if (!data?.session) {
       setError("Check your email to confirm your account, then sign in.")
       return
@@ -84,7 +85,14 @@ export default function SignupPage() {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center p-4">
       {/* Video Background */}
-      <video autoPlay loop muted playsInline preload="auto" className="absolute inset-0 w-full h-full object-cover z-0">
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        className="absolute inset-0 w-full h-full object-cover z-0"
+      >
         <source
           src="https://tajqnuta9fwavw6h.public.blob.vercel-storage.com/desktop.heartspirit.mp4"
           type="video/mp4"
@@ -97,7 +105,7 @@ export default function SignupPage() {
         />
       </video>
 
-      {/* Dark overlay */}
+      {/* Overlay */}
       <div className="absolute inset-0 bg-black/60 z-10" />
 
       {/* Content */}
@@ -110,21 +118,22 @@ export default function SignupPage() {
         {/* Header */}
         <div className="flex items-center mb-10 text-white">
           <Link href="/">
-            <Button variant="ghost" size="sm" className="w-9 h-9 p-0 mr-4 text-white hover:bg-white/10 rounded-xl">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-9 h-9 p-0 mr-4 text-white hover:bg-white/10 rounded-xl"
+            >
               <ArrowLeft className="w-4 h-4" />
             </Button>
           </Link>
 
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold tracking-wide">heartspirit</h1>
-          </div>
+          <h1 className="text-xl font-semibold tracking-wide">heartspirit</h1>
         </div>
 
-        {/* Signup Card */}
         <Card className="p-6 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-lg text-white">
-          <div className="space-y-6 text-white">
+          <div className="space-y-6">
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-semibold tracking-wide">Create Account</h1>
+              <h2 className="text-2xl font-semibold tracking-wide">Create Account</h2>
               <p className="text-white/70">Start today</p>
             </div>
 
@@ -136,7 +145,6 @@ export default function SignupPage() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="Enter your full name"
                   required
                   className="bg-white/10 border-white/20 text-white placeholder-white/50"
                 />
@@ -149,7 +157,6 @@ export default function SignupPage() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder="Enter your email"
                   required
                   className="bg-white/10 border-white/20 text-white placeholder-white/50"
                 />
@@ -163,9 +170,8 @@ export default function SignupPage() {
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
-                    placeholder="Create a password"
-                    className="pr-10 bg-white/10 border-white/20 text-white placeholder-white/50"
                     required
+                    className="pr-10 bg-white/10 border-white/20 text-white placeholder-white/50"
                   />
                   <Button
                     type="button"
@@ -182,7 +188,7 @@ export default function SignupPage() {
                   </Button>
                 </div>
 
-                {/* Strength Bar */}
+                {/* Strength */}
                 {formData.password && (
                   <div className="space-y-2">
                     <div className="flex space-x-1">
@@ -217,9 +223,8 @@ export default function SignupPage() {
                     type={showConfirmPassword ? "text" : "password"}
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                    placeholder="Confirm your password"
-                    className="pr-10 bg-white/10 border-white/20 text-white placeholder-white/50"
                     required
+                    className="pr-10 bg-white/10 border-white/20 text-white placeholder-white/50"
                   />
                   <Button
                     type="button"
@@ -240,12 +245,11 @@ export default function SignupPage() {
               {/* Terms */}
               <div className="flex items-start space-x-2">
                 <Checkbox
-                  id="terms"
                   checked={formData.agreeToTerms}
                   onCheckedChange={(checked) => handleInputChange("agreeToTerms", checked as boolean)}
                   className="mt-1 border-white/40 data-[state=checked]:bg-accent"
                 />
-                <label htmlFor="terms" className="text-sm text-white/70 leading-relaxed">
+                <span className="text-sm text-white/70">
                   I agree to the{" "}
                   <Link
                     href="/terms"
@@ -260,45 +264,31 @@ export default function SignupPage() {
                   >
                     Privacy Policy
                   </Link>
-                </label>
+                </span>
               </div>
 
-              {/* Error */}
               {error && <p className="text-sm text-red-400">{error}</p>}
 
-              {/* Submit Button */}
               <Button
                 type="submit"
                 disabled={isLoading || !formData.agreeToTerms}
                 className="w-full bg-accent hover:bg-accent/90 text-accent-foreground py-6 text-base font-semibold disabled:opacity-50 rounded-xl"
               >
-                {isLoading ? (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{
-                      duration: 1,
-                      repeat: Number.POSITIVE_INFINITY,
-                      ease: "linear",
-                    }}
-                    className="w-5 h-5 border-2 border-accent-foreground/30 border-t-accent-foreground rounded-full"
-                  />
-                ) : (
-                  "Create Account"
-                )}
+                {isLoading ? "Creating..." : "Create Account"}
               </Button>
             </form>
 
             {/* Login Link */}
             <div className="text-center space-y-1">
-  <span className="text-sm text-white/70">Already have an account?</span>
-
-  <div>
-    <Link
-      href="/login"
-      className="text-sm text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
-    >
-      Sign in
-    </Link>
+              <span className="text-sm text-white/70">Already have an account?</span>
+              <div>
+                <Link
+                  href="/login"
+                  className="text-sm text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
+                >
+                  Sign in
+                </Link>
+              </div>
             </div>
           </div>
         </Card>
