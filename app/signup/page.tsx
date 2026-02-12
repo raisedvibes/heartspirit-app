@@ -8,12 +8,9 @@ import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ArrowLeft, Eye, EyeOff, Check } from "lucide-react"
 import Link from "next/link"
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase/client"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = createClient()
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -45,18 +42,25 @@ export default function SignupPage() {
 
     setIsLoading(true)
 
-    const { error } = await supabase.auth.signUp({
-      email: formData.email,
+    const { data, error } = await supabase.auth.signUp({
+      email: formData.email.trim(),
       password: formData.password,
       options: {
-        data: { full_name: formData.name },
+        data: { full_name: formData.name.trim() },
       },
     })
 
     setIsLoading(false)
 
     if (error) {
+      console.log("SIGNUP ERROR:", error)
       setError(error.message)
+      return
+    }
+
+    // If email confirmation is ON, session may be null.
+    if (!data?.session) {
+      setError("Check your email to confirm your account, then sign in.")
       return
     }
 
@@ -80,7 +84,6 @@ export default function SignupPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center p-4">
-      
       {/* Video Background */}
       <video
         autoPlay
@@ -124,34 +127,24 @@ export default function SignupPage() {
             </Button>
           </Link>
 
-          <h1 className="text-xl font-semibold tracking-wide">
-            heartspirit
-          </h1>
+          <h1 className="text-xl font-semibold tracking-wide">heartspirit</h1>
         </div>
 
         <Card className="p-6 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-lg text-white">
           <div className="space-y-6">
-
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-semibold tracking-wide">
-                Create Account
-              </h2>
+              <h2 className="text-2xl font-semibold tracking-wide">Create Account</h2>
               <p className="text-white/70">Start today</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-
               {/* Name */}
               <div className="space-y-2">
-                <label className="text-sm text-white/80">
-                  Full Name
-                </label>
+                <label className="text-sm text-white/80">Full Name</label>
                 <Input
                   type="text"
                   value={formData.name}
-                  onChange={(e) =>
-                    handleInputChange("name", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("name", e.target.value)}
                   required
                   className="bg-white/10 border-white/20 text-white placeholder-white/50"
                 />
@@ -159,15 +152,11 @@ export default function SignupPage() {
 
               {/* Email */}
               <div className="space-y-2">
-                <label className="text-sm text-white/80">
-                  Email
-                </label>
+                <label className="text-sm text-white/80">Email</label>
                 <Input
                   type="email"
                   value={formData.email}
-                  onChange={(e) =>
-                    handleInputChange("email", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("email", e.target.value)}
                   required
                   className="bg-white/10 border-white/20 text-white placeholder-white/50"
                 />
@@ -175,16 +164,12 @@ export default function SignupPage() {
 
               {/* Password */}
               <div className="space-y-2">
-                <label className="text-sm text-white/80">
-                  Password
-                </label>
+                <label className="text-sm text-white/80">Password</label>
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
-                    onChange={(e) =>
-                      handleInputChange("password", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("password", e.target.value)}
                     required
                     className="pr-10 bg-white/10 border-white/20 text-white placeholder-white/50"
                   />
@@ -192,9 +177,7 @@ export default function SignupPage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() =>
-                      setShowPassword(!showPassword)
-                    }
+                    onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-0 top-0 h-full w-10 p-0 hover:bg-transparent"
                   >
                     {showPassword ? (
@@ -205,98 +188,108 @@ export default function SignupPage() {
                   </Button>
                 </div>
 
+                {/* Strength */}
                 {formData.password && (
-                  <div className="flex space-x-1 mt-2">
-                    {[1, 2, 3, 4].map((level) => (
-                      <div
-                        key={level}
-                        className={`h-1 flex-1 rounded-full ${
-                          strength >= level
-                            ? "bg-accent"
-                            : "bg-white/20"
-                        }`}
-                      />
-                    ))}
+                  <div className="space-y-2">
+                    <div className="flex space-x-1">
+                      {[1, 2, 3, 4].map((level) => (
+                        <div
+                          key={level}
+                          className={`h-1 flex-1 rounded-full transition-colors ${
+                            strength >= level ? "bg-accent" : "bg-white/20"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center space-x-4 text-xs text-white/70">
+                      <div className={`flex items-center ${formData.password.length >= 8 ? "text-white/90" : ""}`}>
+                        <Check className="w-3 h-3 mr-1" />
+                        8+ characters
+                      </div>
+                      <div className={`flex items-center ${/[A-Z]/.test(formData.password) ? "text-white/90" : ""}`}>
+                        <Check className="w-3 h-3 mr-1" />
+                        Uppercase
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
 
               {/* Confirm Password */}
               <div className="space-y-2">
-                <label className="text-sm text-white/80">
-                  Confirm Password
-                </label>
-                <Input
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "confirmPassword",
-                      e.target.value
-                    )
-                  }
-                  required
-                  className="bg-white/10 border-white/20 text-white placeholder-white/50"
-                />
+                <label className="text-sm text-white/80">Confirm Password</label>
+                <div className="relative">
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                    required
+                    className="pr-10 bg-white/10 border-white/20 text-white placeholder-white/50"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-0 top-0 h-full w-10 p-0 hover:bg-transparent"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4 text-white/60" />
+                    ) : (
+                      <Eye className="w-4 h-4 text-white/60" />
+                    )}
+                  </Button>
+                </div>
               </div>
 
               {/* Terms */}
               <div className="flex items-start space-x-2">
                 <Checkbox
                   checked={formData.agreeToTerms}
-                  onCheckedChange={(checked) =>
-                    handleInputChange(
-                      "agreeToTerms",
-                      checked as boolean
-                    )
-                  }
+                  onCheckedChange={(checked) => handleInputChange("agreeToTerms", checked as boolean)}
                   className="mt-1 border-white/40 data-[state=checked]:bg-accent"
                 />
                 <span className="text-sm text-white/70">
                   I agree to the{" "}
                   <Link
                     href="/terms"
-                    className="text-accent"
+                    className="text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
                   >
-                    Terms
+                    Terms of Use
                   </Link>{" "}
                   and{" "}
                   <Link
                     href="/privacy"
-                    className="text-accent"
+                    className="text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
                   >
                     Privacy Policy
                   </Link>
                 </span>
               </div>
 
-              {error && (
-                <p className="text-sm text-red-400">
-                  {error}
-                </p>
-              )}
+              {error && <p className="text-sm text-red-400">{error}</p>}
 
               <Button
                 type="submit"
-                disabled={isLoading}
-                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground py-6 text-base font-semibold rounded-xl"
+                disabled={isLoading || !formData.agreeToTerms}
+                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground py-6 text-base font-semibold disabled:opacity-50 rounded-xl"
               >
                 {isLoading ? "Creating..." : "Create Account"}
               </Button>
             </form>
 
-            <div className="text-center">
-              <span className="text-sm text-white/70">
-                Already have an account?
-              </span>{" "}
-              <Link
-                href="/login"
-                className="text-sm text-accent font-medium"
-              >
-                Sign in
-              </Link>
+            {/* Login Link */}
+            <div className="text-center space-y-1">
+              <span className="text-sm text-white/70">Already have an account?</span>
+              <div>
+                <Link
+                  href="/login"
+                  className="text-sm text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
+                >
+                  Sign in
+                </Link>
+              </div>
             </div>
-
           </div>
         </Card>
       </motion.div>
