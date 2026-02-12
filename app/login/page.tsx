@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import { useState, type FormEvent } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +17,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
@@ -45,8 +44,16 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center p-4">
+      
       {/* Background Video */}
-      <video autoPlay loop muted playsInline preload="auto" className="absolute inset-0 w-full h-full object-cover z-0">
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        className="absolute inset-0 w-full h-full object-cover z-0"
+      >
         <source
           src="https://tajqnuta9fwavw6h.public.blob.vercel-storage.com/desktop.heartspirit.mp4"
           type="video/mp4"
@@ -62,11 +69,9 @@ export default function LoginPage() {
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/60 z-10" />
 
-      {/* Header (top-left) */}
+      {/* Header */}
       <div className="absolute top-6 left-6 z-20 text-white">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold tracking-wide">heartspirit</h1>
-        </div>
+        <h1 className="text-xl font-semibold tracking-wide">heartspirit</h1>
       </div>
 
       {/* Content */}
@@ -76,14 +81,17 @@ export default function LoginPage() {
         transition={{ duration: 0.6 }}
         className="relative z-20 w-full max-w-sm mx-auto pt-10"
       >
-        {/* Login Card */}
         <Card className="p-6 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-lg text-white">
           <div className="space-y-6 text-white">
+            
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-semibold tracking-wide">Enter Your Portal</h1>
+              <h1 className="text-2xl font-semibold tracking-wide">
+                Enter Your Portal
+              </h1>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              
               {/* Email */}
               <div className="space-y-2">
                 <label className="text-sm text-white/80">Email</label>
@@ -136,13 +144,15 @@ export default function LoginPage() {
               </div>
 
               {/* Error */}
-              {error && <p className="text-sm text-red-400">{error}</p>}
+              {error && (
+                <p className="text-sm text-red-400">{error}</p>
+              )}
 
-              {/* Submit */}
+              {/* Submit Button (Fixed Contrast) */}
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground py-6 text-base font-semibold rounded-xl"
+                className="w-full bg-accent hover:bg-accent/90 text-white py-6 text-base font-semibold rounded-xl"
               >
                 {isLoading ? (
                   <motion.div
@@ -152,7 +162,7 @@ export default function LoginPage() {
                       repeat: Number.POSITIVE_INFINITY,
                       ease: "linear",
                     }}
-                    className="w-5 h-5 border-2 border-accent-foreground/30 border-t-accent-foreground rounded-full"
+                    className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
                   />
                 ) : (
                   "Sign In"
@@ -162,7 +172,9 @@ export default function LoginPage() {
 
             {/* Sign Up */}
             <div className="text-center">
-              <span className="text-sm text-white/70">Don&apos;t have an account? </span>
+              <span className="text-sm text-white/70">
+                Don&apos;t have an account?{" "}
+              </span>
               <Link
                 href="/signup"
                 className="text-sm text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
@@ -170,6 +182,7 @@ export default function LoginPage() {
                 Create account
               </Link>
             </div>
+
           </div>
         </Card>
       </motion.div>
