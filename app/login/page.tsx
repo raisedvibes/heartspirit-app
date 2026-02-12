@@ -6,12 +6,11 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { ArrowLeft, Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase/client"
 
-// Supabase client
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+const supabase = createClient()
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -25,13 +24,14 @@ export default function LoginPage() {
     setError(null)
 
     const { error } = await supabase.auth.signInWithPassword({
-      email: formData.email,
+      email: formData.email.trim(),
       password: formData.password,
     })
 
     setIsLoading(false)
 
     if (error) {
+      console.log("LOGIN ERROR:", error)
       setError(error.message)
       return
     }
@@ -62,26 +62,20 @@ export default function LoginPage() {
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/60 z-10" />
 
+      {/* Header (top-left) */}
+      <div className="absolute top-6 left-6 z-20 text-white">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold tracking-wide">heartspirit</h1>
+        </div>
+      </div>
+
       {/* Content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-20 w-full max-w-sm mx-auto"
+        className="relative z-20 w-full max-w-sm mx-auto pt-10"
       >
-        {/* Header */}
-        <div className="flex items-center mb-10 text-white">
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="w-9 h-9 p-0 mr-4 text-white hover:bg-white/10 rounded-xl">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold tracking-wide">heartspirit</h1>
-          </div>
-        </div>
-
         {/* Login Card */}
         <Card className="p-6 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-lg text-white">
           <div className="space-y-6 text-white">
@@ -133,7 +127,10 @@ export default function LoginPage() {
 
               {/* Forgot Password */}
               <div className="text-right">
-                <Link href="/forgot-password" className="text-sm text-accent hover:text-accent/80">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
+                >
                   Forgot password?
                 </Link>
               </div>
@@ -165,8 +162,11 @@ export default function LoginPage() {
 
             {/* Sign Up */}
             <div className="text-center">
-              <span className="text-sm text-white/70">Don't have an account? </span>
-              <Link href="/signup" className="text-sm text-accent hover:text-accent/80 font-medium">
+              <span className="text-sm text-white/70">Don&apos;t have an account? </span>
+              <Link
+                href="/signup"
+                className="text-sm text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
+              >
                 Create account
               </Link>
             </div>
