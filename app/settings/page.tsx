@@ -109,9 +109,8 @@ export default function SettingsPage() {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
   }
 
-  // Shared hover gradient (match Back arrow button hover)
-  const hoverGradient =
-    "hover:bg-black/35 hover:text-white shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] backdrop-blur-md"
+  // Hover should match the back arrow hover (but DO NOT change base styling)
+  const headerHoverClass = "hover:bg-black/35 hover:text-white"
 
   const SectionHeader = ({
     section,
@@ -124,19 +123,14 @@ export default function SettingsPage() {
   }) => (
     <button onClick={() => toggleSection(section)} className="w-full p-2">
       <div
-        className={[
-          "flex items-center justify-between rounded-xl px-3 py-3 transition-colors",
-          "bg-black/25 border border-white/25 text-white",
-          hoverGradient,
-        ].join(" ")}
+        className={`flex items-center justify-between rounded-xl px-3 py-3 transition-colors ${headerHoverClass}`}
       >
         <div className="flex items-center gap-3">
           <Icon className="w-5 h-5 text-accent" />
           <h2 className="text-base font-semibold">{title}</h2>
         </div>
         <ChevronDown
-          className={`w-4 h-4 transition-transform ${openSections[section] ? "rotate-180" : ""
-            }`}
+          className={`w-4 h-4 transition-transform ${openSections[section] ? "rotate-180" : ""}`}
         />
       </div>
     </button>
@@ -202,10 +196,7 @@ export default function SettingsPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className={[
-                  "rounded-xl bg-black/25 border border-white/25 text-white",
-                  hoverGradient,
-                ].join(" ")}
+                className="rounded-xl bg-black/25 border border-white/25 text-white hover:bg-black/35 hover:text-white shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] backdrop-blur-md"
               >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
@@ -334,11 +325,7 @@ export default function SettingsPage() {
                     </Label>
                     <p className="text-xs text-muted-foreground">Remind me to check in daily</p>
                   </div>
-                  <Switch
-                    id="daily-checkin"
-                    checked={dailyCheckIn}
-                    onCheckedChange={setDailyCheckIn}
-                  />
+                  <Switch id="daily-checkin" checked={dailyCheckIn} onCheckedChange={setDailyCheckIn} />
                 </div>
 
                 {dailyCheckIn && (
@@ -353,9 +340,7 @@ export default function SettingsPage() {
                       onChange={(e) => setCheckInTime(e.target.value)}
                       className="w-28 h-8"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Reminders depend on device/browser support.
-                    </p>
+                    <p className="text-xs text-muted-foreground">Reminders depend on device/browser support.</p>
                   </div>
                 )}
 
@@ -364,15 +349,9 @@ export default function SettingsPage() {
                     <Label htmlFor="weekly-report" className="text-sm font-medium">
                       Weekly Reflection
                     </Label>
-                    <p className="text-xs text-muted-foreground">
-                      A gentle weekly recap (generated on your device)
-                    </p>
+                    <p className="text-xs text-muted-foreground">A gentle weekly recap (generated on your device)</p>
                   </div>
-                  <Switch
-                    id="weekly-report"
-                    checked={weeklyReport}
-                    onCheckedChange={setWeeklyReport}
-                  />
+                  <Switch id="weekly-report" checked={weeklyReport} onCheckedChange={setWeeklyReport} />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -382,11 +361,7 @@ export default function SettingsPage() {
                     </Label>
                     <p className="text-xs text-muted-foreground">Circle activity notifications</p>
                   </div>
-                  <Switch
-                    id="community-circles"
-                    checked={communityCircles}
-                    onCheckedChange={setCommunityCircles}
-                  />
+                  <Switch id="community-circles" checked={communityCircles} onCheckedChange={setCommunityCircles} />
                 </div>
               </div>
             </div>
@@ -425,24 +400,11 @@ export default function SettingsPage() {
                       Keeps your journal, check-ins, and ritual history stored locally on your device.
                     </p>
                   </div>
-                  <Switch
-                    id="save-history"
-                    checked={saveHistoryOnDevice}
-                    onCheckedChange={handleToggleSaveHistory}
-                  />
+                  <Switch id="save-history" checked={saveHistoryOnDevice} onCheckedChange={handleToggleSaveHistory} />
                 </div>
 
                 <div className="space-y-2">
-                  <Button
-                    onClick={handleExportData}
-                    variant="outline"
-                    size="sm"
-                    className={[
-                      "w-full justify-start h-9 bg-transparent",
-                      "border border-white/25 text-white",
-                      hoverGradient,
-                    ].join(" ")}
-                  >
+                  <Button onClick={handleExportData} variant="outline" size="sm" className="w-full justify-start h-9 bg-transparent">
                     <Download className="w-3 h-3 mr-2" />
                     Export My Data
                   </Button>
@@ -451,11 +413,7 @@ export default function SettingsPage() {
                     onClick={handleClearHistory}
                     variant="outline"
                     size="sm"
-                    className={[
-                      "w-full justify-start h-9 bg-transparent",
-                      "border border-white/25 text-destructive hover:text-destructive",
-                      hoverGradient,
-                    ].join(" ")}
+                    className="w-full justify-start text-destructive hover:text-destructive h-9 bg-transparent"
                   >
                     <Trash2 className="w-3 h-3 mr-2" />
                     Clear Local History
@@ -472,20 +430,13 @@ export default function SettingsPage() {
           {/* Support & Legal */}
           <TranslucentCard>
             <SectionHeader section="support" icon={HelpCircle} title="Support & Legal" />
-            <div
-              className={`overflow-hidden transition-all duration-300 ${openSections.support ? "max-h-96" : "max-h-0"
-                }`}
-            >
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.support ? "max-h-96" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-2">
                 <Link href="/support" className="block">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={[
-                      "w-full justify-start h-9",
-                      "rounded-xl bg-black/25 border border-white/25 text-white",
-                      hoverGradient,
-                    ].join(" ")}
+                    className={`w-full justify-start h-9 ${headerHoverClass}`}
                   >
                     Help
                   </Button>
@@ -495,11 +446,7 @@ export default function SettingsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={[
-                      "w-full justify-start h-9",
-                      "rounded-xl bg-black/25 border border-white/25 text-white",
-                      hoverGradient,
-                    ].join(" ")}
+                    className={`w-full justify-start h-9 ${headerHoverClass}`}
                   >
                     Privacy Policy
                   </Button>
@@ -509,11 +456,7 @@ export default function SettingsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={[
-                      "w-full justify-start h-9",
-                      "rounded-xl bg-black/25 border border-white/25 text-white",
-                      hoverGradient,
-                    ].join(" ")}
+                    className={`w-full justify-start h-9 ${headerHoverClass}`}
                   >
                     Terms of Use
                   </Button>
