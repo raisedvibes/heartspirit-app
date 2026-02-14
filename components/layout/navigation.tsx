@@ -27,7 +27,7 @@ export function Navigation() {
       initial={false}
       animate={{ y: hidden ? -64 : 0 }}
       transition={{ type: "tween", duration: 0.2 }}
-      className="fixed top-0 left-0 right-0 z-50 bg-transparent"
+      className="fixed top-0 left-0 right-0 z-50 bg-background/20 backdrop-blur-md border-b border-white/10"
     >
       <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
         {/* App Title → Dashboard */}
