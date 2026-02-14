@@ -109,8 +109,9 @@ export default function SettingsPage() {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
   }
 
-  // Hover should match the back arrow hover (but DO NOT change base styling)
-  const headerHoverClass = "hover:bg-black/35 hover:text-white"
+  // EXACT hover feel as Back Arrow button (but ONLY on hover; no base bg/border changes)
+  const backArrowHover =
+    "hover:bg-black/35 hover:text-white hover:shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] hover:backdrop-blur-md"
 
   const SectionHeader = ({
     section,
@@ -123,7 +124,11 @@ export default function SettingsPage() {
   }) => (
     <button onClick={() => toggleSection(section)} className="w-full p-2">
       <div
-        className={`flex items-center justify-between rounded-xl px-3 py-3 transition-colors ${headerHoverClass}`}
+        className={[
+          "flex items-center justify-between rounded-xl px-3 py-3 transition-colors",
+          // keep base exactly as-is (transparent), apply arrow-hover feel only on hover:
+          backArrowHover,
+        ].join(" ")}
       >
         <div className="flex items-center gap-3">
           <Icon className="w-5 h-5 text-accent" />
@@ -211,97 +216,94 @@ export default function SettingsPage() {
                 }`}
             >
               <div className="p-4 pt-0 space-y-3">
-                <div className="p-3 rounded-lg bg-background/30 border border-border/30 space-y-3">
-                  {!editingProfile ? (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-sm">
-                          {profileLoading ? "Loading..." : profile.full_name || "Your name"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {profileLoading ? "" : profile.email || "your@email.com"}
-                        </p>
-                      </div>
+                {/* Removed dark inner panel to match Notifications section */}
+                {!editingProfile ? (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-sm">
+                        {profileLoading ? "Loading..." : profile.full_name || "Your name"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {profileLoading ? "" : profile.email || "your@email.com"}
+                      </p>
+                    </div>
 
+                    <Button
+                      size="sm"
+                      disabled={profileLoading}
+                      className="bg-accent hover:bg-accent text-accent-foreground disabled:opacity-50"
+                      onClick={() => {
+                        setProfileError(null)
+                        setEditName(profile.full_name ?? "")
+                        setEditEmail(profile.email ?? "")
+                        setEditingProfile(true)
+                      }}
+                    >
+                      <Edit className="w-3 h-3 mr-1" />
+                      Edit
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="profile-name" className="text-sm font-medium">
+                        Name
+                      </Label>
+                      <Input
+                        id="profile-name"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="h-9 bg-background/30 border-border/40"
+                        placeholder="Your name"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="profile-email" className="text-sm font-medium">
+                        Email
+                      </Label>
+                      <Input
+                        id="profile-email"
+                        type="email"
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        className="h-9 bg-background/30 border-border/40"
+                        placeholder="you@email.com"
+                      />
+                      <p className="text-[11px] leading-snug text-muted-foreground">
+                        This updates the email we use for support and contact. Your sign-in email may require a separate change.
+                      </p>
+                    </div>
+
+                    {profileError && <p className="text-xs text-destructive">{profileError}</p>}
+
+                    <div className="flex gap-2">
                       <Button
-                        size="sm"
-                        disabled={profileLoading}
-                        className="bg-accent hover:bg-accent text-accent-foreground disabled:opacity-50"
+                        variant="outline"
+                        className="flex-1 bg-transparent border-border/40"
                         onClick={() => {
                           setProfileError(null)
-                          setEditName(profile.full_name ?? "")
-                          setEditEmail(profile.email ?? "")
-                          setEditingProfile(true)
+                          setEditingProfile(false)
                         }}
                       >
-                        <Edit className="w-3 h-3 mr-1" />
-                        Edit
+                        Cancel
+                      </Button>
+
+                      <Button
+                        className="flex-1 bg-accent hover:bg-accent text-accent-foreground"
+                        disabled={saveProfileLoading}
+                        onClick={async () => {
+                          const ok = await saveProfileToSupabase()
+                          if (ok) setEditingProfile(false)
+                        }}
+                      >
+                        {saveProfileLoading ? "Saving..." : "Save"}
                       </Button>
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="profile-name" className="text-sm font-medium">
-                          Name
-                        </Label>
-                        <Input
-                          id="profile-name"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="h-9 bg-background/30 border-border/40"
-                          placeholder="Your name"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="profile-email" className="text-sm font-medium">
-                          Email
-                        </Label>
-                        <Input
-                          id="profile-email"
-                          type="email"
-                          value={editEmail}
-                          onChange={(e) => setEditEmail(e.target.value)}
-                          className="h-9 bg-background/30 border-border/40"
-                          placeholder="you@email.com"
-                        />
-                        <p className="text-[11px] leading-snug text-muted-foreground">
-                          This updates the email we use for support and contact. Your sign-in email may require a separate change.
-                        </p>
-                      </div>
-
-                      {profileError && <p className="text-xs text-destructive">{profileError}</p>}
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          className="flex-1 bg-transparent border-border/40"
-                          onClick={() => {
-                            setProfileError(null)
-                            setEditingProfile(false)
-                          }}
-                        >
-                          Cancel
-                        </Button>
-
-                        <Button
-                          className="flex-1 bg-accent hover:bg-accent text-accent-foreground"
-                          disabled={saveProfileLoading}
-                          onClick={async () => {
-                            const ok = await saveProfileToSupabase()
-                            if (ok) setEditingProfile(false)
-                          }}
-                        >
-                          {saveProfileLoading ? "Saving..." : "Save"}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {profileError && !editingProfile && (
-                  <p className="text-xs text-destructive px-1">{profileError}</p>
+                  </div>
                 )}
+
+                {profileError && !editingProfile && <p className="text-xs text-destructive px-1">{profileError}</p>}
 
                 <p className="text-xs text-muted-foreground px-1">
                   We only use your contact info for account access and support. Your journal + ritual history stays on your device.
@@ -375,7 +377,8 @@ export default function SettingsPage() {
                 }`}
             >
               <div className="p-4 pt-0 space-y-4">
-                <div className="rounded-lg bg-background/25 border border-border/30 p-3 space-y-2">
+                {/* Removed dark inner panel to match Notifications section */}
+                <div className="space-y-2">
                   <p className="text-sm font-medium">What we keep</p>
                   <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
                     <li>Your email/contact info (for account access + support)</li>
@@ -436,7 +439,7 @@ export default function SettingsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`w-full justify-start h-9 ${headerHoverClass}`}
+                    className={`w-full justify-start h-9 ${backArrowHover}`}
                   >
                     Help
                   </Button>
@@ -446,7 +449,7 @@ export default function SettingsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`w-full justify-start h-9 ${headerHoverClass}`}
+                    className={`w-full justify-start h-9 ${backArrowHover}`}
                   >
                     Privacy Policy
                   </Button>
@@ -456,7 +459,7 @@ export default function SettingsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`w-full justify-start h-9 ${headerHoverClass}`}
+                    className={`w-full justify-start h-9 ${backArrowHover}`}
                   >
                     Terms of Use
                   </Button>
