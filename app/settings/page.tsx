@@ -109,17 +109,11 @@ export default function SettingsPage() {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
   }
 
-  /**
-   * Header hover should FEEL like the back arrow.
-   * Key difference: the arrow has a base tint (bg-black/25),
-   * but headers are transparent at rest. If we jump to bg-black/35
-   * it reads too dark.
-   *
-   * So: use the arrow's base tint on hover (bg-black/25) + same glow/blur.
-   * No border/ring added (so you don't get extra white lines).
-   */
-  const headerHover =
-    "transition-colors hover:bg-black/25 hover:text-white hover:shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] hover:backdrop-blur-md"
+  // ✅ Category headers: NO hover (tap/click opens anyway)
+  const headerBase = "transition-none"
+
+  // ✅ Support links: subtle LIGHT hover
+  const supportHover = "hover:bg-white/10 hover:text-white transition-colors"
 
   const SectionHeader = ({
     section,
@@ -131,7 +125,7 @@ export default function SettingsPage() {
     title: string
   }) => (
     <button onClick={() => toggleSection(section)} className="w-full p-2">
-      <div className={`flex items-center justify-between rounded-xl px-3 py-3 ${headerHover}`}>
+      <div className={`flex items-center justify-between rounded-xl px-3 py-3 ${headerBase}`}>
         <div className="flex items-center gap-3">
           <Icon className="w-5 h-5 text-accent" />
           <h2 className="text-base font-semibold">{title}</h2>
@@ -208,15 +202,12 @@ export default function SettingsPage() {
             </Link>
           </div>
 
-          {/* Profile & Contact (inline edit, no modal) */}
+          {/* Profile & Contact */}
           <TranslucentCard>
             <SectionHeader section="profile" icon={User} title="Profile & Contact" />
-            <div
-              className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-[820px]" : "max-h-0"
-                }`}
-            >
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-[820px]" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-3">
-                {/* ✅ removed darker inner block so content sits on the translucent card */}
+                {/* ✅ removed darker inner block */}
                 {!editingProfile ? (
                   <div className="flex items-center justify-between">
                     <div>
@@ -315,10 +306,7 @@ export default function SettingsPage() {
           {/* Notifications */}
           <TranslucentCard>
             <SectionHeader section="notifications" icon={Bell} title="Notifications" />
-            <div
-              className={`overflow-hidden transition-all duration-300 ${openSections.notifications ? "max-h-[520px]" : "max-h-0"
-                }`}
-            >
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.notifications ? "max-h-[520px]" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -372,12 +360,9 @@ export default function SettingsPage() {
           {/* Privacy & Data */}
           <TranslucentCard>
             <SectionHeader section="privacy" icon={Shield} title="Privacy & Data" />
-            <div
-              className={`overflow-hidden transition-all duration-300 ${openSections.privacy ? "max-h-[620px]" : "max-h-0"
-                }`}
-            >
+            <div className={`overflow-hidden transition-all duration-300 ${openSections.privacy ? "max-h-[620px]" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-4">
-                {/* ✅ removed darker inner block so content sits on the translucent card */}
+                {/* ✅ removed darker inner block */}
                 <div className="space-y-2">
                   <p className="text-sm font-medium">What we keep</p>
                   <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
@@ -436,19 +421,19 @@ export default function SettingsPage() {
             <div className={`overflow-hidden transition-all duration-300 ${openSections.support ? "max-h-96" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-2">
                 <Link href="/support" className="block">
-                  <Button variant="ghost" size="sm" className={`w-full justify-start h-9 ${headerHover}`}>
+                  <Button variant="ghost" size="sm" className={`w-full justify-start h-9 ${supportHover}`}>
                     Help
                   </Button>
                 </Link>
 
                 <Link href="/privacy" className="block">
-                  <Button variant="ghost" size="sm" className={`w-full justify-start h-9 ${headerHover}`}>
+                  <Button variant="ghost" size="sm" className={`w-full justify-start h-9 ${supportHover}`}>
                     Privacy Policy
                   </Button>
                 </Link>
 
                 <Link href="/terms" className="block">
-                  <Button variant="ghost" size="sm" className={`w-full justify-start h-9 ${headerHover}`}>
+                  <Button variant="ghost" size="sm" className={`w-full justify-start h-9 ${supportHover}`}>
                     Terms of Use
                   </Button>
                 </Link>
