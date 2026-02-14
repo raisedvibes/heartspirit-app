@@ -17,13 +17,21 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // ✅ Added: nicer messaging for unconfirmed email state
+  const [notice, setNotice] = useState<string | null>(null)
+  const [noticeEmail, setNoticeEmail] = useState<string>("")
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+    setNotice(null)
+    setNoticeEmail("")
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: formData.email.trim(),
+    const email = formData.email.trim()
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
       password: formData.password,
     })
 
@@ -31,7 +39,28 @@ export default function LoginPage() {
 
     if (error) {
       console.log("LOGIN ERROR:", error)
+
+      // ✅ Guard: common case when email confirmations are enabled
+      const msg = (error.message || "").toLowerCase()
+      if (
+        msg.includes("email") &&
+        (msg.includes("confirm") || msg.includes("confirmed") || msg.includes("verify") || msg.includes("verification"))
+      ) {
+        setNoticeEmail(email)
+        setNotice("Your portal isn’t activated yet. Confirm your email, then sign in.")
+        return
+      }
+
       setError(error.message)
+      return
+    }
+
+    // ✅ Extra guard: if a session exists but email isn't confirmed (rare, but safe)
+    const user = data?.user
+    if (user && !user.email_confirmed_at) {
+      await supabase.auth.signOut()
+      setNoticeEmail(email)
+      setNotice("Your portal isn’t activated yet. Confirm your email, then sign in.")
       return
     }
 
@@ -44,7 +73,6 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center p-4">
-      
       {/* Background Video */}
       <video
         autoPlay
@@ -83,15 +111,22 @@ export default function LoginPage() {
       >
         <Card className="p-6 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-lg text-white">
           <div className="space-y-6 text-white">
-            
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-semibold tracking-wide">
-                Enter Your Portal
-              </h1>
+              <h1 className="text-2xl font-semibold tracking-wide">Enter Your Portal</h1>
             </div>
 
+            {/* ✅ Notice (activation guidance) */}
+            {notice && (
+              <div className="rounded-xl border border-white/20 bg-white/10 p-4 text-sm text-white/80 space-y-2">
+                <p>{notice}</p>
+                {noticeEmail && <p className="text-xs text-white/60">Email: {noticeEmail}</p>}
+                <p className="text-xs text-white/60">
+                  If you don’t see the message, check spam/promotions.
+                </p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
-              
               {/* Email */}
               <div className="space-y-2">
                 <label className="text-sm text-white/80">Email</label>
@@ -144,11 +179,9 @@ export default function LoginPage() {
               </div>
 
               {/* Error */}
-              {error && (
-                <p className="text-sm text-red-400">{error}</p>
-              )}
+              {error && <p className="text-sm text-red-400">{error}</p>}
 
-              {/* Submit Button (Fixed Contrast) */}
+              {/* Submit Button */}
               <Button
                 type="submit"
                 disabled={isLoading}
@@ -172,9 +205,7 @@ export default function LoginPage() {
 
             {/* Sign Up */}
             <div className="text-center">
-              <span className="text-sm text-white/70">
-                Don&apos;t have an account?{" "}
-              </span>
+              <span className="text-sm text-white/70">Don&apos;t have an account? </span>
               <Link
                 href="/signup"
                 className="text-sm text-white/70 hover:text-white/90 underline-offset-4 hover:underline"
@@ -182,7 +213,6 @@ export default function LoginPage() {
                 Create account
               </Link>
             </div>
-
           </div>
         </Card>
       </motion.div>
