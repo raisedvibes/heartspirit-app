@@ -44,7 +44,6 @@ export default function SettingsPage() {
     email: "",
   })
 
-
   // Inline edit mode (no modal)
   const [editingProfile, setEditingProfile] = useState(false)
   const [editName, setEditName] = useState("")
@@ -69,7 +68,6 @@ export default function SettingsPage() {
 
         const user = authData?.user
         if (!user) {
-          // /settings should be behind /login, but keep a safe fallback.
           setProfileLoading(false)
           return
         }
@@ -78,24 +76,29 @@ export default function SettingsPage() {
 
         const { data, error } = await supabase
           .from("profiles")
-          .select("full_name,email")
+          .select("display_name,email")
           .eq("id", user.id)
           .maybeSingle()
 
         if (error) throw error
 
         if (!data) {
-          const { error: insertErr } = await supabase.from("profiles").insert({
+          // If a legacy account somehow has no profile row, create one.
+          // (Your new DB trigger should prevent this for new signups.)
+          const { error: upsertErr } = await supabase.from("profiles").upsert({
             id: user.id,
+            display_name: (user.user_metadata?.display_name as string | undefined)?.trim() || null,
             email: fallbackEmail || null,
-            full_name: null,
           })
-          if (insertErr) throw insertErr
+          if (upsertErr) throw upsertErr
 
-          setProfile({ full_name: "", email: fallbackEmail })
+          setProfile({
+            display_name: (user.user_metadata?.display_name as string | undefined)?.trim() || "",
+            email: fallbackEmail,
+          })
         } else {
           setProfile({
-            full_name: data.full_name ?? "",
+            display_name: data.display_name ?? "",
             email: data.email ?? fallbackEmail,
           })
         }
@@ -134,17 +137,20 @@ export default function SettingsPage() {
           <Icon className="w-5 h-5 text-accent" />
           <h2 className="text-base font-semibold">{title}</h2>
         </div>
-        <ChevronDown className={`w-4 h-4 transition-transform ${openSections[section] ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`w-4 h-4 transition-transform ${openSections[section] ? "rotate-180" : ""}`}
+        />
       </div>
     </button>
   )
 
+  // ✅ This is the part that ensures clicking "Save" writes to Supabase.
   const saveProfileToSupabase = async (): Promise<boolean> => {
     try {
       setProfileError(null)
       setSaveProfileLoading(true)
 
-      const name = editName.trim()
+      const display_name = editName.trim()
       const email = editEmail.trim()
 
       const { data: authData, error: authErr } = await supabase.auth.getUser()
@@ -153,18 +159,18 @@ export default function SettingsPage() {
 
       const user = authData.user
 
+      // Upsert ensures it saves even if the row didn't exist for some reason.
       const { error } = await supabase
         .from("profiles")
-        .update({
-          full_name: name || null,
+        .upsert({
+          id: user.id,
+          display_name: display_name || null,
           email: email || null,
-          updated_at: new Date().toISOString(),
         })
-        .eq("id", user.id)
 
       if (error) throw error
 
-      setProfile({ full_name: name, email })
+      setProfile({ display_name, email })
       return true
     } catch (e: any) {
       setProfileError(e?.message ?? "Could not save profile")
@@ -209,14 +215,16 @@ export default function SettingsPage() {
           {/* Profile & Contact */}
           <TranslucentCard>
             <SectionHeader section="profile" icon={User} title="Profile & Contact" />
-            <div className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-[820px]" : "max-h-0"}`}>
+            <div
+              className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-[820px]" : "max-h-0"
+                }`}
+            >
               <div className="p-4 pt-0 space-y-3">
-                {/* ✅ removed darker inner block */}
                 {!editingProfile ? (
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-sm">
-                        {profileLoading ? "Loading..." : profile.full_name || "Your name"}
+                        {profileLoading ? "Loading..." : profile.display_name || "Your name"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {profileLoading ? "" : profile.email || "your@email.com"}
@@ -229,7 +237,7 @@ export default function SettingsPage() {
                       className="bg-accent hover:bg-accent text-accent-foreground disabled:opacity-50"
                       onClick={() => {
                         setProfileError(null)
-                        setEditName(profile.full_name ?? "")
+                        setEditName(profile.display_name ?? "")
                         setEditEmail(profile.email ?? "")
                         setEditingProfile(true)
                       }}
@@ -298,7 +306,9 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                {profileError && !editingProfile && <p className="text-xs text-destructive px-1">{profileError}</p>}
+                {profileError && !editingProfile && (
+                  <p className="text-xs text-destructive px-1">{profileError}</p>
+                )}
 
                 <p className="text-xs text-muted-foreground px-1">
                   We only use your contact info for account access and support. Your journal + ritual history stays on your device.
@@ -310,7 +320,10 @@ export default function SettingsPage() {
           {/* Notifications */}
           <TranslucentCard>
             <SectionHeader section="notifications" icon={Bell} title="Notifications" />
-            <div className={`overflow-hidden transition-all duration-300 ${openSections.notifications ? "max-h-[520px]" : "max-h-0"}`}>
+            <div
+              className={`overflow-hidden transition-all duration-300 ${openSections.notifications ? "max-h-[520px]" : "max-h-0"
+                }`}
+            >
               <div className="p-4 pt-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -355,7 +368,11 @@ export default function SettingsPage() {
                     </Label>
                     <p className="text-xs text-muted-foreground">Circle activity notifications</p>
                   </div>
-                  <Switch id="community-circles" checked={communityCircles} onCheckedChange={setCommunityCircles} />
+                  <Switch
+                    id="community-circles"
+                    checked={communityCircles}
+                    onCheckedChange={setCommunityCircles}
+                  />
                 </div>
               </div>
             </div>
@@ -364,9 +381,11 @@ export default function SettingsPage() {
           {/* Privacy & Data */}
           <TranslucentCard>
             <SectionHeader section="privacy" icon={Shield} title="Privacy & Data" />
-            <div className={`overflow-hidden transition-all duration-300 ${openSections.privacy ? "max-h-[620px]" : "max-h-0"}`}>
+            <div
+              className={`overflow-hidden transition-all duration-300 ${openSections.privacy ? "max-h-[620px]" : "max-h-0"
+                }`}
+            >
               <div className="p-4 pt-0 space-y-4">
-                {/* ✅ removed darker inner block */}
                 <div className="space-y-2">
                   <p className="text-sm font-medium">What we keep</p>
                   <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
@@ -396,7 +415,12 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Button onClick={handleExportData} variant="outline" size="sm" className="w-full justify-start h-9 bg-transparent">
+                  <Button
+                    onClick={handleExportData}
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start h-9 bg-transparent"
+                  >
                     <Download className="w-3 h-3 mr-2" />
                     Export My Data
                   </Button>
