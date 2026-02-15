@@ -110,24 +110,45 @@ export function EnergyCheck({ userName }: { userName?: string }) {
             className="space-y-4 sm:space-y-6"
           >
             <div className="text-center">
-              <div className="p-4 sm:p-6 rounded-lg bg-accent/20 border border-accent/40">
-                <h4 className="text-sm sm:text-base font-semibold text-white mb-2 sm:mb-3">
+              <div
+                className="
+        p-4 sm:p-6 rounded-lg
+        bg-accent/20 border border-accent/40
+        transition-all duration-300
+        hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]
+        hover:border-accent/60
+      "
+              >
+                {/* Mystical touch */}
+                <p className="text-[11px] sm:text-xs text-white/70 mb-2 tracking-wide uppercase">
+                  Recommended for your current energy
+                </p>
+
+                {/* Bigger, more present title */}
+                <h4 className="text-lg sm:text-xl font-semibold text-white tracking-wide mb-4 sm:mb-5">
                   {recommendedPractice.title}
                 </h4>
-
 
                 <Button
                   onClick={handleStartPractice}
                   variant="outline"
                   className="
-                    w-full text-xs sm:text-sm
-                    px-4 sm:px-6 py-2 sm:py-3
-                    bg-transparent border-white/40 text-white
-                    hover:text-white hover:border-accent/60
-                  "
+          w-full text-xs sm:text-sm
+          px-4 sm:px-6 py-2 sm:py-3
+          bg-transparent border-white/40 text-white
+          hover:text-white hover:border-accent/60
+          transition-all duration-300
+        "
                 >
-                  Start Practice ({recommendedPractice.duration} min)
+                  Start Practice
                 </Button>
+
+                {/* Optional: show duration softly under button (not in the CTA) */}
+                {typeof recommendedPractice.duration === "number" && (
+                  <p className="mt-2 text-[11px] sm:text-xs text-white/60">
+                    ~ {recommendedPractice.duration} min
+                  </p>
+                )}
               </div>
             </div>
           </motion.div>
