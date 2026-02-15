@@ -9,7 +9,17 @@ import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
-import { ArrowLeft, User, Bell, Shield, HelpCircle, Edit, Download, Trash2, ChevronDown } from "lucide-react"
+import {
+  ArrowLeft,
+  User,
+  Bell,
+  Shield,
+  HelpCircle,
+  Edit,
+  Download,
+  Trash2,
+  ChevronDown,
+} from "lucide-react"
 
 const supabase = createClient()
 
@@ -26,7 +36,13 @@ export default function SettingsPage() {
   // Profile (Supabase)
   const [profileLoading, setProfileLoading] = useState(true)
   const [profileError, setProfileError] = useState<string | null>(null)
-  const [profile, setProfile] = useState<{ full_name: string; email: string }>({ full_name: "", email: "" })
+  const [profile, setProfile] = useState<{
+    display_name: string
+    email: string
+  }>({
+    display_name: "",
+    email: "",
+  })
 
   // Inline edit mode (no modal)
   const [editingProfile, setEditingProfile] = useState(false)
@@ -52,7 +68,6 @@ export default function SettingsPage() {
 
         const user = authData?.user
         if (!user) {
-          // /settings should be behind /login, but keep a safe fallback.
           setProfileLoading(false)
           return
         }
@@ -61,24 +76,29 @@ export default function SettingsPage() {
 
         const { data, error } = await supabase
           .from("profiles")
-          .select("full_name,email")
+          .select("display_name,email")
           .eq("id", user.id)
           .maybeSingle()
 
         if (error) throw error
 
         if (!data) {
-          const { error: insertErr } = await supabase.from("profiles").insert({
+          // If a legacy account somehow has no profile row, create one.
+          // (Your new DB trigger should prevent this for new signups.)
+          const { error: upsertErr } = await supabase.from("profiles").upsert({
             id: user.id,
+            display_name: (user.user_metadata?.display_name as string | undefined)?.trim() || null,
             email: fallbackEmail || null,
-            full_name: null,
           })
-          if (insertErr) throw insertErr
+          if (upsertErr) throw upsertErr
 
-          setProfile({ full_name: "", email: fallbackEmail })
+          setProfile({
+            display_name: (user.user_metadata?.display_name as string | undefined)?.trim() || "",
+            email: fallbackEmail,
+          })
         } else {
           setProfile({
-            full_name: data.full_name ?? "",
+            display_name: data.display_name ?? "",
             email: data.email ?? fallbackEmail,
           })
         }
@@ -96,6 +116,12 @@ export default function SettingsPage() {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
   }
 
+  // ✅ Category headers: NO hover (tap/click opens anyway)
+  const headerBase = "transition-none"
+
+  // ✅ Support links: subtle LIGHT hover
+  const supportHover = "hover:bg-white/10 hover:text-white transition-colors"
+
   const SectionHeader = ({
     section,
     icon: Icon,
@@ -106,22 +132,25 @@ export default function SettingsPage() {
     title: string
   }) => (
     <button onClick={() => toggleSection(section)} className="w-full p-2">
-      <div className="flex items-center justify-between rounded-xl px-3 py-3 hover:bg-background/40 transition-colors">
+      <div className={`flex items-center justify-between rounded-xl px-3 py-3 ${headerBase}`}>
         <div className="flex items-center gap-3">
           <Icon className="w-5 h-5 text-accent" />
           <h2 className="text-base font-semibold">{title}</h2>
         </div>
-        <ChevronDown className={`w-4 h-4 transition-transform ${openSections[section] ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`w-4 h-4 transition-transform ${openSections[section] ? "rotate-180" : ""}`}
+        />
       </div>
     </button>
   )
 
+  // ✅ This is the part that ensures clicking "Save" writes to Supabase.
   const saveProfileToSupabase = async (): Promise<boolean> => {
     try {
       setProfileError(null)
       setSaveProfileLoading(true)
 
-      const name = editName.trim()
+      const display_name = editName.trim()
       const email = editEmail.trim()
 
       const { data: authData, error: authErr } = await supabase.auth.getUser()
@@ -130,18 +159,18 @@ export default function SettingsPage() {
 
       const user = authData.user
 
+      // Upsert ensures it saves even if the row didn't exist for some reason.
       const { error } = await supabase
         .from("profiles")
-        .update({
-          full_name: name || null,
+        .upsert({
+          id: user.id,
+          display_name: display_name || null,
           email: email || null,
-          updated_at: new Date().toISOString(),
         })
-        .eq("id", user.id)
 
       if (error) throw error
 
-      setProfile({ full_name: name, email })
+      setProfile({ display_name, email })
       return true
     } catch (e: any) {
       setProfileError(e?.message ?? "Could not save profile")
@@ -165,113 +194,121 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/5">
+    <div className="min-h-screen text-white">
       <Navigation />
 
       <main className="app-main max-w-6xl mx-auto px-4">
         <div className="space-y-4">
-          <div className="flex items-center gap-3 px-1">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="icon">
+          {/* Header (matches Circles page) */}
+          <div className="flex items-center justify-between mb-6 w-full pt-4">
+            <Link href="/dashboard" className="shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl bg-black/25 border border-white/25 text-white hover:bg-black/35 hover:text-white shadow-[0_12px_40px_-26px_rgba(0,0,0,0.8)] backdrop-blur-md"
+              >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
           </div>
 
-          {/* Profile & Contact (inline edit, no modal) */}
+          {/* Profile & Contact */}
           <TranslucentCard>
             <SectionHeader section="profile" icon={User} title="Profile & Contact" />
-            <div className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-[820px]" : "max-h-0"}`}>
+            <div
+              className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-[820px]" : "max-h-0"
+                }`}
+            >
               <div className="p-4 pt-0 space-y-3">
-                <div className="p-3 rounded-lg bg-background/30 border border-border/30 space-y-3">
-                  {!editingProfile ? (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-sm">
-                          {profileLoading ? "Loading..." : profile.full_name || "Your name"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {profileLoading ? "" : profile.email || "your@email.com"}
-                        </p>
-                      </div>
+                {!editingProfile ? (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-sm">
+                        {profileLoading ? "Loading..." : profile.display_name || "Your name"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {profileLoading ? "" : profile.email || "your@email.com"}
+                      </p>
+                    </div>
 
+                    <Button
+                      size="sm"
+                      disabled={profileLoading}
+                      className="bg-accent hover:bg-accent text-accent-foreground disabled:opacity-50"
+                      onClick={() => {
+                        setProfileError(null)
+                        setEditName(profile.display_name ?? "")
+                        setEditEmail(profile.email ?? "")
+                        setEditingProfile(true)
+                      }}
+                    >
+                      <Edit className="w-3 h-3 mr-1" />
+                      Edit
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="profile-name" className="text-sm font-medium">
+                        Name
+                      </Label>
+                      <Input
+                        id="profile-name"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="h-9 bg-background/30 border-border/40"
+                        placeholder="Your name"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="profile-email" className="text-sm font-medium">
+                        Email
+                      </Label>
+                      <Input
+                        id="profile-email"
+                        type="email"
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        className="h-9 bg-background/30 border-border/40"
+                        placeholder="you@email.com"
+                      />
+                      <p className="text-[11px] leading-snug text-muted-foreground">
+                        This updates the email we use for support and contact. Your sign-in email may require a separate change.
+                      </p>
+                    </div>
+
+                    {profileError && <p className="text-xs text-destructive">{profileError}</p>}
+
+                    <div className="flex gap-2">
                       <Button
-                        size="sm"
-                        disabled={profileLoading}
-                        className="bg-accent hover:bg-accent text-accent-foreground disabled:opacity-50"
+                        variant="outline"
+                        className="flex-1 bg-transparent border-border/40"
                         onClick={() => {
                           setProfileError(null)
-                          setEditName(profile.full_name ?? "")
-                          setEditEmail(profile.email ?? "")
-                          setEditingProfile(true)
+                          setEditingProfile(false)
                         }}
                       >
-                        <Edit className="w-3 h-3 mr-1" />
-                        Edit
+                        Cancel
+                      </Button>
+
+                      <Button
+                        className="flex-1 bg-accent hover:bg-accent text-accent-foreground"
+                        disabled={saveProfileLoading}
+                        onClick={async () => {
+                          const ok = await saveProfileToSupabase()
+                          if (ok) setEditingProfile(false)
+                        }}
+                      >
+                        {saveProfileLoading ? "Saving..." : "Save"}
                       </Button>
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="profile-name" className="text-sm font-medium">
-                          Name
-                        </Label>
-                        <Input
-                          id="profile-name"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="h-9 bg-background/30 border-border/40"
-                          placeholder="Your name"
-                        />
-                      </div>
+                  </div>
+                )}
 
-                      <div className="space-y-2">
-                        <Label htmlFor="profile-email" className="text-sm font-medium">
-                          Email
-                        </Label>
-                        <Input
-                          id="profile-email"
-                          type="email"
-                          value={editEmail}
-                          onChange={(e) => setEditEmail(e.target.value)}
-                          className="h-9 bg-background/30 border-border/40"
-                          placeholder="you@email.com"
-                        />
-                        <p className="text-[11px] leading-snug text-muted-foreground">
-                          This updates the email we use for support and contact. Your sign-in email may require a separate change.
-                        </p>
-                      </div>
-
-                      {profileError && <p className="text-xs text-destructive">{profileError}</p>}
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          className="flex-1 bg-transparent border-border/40"
-                          onClick={() => {
-                            setProfileError(null)
-                            setEditingProfile(false)
-                          }}
-                        >
-                          Cancel
-                        </Button>
-
-                        <Button
-                          className="flex-1 bg-accent hover:bg-accent text-accent-foreground"
-                          disabled={saveProfileLoading}
-                          onClick={async () => {
-                            const ok = await saveProfileToSupabase()
-                            if (ok) setEditingProfile(false)
-                          }}
-                        >
-                          {saveProfileLoading ? "Saving..." : "Save"}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {profileError && !editingProfile && <p className="text-xs text-destructive px-1">{profileError}</p>}
+                {profileError && !editingProfile && (
+                  <p className="text-xs text-destructive px-1">{profileError}</p>
+                )}
 
                 <p className="text-xs text-muted-foreground px-1">
                   We only use your contact info for account access and support. Your journal + ritual history stays on your device.
@@ -283,7 +320,10 @@ export default function SettingsPage() {
           {/* Notifications */}
           <TranslucentCard>
             <SectionHeader section="notifications" icon={Bell} title="Notifications" />
-            <div className={`overflow-hidden transition-all duration-300 ${openSections.notifications ? "max-h-[520px]" : "max-h-0"}`}>
+            <div
+              className={`overflow-hidden transition-all duration-300 ${openSections.notifications ? "max-h-[520px]" : "max-h-0"
+                }`}
+            >
               <div className="p-4 pt-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -328,7 +368,11 @@ export default function SettingsPage() {
                     </Label>
                     <p className="text-xs text-muted-foreground">Circle activity notifications</p>
                   </div>
-                  <Switch id="community-circles" checked={communityCircles} onCheckedChange={setCommunityCircles} />
+                  <Switch
+                    id="community-circles"
+                    checked={communityCircles}
+                    onCheckedChange={setCommunityCircles}
+                  />
                 </div>
               </div>
             </div>
@@ -337,9 +381,12 @@ export default function SettingsPage() {
           {/* Privacy & Data */}
           <TranslucentCard>
             <SectionHeader section="privacy" icon={Shield} title="Privacy & Data" />
-            <div className={`overflow-hidden transition-all duration-300 ${openSections.privacy ? "max-h-[620px]" : "max-h-0"}`}>
+            <div
+              className={`overflow-hidden transition-all duration-300 ${openSections.privacy ? "max-h-[620px]" : "max-h-0"
+                }`}
+            >
               <div className="p-4 pt-0 space-y-4">
-                <div className="rounded-lg bg-background/25 border border-border/30 p-3 space-y-2">
+                <div className="space-y-2">
                   <p className="text-sm font-medium">What we keep</p>
                   <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
                     <li>Your email/contact info (for account access + support)</li>
@@ -368,7 +415,12 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Button onClick={handleExportData} variant="outline" size="sm" className="w-full justify-start h-9 bg-transparent">
+                  <Button
+                    onClick={handleExportData}
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start h-9 bg-transparent"
+                  >
                     <Download className="w-3 h-3 mr-2" />
                     Export My Data
                   </Button>
@@ -397,19 +449,19 @@ export default function SettingsPage() {
             <div className={`overflow-hidden transition-all duration-300 ${openSections.support ? "max-h-96" : "max-h-0"}`}>
               <div className="p-4 pt-0 space-y-2">
                 <Link href="/support" className="block">
-                  <Button variant="ghost" size="sm" className="w-full justify-start h-9 hover:bg-background/40">
+                  <Button variant="ghost" size="sm" className={`w-full justify-start h-9 ${supportHover}`}>
                     Help
                   </Button>
                 </Link>
 
                 <Link href="/privacy" className="block">
-                  <Button variant="ghost" size="sm" className="w-full justify-start h-9 hover:bg-background/40">
+                  <Button variant="ghost" size="sm" className={`w-full justify-start h-9 ${supportHover}`}>
                     Privacy Policy
                   </Button>
                 </Link>
 
                 <Link href="/terms" className="block">
-                  <Button variant="ghost" size="sm" className="w-full justify-start h-9 hover:bg-background/40">
+                  <Button variant="ghost" size="sm" className={`w-full justify-start h-9 ${supportHover}`}>
                     Terms of Use
                   </Button>
                 </Link>

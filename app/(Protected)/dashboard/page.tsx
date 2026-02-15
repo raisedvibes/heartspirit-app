@@ -6,6 +6,12 @@ type ProfileRow = {
   full_name: string | null
 }
 
+function firstNameFrom(name?: string | null) {
+  const n = (name ?? "").trim()
+  if (!n) return undefined
+  return n.split(/\s+/)[0]
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
 
@@ -21,10 +27,12 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .maybeSingle<ProfileRow>()
 
-  const userName =
+  const fullName =
     profile?.display_name?.trim() ||
     profile?.full_name?.trim() ||
     undefined
 
-  return <DashboardView userName={userName} />
+  const firstName = firstNameFrom(fullName)
+
+  return <DashboardView userName={firstName} />
 }

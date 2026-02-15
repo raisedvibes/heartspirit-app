@@ -47,13 +47,14 @@ export default function SignupPage() {
     setIsLoading(true)
 
     const email = formData.email.trim()
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password: formData.password,
       options: {
-        data: { full_name: formData.name.trim() },
-        // ✅ Helps ensure confirm links know where to return
+        data: {
+          display_name: formData.name.trim(),
+          full_name: formData.name.trim(), // optional (keep if you like)
+        },
         emailRedirectTo: `${window.location.origin}/login`,
       },
     })

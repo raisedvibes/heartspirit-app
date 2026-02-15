@@ -37,23 +37,22 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} ${alegreyaSans.variable}`}>
+      {/* Source of truth: background + default text color live here */}
       <body className="font-sans antialiased min-h-screen bg-background bg-cover bg-center bg-fixed text-white">
         <Suspense fallback={<div className="min-h-screen" />}>
           <ScrollToTop />
         </Suspense>
 
-        {/* 🌿 Global background — inherited by all pages */}
-        <div className="min-h-screen">
-          <Suspense
-            fallback={
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-pulse text-muted-foreground">Loading...</div>
-              </div>
-            }
-          >
-            {children}
-          </Suspense>
-        </div>
+        {/* App content */}
+        <Suspense
+          fallback={
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="animate-pulse text-white/70">Loading...</div>
+            </div>
+          }
+        >
+          {children}
+        </Suspense>
 
         {/* Bottom navigation (mobile-only) */}
         <BottomNav />
