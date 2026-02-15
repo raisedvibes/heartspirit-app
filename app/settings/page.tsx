@@ -36,10 +36,14 @@ export default function SettingsPage() {
   // Profile (Supabase)
   const [profileLoading, setProfileLoading] = useState(true)
   const [profileError, setProfileError] = useState<string | null>(null)
-  const [profile, setProfile] = useState<{ full_name: string; email: string }>({
-    full_name: "",
+  const [profile, setProfile] = useState<{
+    display_name: string
+    email: string
+  }>({
+    display_name: "",
     email: "",
   })
+
 
   // Inline edit mode (no modal)
   const [editingProfile, setEditingProfile] = useState(false)
