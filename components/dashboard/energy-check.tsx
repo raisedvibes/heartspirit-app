@@ -115,9 +115,6 @@ export function EnergyCheck({ userName }: { userName?: string }) {
                   {recommendedPractice.title}
                 </h4>
 
-                <p className="text-xs sm:text-sm mb-4 sm:mb-6 leading-relaxed text-white/85">
-                  {recommendedPractice.description}
-                </p>
 
                 <Button
                   onClick={handleStartPractice}
