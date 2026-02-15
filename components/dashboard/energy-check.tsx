@@ -1,11 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import TranslucentCard from "@/components/ui/translucent-card"
-import practices from "@/data/practices.json"
 import type { Practice } from "@/types/practice"
 import { Cloud, Moon, AlertTriangle, Flame, Zap, Waves } from "lucide-react"
 
@@ -23,40 +22,48 @@ const feelingTones = [
 export function EnergyCheck({ userName }: { userName?: string }) {
   const [step, setStep] = useState<Step>("feeling")
   const [selectedFeeling, setSelectedFeeling] = useState<number | null>(null)
+  const [recommendedPractice, setRecommendedPractice] = useState<Practice | null>(null)
+  const [loading, setLoading] = useState(false)
+
   const router = useRouter()
+
+  const feelingLabel = useMemo(() => {
+    if (!selectedFeeling) return null
+    return feelingTones.find((f) => f.id === selectedFeeling)?.name ?? null
+  }, [selectedFeeling])
 
   const handleFeelingSelect = (feelingId: number) => {
     setSelectedFeeling(feelingId)
     setStep("suggestion")
   }
 
-  const getRecommendedPractice = (): Practice | null => {
-    if (!selectedFeeling) return null
+  useEffect(() => {
+    const run = async () => {
+      if (step !== "suggestion" || !feelingLabel) return
+      setLoading(true)
+      setRecommendedPractice(null)
 
-    const feelingLabel = feelingTones.find((f) => f.id === selectedFeeling)?.name
-    if (!feelingLabel) return null
+      try {
+        const res = await fetch(`/api/practices/recommended?feeling=${encodeURIComponent(feelingLabel)}`, {
+          method: "GET",
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json?.error || "Failed to load recommendation")
 
-    const matching = practices
-      .map((practice: any) => {
-        const pairs = practice?.recommendations?.pairs || []
-        const bestPriority = pairs
-          .filter((p: any) => p.feelingtone === feelingLabel)
-          .reduce((max: number, p: any) => Math.max(max, p.priority ?? 0), 0)
+        setRecommendedPractice(json.practice ?? null)
+      } catch (e) {
+        console.error(e)
+        setRecommendedPractice(null)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-        return bestPriority > 0 ? { practice: practice as Practice, priority: bestPriority } : null
-      })
-      .filter(Boolean)
-      .sort((a: any, b: any) => (b?.priority || 0) - (a?.priority || 0))
-
-    return matching.length > 0 ? matching[0]!.practice : null
-  }
-
-  const recommendedPractice = getRecommendedPractice()
+    run()
+  }, [step, feelingLabel])
 
   const handleStartPractice = () => {
-    if (recommendedPractice) {
-      router.push(`/practice/${recommendedPractice.id}`)
-    }
+    if (recommendedPractice) router.push(`/practice/${recommendedPractice.id}`)
   }
 
   const namePart = userName?.trim() ? `, ${userName.trim()}` : ""
@@ -103,34 +110,59 @@ export function EnergyCheck({ userName }: { userName?: string }) {
           </div>
         )}
 
-        {step === "suggestion" && recommendedPractice && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4 sm:space-y-6"
-          >
+        {step === "suggestion" && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 sm:space-y-6">
             <div className="text-center">
-              <div className="p-4 sm:p-6 rounded-lg bg-accent/20 border border-accent/40">
-                <h4 className="text-sm sm:text-base font-semibold text-white mb-2 sm:mb-3">
-                  {recommendedPractice.title}
-                </h4>
-
-                <p className="text-xs sm:text-sm mb-4 sm:mb-6 leading-relaxed text-white/85">
-                  {recommendedPractice.description}
+              <div
+                className="
+                  p-4 sm:p-6 rounded-lg
+                  bg-accent/20 border border-accent/40
+                  transition-all duration-300
+                  hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]
+                  hover:border-accent/60
+                "
+              >
+                <p className="text-[11px] sm:text-xs text-white/70 mb-2 tracking-wide uppercase">
+                  Recommended for your current energy
                 </p>
 
-                <Button
-                  onClick={handleStartPractice}
-                  variant="outline"
-                  className="
-                    w-full text-xs sm:text-sm
-                    px-4 sm:px-6 py-2 sm:py-3
-                    bg-transparent border-white/40 text-white
-                    hover:text-white hover:border-accent/60
-                  "
-                >
-                  Start Practice ({recommendedPractice.duration} min)
-                </Button>
+                {loading && (
+                  <p className="text-sm text-white/80">Finding your next ritual…</p>
+                )}
+
+                {!loading && recommendedPractice && (
+                  <>
+                    <h4 className="text-lg sm:text-xl font-semibold text-white tracking-wide mb-4 sm:mb-5">
+                      {recommendedPractice.title}
+                    </h4>
+
+                    <Button
+                      onClick={handleStartPractice}
+                      variant="outline"
+                      className="
+                        w-full text-xs sm:text-sm
+                        px-4 sm:px-6 py-2 sm:py-3
+                        bg-transparent border-white/40 text-white
+                        hover:text-white hover:border-accent/60
+                        transition-all duration-300
+                      "
+                    >
+                      Start Practice
+                    </Button>
+
+                    {typeof recommendedPractice.duration === "number" && (
+                      <p className="mt-2 text-[11px] sm:text-xs text-white/60">
+                        ~ {recommendedPractice.duration} min
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {!loading && !recommendedPractice && (
+                  <p className="text-sm text-white/80">
+                    No practice found for this feeling yet.
+                  </p>
+                )}
               </div>
             </div>
           </motion.div>
