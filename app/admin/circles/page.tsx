@@ -16,9 +16,6 @@ const GLASS_CARD =
   "rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md " +
   "shadow-[0_14px_60px_-35px_rgba(0,0,0,0.75)]"
 
-// ✅ Description limit for event/circle cards (3 lines)
-const DESC_LIMIT = 105
-
 type Frequency = "Weekly" | "Monthly"
 
 type Circle = {
@@ -127,7 +124,7 @@ export default function AdminCirclesPage() {
     setEditingId(circle.id)
     setEditDraft({
       name: circle.name ?? "",
-      description: (circle.description ?? "").slice(0, DESC_LIMIT),
+      description: circle.description ?? "",
       frequency: circle.frequency ?? "Weekly",
       image_url: circle.image_url ?? "",
       payment_url: circle.payment_url ?? "",
@@ -156,7 +153,7 @@ export default function AdminCirclesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: createDraft.name.trim(),
-          description: createDraft.description.trim().slice(0, DESC_LIMIT) || null,
+          description: createDraft.description.trim() || null,
           payment_url: createDraft.payment_url.trim() || null,
           frequency: createDraft.frequency,
           image_url: createDraft.image_url.trim() || null,
@@ -204,7 +201,7 @@ export default function AdminCirclesPage() {
         body: JSON.stringify({
           id,
           name: editDraft.name.trim(),
-          description: editDraft.description.trim().slice(0, DESC_LIMIT) || null,
+          description: editDraft.description.trim() || null,
           payment_url: editDraft.payment_url.trim() || null,
           frequency: editDraft.frequency,
           image_url: editDraft.image_url.trim() || null,
@@ -366,21 +363,12 @@ export default function AdminCirclesPage() {
                   <label className="text-xs text-white/70">Description</label>
                   <textarea
                     value={createDraft.description}
-                    maxLength={DESC_LIMIT}
-                    onChange={(e) =>
-                      setCreateDraft((d) => ({
-                        ...d,
-                        description: e.target.value.slice(0, DESC_LIMIT),
-                      }))
-                    }
+                    onChange={(e) => setCreateDraft((d) => ({ ...d, description: e.target.value }))}
                     className="mt-1 w-full min-h-[90px] rounded-xl bg-black/20 border border-white/20 text-white px-4 py-2 outline-none focus:border-white/35"
                     placeholder="What is this circle about?"
                   />
-                  <div className="mt-1 flex items-center justify-between text-xs">
-                    <span className="text-white/50">Shown on the card (3 lines max).</span>
-                    <span className="text-white/60">
-                      {createDraft.description.length}/{DESC_LIMIT}
-                    </span>
+                  <div className="mt-1 text-xs text-white/50">
+                    Shown in full on the Circles page. Dashboard shows only name + date/time.
                   </div>
                 </div>
 
@@ -572,24 +560,18 @@ export default function AdminCirclesPage() {
                             <label className="text-xs text-white/70">Description</label>
                             <textarea
                               value={editDraft?.description ?? ""}
-                              maxLength={DESC_LIMIT}
                               onChange={(e) =>
                                 setEditDraft((d) =>
                                   d
                                     ? {
-                                        ...d,
-                                        description: e.target.value.slice(0, DESC_LIMIT),
-                                      }
+                                      ...d,
+                                      description: e.target.value,
+                                    }
                                     : d
                                 )
                               }
                               className="mt-1 w-full min-h-[90px] rounded-xl bg-black/20 border border-white/20 text-white px-4 py-2 outline-none focus:border-white/35"
                             />
-                            <div className="mt-1 flex items-center justify-end text-xs">
-                              <span className="text-white/60">
-                                {(editDraft?.description ?? "").length}/{DESC_LIMIT}
-                              </span>
-                            </div>
                           </div>
 
                           <div>
