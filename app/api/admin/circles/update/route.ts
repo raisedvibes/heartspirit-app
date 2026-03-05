@@ -68,10 +68,19 @@ export async function POST(req: Request) {
     }
 
     // Debug: Log what Supabase returned
-    console.log("[circles/update] Supabase returned description:", data?.description)
     console.log("[circles/update] Supabase returned description length:", data?.description?.length)
 
-    return NextResponse.json({ circle: data }, { status: 200 })
+    // Sanity check: query the row directly to confirm
+    const { data: verify } = await supabase
+      .from("circles")
+      .select("description")
+      .eq("id", id)
+      .single()
+    console.log("[circles/update] verified description length:", verify?.description?.length)
+
+    const response = NextResponse.json({ circle: data }, { status: 200 })
+    response.headers.set("X-Circles-Update-Route", "hit")
+    return response
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || "Server error" }, { status: 500 })
   }

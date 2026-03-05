@@ -147,6 +147,11 @@ export default function AdminCirclesPage() {
 
     setSaving(true)
     setError(null)
+
+    // Debug: Log client-side description before fetch
+    console.log("[v0] createCircle - createDraft.description.length:", createDraft.description.length)
+    console.log("[v0] createCircle - description value:", createDraft.description)
+
     try {
       const res = await fetch("/api/admin/circles/create", {
         method: "POST",
@@ -194,6 +199,11 @@ export default function AdminCirclesPage() {
 
     setSaving(true)
     setError(null)
+
+    // Debug: Log client-side description before fetch
+    console.log("[v0] updateCircle - editDraft.description.length:", editDraft.description.length)
+    console.log("[v0] updateCircle - description value:", editDraft.description)
+
     try {
       const res = await fetch("/api/admin/circles/update", {
         method: "POST",
