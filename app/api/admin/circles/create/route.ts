@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const DESC_LIMIT = 105
-
 export async function POST(req: Request) {
   try {
     const body = await req.json()
@@ -18,17 +16,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing name" }, { status: 400 })
     }
 
-    // ✅ Enforce 105-char limit including spaces (server-side)
-    // - convert to string
-    // - trim ends (optional, but keeps it clean)
-    // - hard cap to DESC_LIMIT
-    let description: string | null = null
-    if (body?.description != null) {
-      const raw = body.description.toString().trim()
-      if (raw.length > 0) {
-        description = raw.slice(0, DESC_LIMIT)
-      }
-    }
+    // Store description exactly as provided (trim only, no length limit)
+    const description: string | null = body.description?.trim() || null
 
     const { data, error } = await supabase
       .from("circles")
