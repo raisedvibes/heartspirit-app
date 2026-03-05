@@ -6,8 +6,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const DESC_LIMIT = 105
-
 type Frequency = "Weekly" | "Monthly"
 
 export async function POST(req: Request) {
@@ -24,14 +22,12 @@ export async function POST(req: Request) {
 
     if (typeof body.name === "string") updates.name = body.name.trim()
 
-    // ✅ Enforce 105-char limit including spaces (server-side)
-    // - if provided as string, trim ends, then cap
-    // - allow explicit null (clear description)
+    // Store description exactly as provided (trim only, no length limit)
     if (body.description === null) {
       updates.description = null
     } else if (typeof body.description === "string") {
-      const raw = body.description.trim()
-      updates.description = raw ? raw.slice(0, DESC_LIMIT) : null
+      const trimmed = body.description.trim()
+      updates.description = trimmed || null
     }
 
     if (typeof body.frequency === "string") updates.frequency = body.frequency as Frequency
