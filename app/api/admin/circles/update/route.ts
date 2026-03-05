@@ -13,6 +13,10 @@ export async function POST(req: Request) {
     const body = await req.json()
     const id = body?.id as string | undefined
 
+    // Debug: Log what the API receives
+    console.log("[circles/update] description received:", body.description)
+    console.log("[circles/update] description length:", body.description?.length)
+
     if (!id) {
       return NextResponse.json({ error: "Missing circle id" }, { status: 400 })
     }
@@ -28,6 +32,8 @@ export async function POST(req: Request) {
     } else if (typeof body.description === "string") {
       const trimmed = body.description.trim()
       updates.description = trimmed || null
+      console.log("[circles/update] description after trim:", updates.description)
+      console.log("[circles/update] description after trim length:", updates.description?.length)
     }
 
     if (typeof body.frequency === "string") updates.frequency = body.frequency as Frequency
@@ -47,6 +53,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No fields provided to update" }, { status: 400 })
     }
 
+    console.log("[circles/update] updates object being sent to Supabase:", JSON.stringify(updates))
+
     const { data, error } = await supabase
       .from("circles")
       .update(updates)
@@ -55,8 +63,13 @@ export async function POST(req: Request) {
       .single()
 
     if (error) {
+      console.log("[circles/update] Supabase error:", error.message)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+
+    // Debug: Log what Supabase returned
+    console.log("[circles/update] Supabase returned description:", data?.description)
+    console.log("[circles/update] Supabase returned description length:", data?.description?.length)
 
     return NextResponse.json({ circle: data }, { status: 200 })
   } catch (err: any) {
