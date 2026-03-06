@@ -1,35 +1,150 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { BottomTabBar } from "@react-navigation/bottom-tabs"
+import { Tabs } from "expo-router"
+import React from "react"
+import { Platform, View, Pressable, StyleSheet } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { HapticTab } from "@/components/haptic-tab"
+import { ThemedText } from "@/components/themed-text"
+import { GLASS } from "@/components/ui/glass"
+import { IconSymbol } from "@/components/ui/icon-symbol"
+import { HEARTSPIRIT_ICONS } from "@heartspirit/ui-tokens/icons"
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets()
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
-  );
+    <View style={{ flex: 1 }}>
+      <View
+          style={[styles.overlayHeader, { paddingTop: insets.top + 6 }]}
+          pointerEvents="box-none"
+        >
+          <Pressable style={styles.brand} onPress={() => {}}>
+            <ThemedText
+              type="title"
+              style={[styles.brandText, { fontFamily: "AlegreyaSans_500Medium" }]}
+            >
+              heartspirit
+            </ThemedText>
+          </Pressable>
+        </View>
+      <Tabs
+          tabBar={(props) => (
+            <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
+              <BottomTabBar {...props} />
+            </View>
+          )}
+          screenOptions={{
+            tabBarActiveTintColor: "rgba(255,255,255,0.92)",
+            tabBarInactiveTintColor: "rgba(255,255,255,0.45)",
+            tabBarStyle: {
+              backgroundColor: "rgba(10,20,16,0.78)",
+              borderTopColor: GLASS.borderDark,
+              borderTopWidth: 1,
+              height: 56 + insets.bottom,
+              paddingBottom: insets.bottom,
+              ...(Platform.OS === "android" && { elevation: 0 }),
+            },
+            headerShown: false,
+            // tabBarButton: HapticTab,
+          }}
+        >
+        {/* 1) Home */}
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Home",
+            tabBarIcon: ({ color }) => (
+              <IconSymbol
+                name={HEARTSPIRIT_ICONS.home}
+                size={24}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        {/* 2) Energy */}
+        <Tabs.Screen
+          name="energy/index"
+          options={{
+            title: "Energy",
+            tabBarIcon: ({ color }) => (
+              <IconSymbol
+                name={HEARTSPIRIT_ICONS.energy}
+                size={24}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        {/* 3) Rituals */}
+        <Tabs.Screen
+          name="rituals"
+          options={{
+            title: "Rituals",
+            tabBarIcon: ({ color }) => (
+              <IconSymbol
+                name={HEARTSPIRIT_ICONS.rituals}
+                size={24}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        {/* 4) Circles */}
+        <Tabs.Screen
+          name="circles"
+          options={{
+            title: "Circles",
+            tabBarIcon: ({ color }) => (
+              <IconSymbol
+                name={HEARTSPIRIT_ICONS.circles}
+                size={24}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        {/* 5) Settings */}
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: "Settings",
+            tabBarIcon: ({ color }) => (
+              <IconSymbol
+                name={HEARTSPIRIT_ICONS.settings}
+                size={24}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        {/* Hidden routes (keep if used internally) */}
+        <Tabs.Screen name="explore" options={{ href: null }} />
+      </Tabs>
+    </View>
+  )
 }
+
+const styles = StyleSheet.create({
+  overlayHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    zIndex: 50,
+  },
+  brand: { alignSelf: "flex-start" },
+  brandText: {
+    opacity: 0.95,
+    fontSize: 26,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+})
