@@ -20,13 +20,13 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
         return
       }
 
-      
+
       const {
         data: { user },
       } = await supabase.auth.getUser()
 
       if (!user?.email || !ADMIN_EMAILS.includes(user.email)) {
-        alert("Access denied")
+        alert(`Access denied. Logged in as: ${user?.email ?? "no user"}`)
         router.replace("/dashboard")
         return
       }
