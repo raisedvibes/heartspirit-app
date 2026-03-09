@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { getSupabaseClient } from "@/lib/supabaseClient"
+import { supabase } from "@/lib/supabase"
 
 const ADMIN_EMAILS = ["guide@wellnessranger.com"]
 
@@ -20,7 +20,7 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
         return
       }
 
-      const supabase = getSupabaseClient()
+      
       const {
         data: { user },
       } = await supabase.auth.getUser()
