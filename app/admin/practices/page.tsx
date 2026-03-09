@@ -32,7 +32,7 @@ export default function AdminPracticesPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch("/api/admin/practices/list")
+      const res = await fetch("/api/admin/practices/list", { cache: "no-store" })
       const data = await res.json()
       if (!res.ok) {
         throw new Error(data.error || "Failed to fetch practices")
