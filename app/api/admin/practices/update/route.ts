@@ -71,9 +71,11 @@ export async function POST(req: Request) {
     if ("cover_image" in body) updates.cover_image = normalizeString(body.cover_image)
     if ("media_type" in body) updates.media_type = normalizeString(body.media_type)
     if ("thumbnail_url" in body) updates.thumbnail_url = normalizeString(body.thumbnail_url)
+
     if ("instruction_bullets" in body) {
       updates.instruction_bullets = normalizeInstructionBullets(body.instruction_bullets)
     }
+
     if ("mantra" in body) updates.mantra = normalizeString(body.mantra)
 
     if ("timer_minutes" in body) {
@@ -87,7 +89,21 @@ export async function POST(req: Request) {
       updates.has_chime = typeof body.has_chime === "boolean" ? body.has_chime : true
     }
 
-    if (Object.keys(updates).length === 0) {
+    const feelingtone =
+      "feelingtone" in body ? normalizeString(body.feelingtone) : undefined
+
+    const sequenceIndex =
+      "sequence_index" in body
+        ? typeof body.sequence_index === "number" && Number.isFinite(body.sequence_index)
+          ? body.sequence_index
+          : null
+        : undefined
+
+    if (
+      Object.keys(updates).length === 0 &&
+      feelingtone === undefined &&
+      sequenceIndex === undefined
+    ) {
       return NextResponse.json({ error: "No fields provided to update" }, { status: 400 })
     }
 
@@ -102,6 +118,33 @@ export async function POST(req: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    if (feelingtone !== undefined || sequenceIndex !== undefined) {
+      const { error: deleteError } = await supabase
+        .from("practice_recommendations")
+        .delete()
+        .eq("practice_id", id)
+
+      if (deleteError) {
+        return NextResponse.json({ error: deleteError.message }, { status: 500 })
+      }
+
+      if (feelingtone && sequenceIndex) {
+        const { error: recError } = await supabase
+          .from("practice_recommendations")
+          .insert([
+            {
+              practice_id: id,
+              feelingtone,
+              sequence_index: sequenceIndex,
+            },
+          ])
+
+        if (recError) {
+          return NextResponse.json({ error: recError.message }, { status: 500 })
+        }
+      }
     }
 
     return NextResponse.json({ practice: data }, { status: 200 })

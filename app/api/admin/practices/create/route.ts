@@ -53,6 +53,13 @@ export async function POST(req: Request) {
         ? body.timer_minutes
         : null
 
+    const feelingtone = normalizeString(body?.feelingtone)
+
+    const sequenceIndex =
+      typeof body?.sequence_index === "number" && Number.isFinite(body.sequence_index)
+        ? body.sequence_index
+        : null
+
     const payload = {
       title,
       description: normalizeString(body?.description),
@@ -82,6 +89,22 @@ export async function POST(req: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    if (feelingtone && sequenceIndex) {
+      const { error: recError } = await supabase
+        .from("practice_recommendations")
+        .insert([
+          {
+            practice_id: data.id,
+            feelingtone,
+            sequence_index: sequenceIndex,
+          },
+        ])
+
+      if (recError) {
+        return NextResponse.json({ error: recError.message }, { status: 500 })
+      }
     }
 
     return NextResponse.json({ practice: data }, { status: 200 })
