@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { requireAdmin } from "@/lib/admin/requireAdmin"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,6 +8,11 @@ const supabase = createClient(
 )
 
 export async function GET() {
+  const admin = await requireAdmin()
+  if (!admin.ok) {
+    return NextResponse.json({ error: admin.error }, { status: admin.status })
+  }
+
   try {
     const { data, error } = await supabase
       .from("circles")
