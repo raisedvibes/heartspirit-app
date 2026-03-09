@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { requireAdmin } from "@/lib/admin/requireAdmin"
 
 export async function POST(req: Request) {
+  const admin = await requireAdmin()
+  if (!admin.ok) {
+    return NextResponse.json({ error: admin.error }, { status: admin.status })
+  }
   try {
     const body = await req.json()
 

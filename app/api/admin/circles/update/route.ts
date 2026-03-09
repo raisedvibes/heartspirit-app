@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { requireAdmin } from "@/lib/admin/requireAdmin"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,6 +10,10 @@ const supabase = createClient(
 type Frequency = "Weekly" | "Monthly"
 
 export async function POST(req: Request) {
+  const admin = await requireAdmin()
+  if (!admin.ok) {
+    return NextResponse.json({ error: admin.error }, { status: admin.status })
+  }
   try {
     const body = await req.json()
     const id = body?.id as string | undefined
