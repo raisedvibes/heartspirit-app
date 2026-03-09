@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
-const PROTECTED_PREFIXES = ["/dashboard", "/settings", "/community", "/rituals", "/admin"]
+const PROTECTED_PREFIXES = ["/dashboard", "/settings", "/community", "/rituals"]
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
@@ -55,6 +55,5 @@ export const config = {
     "/settings/:path*",
     "/community/:path*",
     "/rituals/:path*",
-    "/admin/:path*",
   ],
 }
