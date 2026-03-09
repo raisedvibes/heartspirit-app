@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
-const PROTECTED_PREFIXES = ["/dashboard", "/settings", "/community", "/rituals"]
+const PROTECTED_PREFIXES = ["/dashboard", "/settings", "/community", "/rituals", "/admin"]
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
@@ -38,7 +38,6 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // App Store–ready: require confirmed email
   if (!user.email_confirmed_at) {
     await supabase.auth.signOut()
     const url = req.nextUrl.clone()
@@ -51,5 +50,11 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/settings/:path*", "/community/:path*", "/rituals/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/settings/:path*",
+    "/community/:path*",
+    "/rituals/:path*",
+    "/admin/:path*",
+  ],
 }
