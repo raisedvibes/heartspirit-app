@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
 const ADMIN_EMAILS = [
-  "your@email.com",
+  "guide@wellnessranger.com",
 ]
 
 export async function requireAdmin() {
