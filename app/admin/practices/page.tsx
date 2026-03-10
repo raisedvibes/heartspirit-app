@@ -533,6 +533,36 @@ function PracticeForm({
   draft: Draft
   setDraft: React.Dispatch<React.SetStateAction<Draft>>
 }) {
+  function addRecommendationAssignment() {
+    setDraft((d) => ({
+      ...d,
+      recommendation_assignments: [
+        ...d.recommendation_assignments,
+        { feelingtone: "", sequence_index: "" },
+      ],
+    }))
+  }
+
+  function updateRecommendationAssignment(
+    index: number,
+    field: keyof RecommendationAssignment,
+    value: string
+  ) {
+    setDraft((d) => ({
+      ...d,
+      recommendation_assignments: d.recommendation_assignments.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }))
+  }
+
+  function removeRecommendationAssignment(index: number) {
+    setDraft((d) => ({
+      ...d,
+      recommendation_assignments: d.recommendation_assignments.filter((_, i) => i !== index),
+    }))
+  }
+
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
       <div className="md:col-span-2">
@@ -683,6 +713,68 @@ function PracticeForm({
           className="mt-1 w-full rounded-xl border border-white/20 bg-black/20 px-4 py-2 text-white outline-none focus:border-white/35"
           placeholder="Optional mantra or focus phrase"
         />
+      </div>
+
+      <div className="md:col-span-2">
+        <div className="mb-2 flex items-center justify-between">
+          <label className="text-xs text-white/70">Recommendation Assignments</label>
+          <button
+            type="button"
+            onClick={addRecommendationAssignment}
+            className="glass-btn px-3 py-1 text-xs"
+          >
+            Add Assignment
+          </button>
+        </div>
+
+        {draft.recommendation_assignments.length === 0 ? (
+          <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-white/50">
+            No recommendation assignments yet.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {draft.recommendation_assignments.map((assignment, index) => (
+              <div
+                key={index}
+                className="grid grid-cols-1 gap-3 rounded-xl border border-white/10 bg-black/10 p-3 md:grid-cols-[1fr_140px_auto]"
+              >
+                <div>
+                  <label className="text-xs text-white/60">Feeling</label>
+                  <input
+                    value={assignment.feelingtone}
+                    onChange={(e) =>
+                      updateRecommendationAssignment(index, "feelingtone", e.target.value)
+                    }
+                    className="mt-1 w-full rounded-xl border border-white/20 bg-black/20 px-4 py-2 text-white outline-none focus:border-white/35"
+                    placeholder="irritable"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-white/60">Sequence</label>
+                  <input
+                    value={assignment.sequence_index}
+                    onChange={(e) =>
+                      updateRecommendationAssignment(index, "sequence_index", e.target.value)
+                    }
+                    className="mt-1 w-full rounded-xl border border-white/20 bg-black/20 px-4 py-2 text-white outline-none focus:border-white/35"
+                    placeholder="1"
+                  />
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={() => removeRecommendationAssignment(index)}
+                    className="glass-btn px-3 py-2 text-sm"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="md:col-span-2 flex items-center gap-2 pt-2">
