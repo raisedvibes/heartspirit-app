@@ -29,6 +29,28 @@ function normalizeInstructionBullets(value: unknown) {
   return cleaned.length ? cleaned : null
 }
 
+function normalizeRecommendationAssignments(value: unknown) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((item) => {
+      const feelingtone =
+        typeof item?.feelingtone === "string" ? item.feelingtone.trim() : ""
+      const sequence_index =
+        typeof item?.sequence_index === "number" && Number.isFinite(item.sequence_index)
+          ? item.sequence_index
+          : null
+
+      if (!feelingtone || !sequence_index) return null
+
+      return {
+        feelingtone,
+        sequence_index,
+      }
+    })
+    .filter(Boolean) as Array<{ feelingtone: string; sequence_index: number }>
+}
+
 export async function POST(req: Request) {
   const admin = await requireAdmin()
   if (!admin.ok) {
@@ -53,12 +75,9 @@ export async function POST(req: Request) {
         ? body.timer_minutes
         : null
 
-    const feelingtone = normalizeString(body?.feelingtone)
-
-    const sequenceIndex =
-      typeof body?.sequence_index === "number" && Number.isFinite(body.sequence_index)
-        ? body.sequence_index
-        : null
+    const recommendationAssignments = normalizeRecommendationAssignments(
+      body?.recommendation_assignments
+    )
 
     const payload = {
       title,
@@ -91,16 +110,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    if (feelingtone && sequenceIndex) {
+    if (recommendationAssignments.length > 0) {
+      const rows = recommendationAssignments.map((item) => ({
+        practice_id: data.id,
+        feelingtone: item.feelingtone,
+        sequence_index: item.sequence_index,
+      }))
+
       const { error: recError } = await supabase
         .from("practice_recommendations")
-        .insert([
-          {
-            practice_id: data.id,
-            feelingtone,
-            sequence_index: sequenceIndex,
-          },
-        ])
+        .insert(rows)
 
       if (recError) {
         return NextResponse.json({ error: recError.message }, { status: 500 })
