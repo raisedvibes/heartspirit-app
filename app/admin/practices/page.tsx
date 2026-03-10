@@ -208,8 +208,6 @@ export default function AdminPracticesPage() {
     setError(null)
 
     try {
-      const firstAssignment = createDraft.recommendation_assignments[0]
-
       const res = await fetch("/api/admin/practices/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -230,8 +228,12 @@ export default function AdminPracticesPage() {
           mantra: createDraft.mantra.trim() || null,
           timer_minutes: toNumberOrNull(createDraft.timer_minutes),
           has_chime: createDraft.has_chime,
-          feelingtone: firstAssignment?.feelingtone?.trim() || null,
-          sequence_index: toNumberOrNull(firstAssignment?.sequence_index ?? ""),
+          recommendation_assignments: createDraft.recommendation_assignments
+            .map((item) => ({
+              feelingtone: item.feelingtone.trim(),
+              sequence_index: toNumberOrNull(item.sequence_index),
+            }))
+            .filter((item) => item.feelingtone && item.sequence_index),
         }),
       })
 
@@ -259,8 +261,6 @@ export default function AdminPracticesPage() {
     setError(null)
 
     try {
-      const firstAssignment = editDraft.recommendation_assignments[0]
-
       const res = await fetch("/api/admin/practices/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -282,8 +282,12 @@ export default function AdminPracticesPage() {
           mantra: editDraft.mantra.trim() || null,
           timer_minutes: toNumberOrNull(editDraft.timer_minutes),
           has_chime: editDraft.has_chime,
-          feelingtone: firstAssignment?.feelingtone?.trim() || null,
-          sequence_index: toNumberOrNull(firstAssignment?.sequence_index ?? ""),
+          recommendation_assignments: editDraft.recommendation_assignments
+            .map((item) => ({
+              feelingtone: item.feelingtone.trim(),
+              sequence_index: toNumberOrNull(item.sequence_index),
+            }))
+            .filter((item) => item.feelingtone && item.sequence_index),
         }),
       })
 
