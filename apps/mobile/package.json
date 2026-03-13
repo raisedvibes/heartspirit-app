@@ -13,7 +13,6 @@
   "dependencies": {
     "@expo-google-fonts/alegreya-sans": "^0.4.1",
     "@expo/vector-icons": "^15.1.1",
-    "@heartspirit/ui-tokens": "file:../../packages/ui-tokens",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-navigation/bottom-tabs": "^7.4.0",

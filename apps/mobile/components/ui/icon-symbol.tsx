@@ -18,6 +18,10 @@ const MAPPING: Record<string, MaterialIconName> = {
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
 
+  home: "home",
+  sparkles: "auto-awesome",
+  people: "people",
+  gearshape: "settings",
   // SF Symbol / custom names (EnergyCheck, etc.)
   drop: "opacity",
   cloud: "cloud",

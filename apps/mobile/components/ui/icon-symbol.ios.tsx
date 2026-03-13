@@ -20,6 +20,12 @@ export function IconSymbol({
     "flame-outline": "flame-outline",
     "people-outline": "people-outline",
     "settings-outline": "settings-outline",
+
+    home: "home-outline",
+  sparkles: "sparkles-outline",
+  people: "people-outline",
+  gearshape: "settings-outline",
+
     house: "home-outline",
     "house.fill": "home",
     Home: "home-outline",

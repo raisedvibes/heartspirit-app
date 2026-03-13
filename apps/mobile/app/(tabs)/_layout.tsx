@@ -8,7 +8,6 @@ import { HapticTab } from "@/components/haptic-tab"
 import { ThemedText } from "@/components/themed-text"
 import { GLASS } from "@/components/ui/glass"
 import { IconSymbol } from "@/components/ui/icon-symbol"
-import { HEARTSPIRIT_ICONS } from "@heartspirit/ui-tokens/icons"
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets()
@@ -56,10 +55,10 @@ export default function TabLayout() {
             title: "Home",
             tabBarIcon: ({ color }) => (
               <IconSymbol
-                name={HEARTSPIRIT_ICONS.home}
-                size={24}
-                color={color}
-              />
+  name="home"
+  size={24}
+  color={color}
+/>
             ),
           }}
         />
@@ -71,7 +70,7 @@ export default function TabLayout() {
             title: "Energy",
             tabBarIcon: ({ color }) => (
               <IconSymbol
-                name={HEARTSPIRIT_ICONS.energy}
+                name="bolt"
                 size={24}
                 color={color}
               />
@@ -86,7 +85,7 @@ export default function TabLayout() {
             title: "Rituals",
             tabBarIcon: ({ color }) => (
               <IconSymbol
-                name={HEARTSPIRIT_ICONS.rituals}
+                name="sparkles"
                 size={24}
                 color={color}
               />
@@ -101,7 +100,7 @@ export default function TabLayout() {
             title: "Circles",
             tabBarIcon: ({ color }) => (
               <IconSymbol
-                name={HEARTSPIRIT_ICONS.circles}
+                name="people-outline"
                 size={24}
                 color={color}
               />
@@ -116,7 +115,7 @@ export default function TabLayout() {
             title: "Settings",
             tabBarIcon: ({ color }) => (
               <IconSymbol
-                name={HEARTSPIRIT_ICONS.settings}
+                name="gearshape"
                 size={24}
                 color={color}
               />
