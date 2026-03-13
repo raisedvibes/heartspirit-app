@@ -37,6 +37,11 @@ interface Practice {
   mantra: string | null
   timer_minutes: number | null
   has_chime: boolean
+  practice_recommendations?: {
+    feeling_slug: string
+    support_mode_slug: string
+    sequence_index: number
+  }[]
 }
 
 type RecommendationAssignment = {
@@ -125,7 +130,11 @@ function draftFromPractice(practice: Practice): Draft {
     mantra: practice.mantra ?? "",
     timer_minutes: practice.timer_minutes?.toString() ?? "",
     has_chime: practice.has_chime ?? true,
-    recommendation_assignments: [],
+    recommendation_assignments: (practice.practice_recommendations ?? []).map((item) => ({
+      feeling_slug: item.feeling_slug ?? "",
+      support_mode_slug: item.support_mode_slug ?? "",
+      sequence_index: item.sequence_index?.toString() ?? "",
+    })),
   }
 }
 
@@ -171,6 +180,9 @@ export default function AdminPracticesPage() {
     try {
       const res = await fetch("/api/admin/practices/list", { cache: "no-store" })
       const data = await res.json()
+
+      console.log("PRACTICES API DATA", data)
+      
       if (!res.ok) {
         throw new Error(data.error || "Failed to fetch practices")
       }

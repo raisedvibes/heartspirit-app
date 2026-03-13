@@ -16,9 +16,32 @@ export async function GET() {
   try {
     const { data, error } = await supabase
       .from("practices")
-      .select(
-        "id,title,description,category,duration,media_url,slug,tags,short_summary,audio_url,cover_image,updated_at,created_at,media_type,thumbnail_url"
-      )
+      .select(`
+        id,
+        title,
+        description,
+        category,
+        duration,
+        media_url,
+        slug,
+        tags,
+        short_summary,
+        audio_url,
+        cover_image,
+        updated_at,
+        created_at,
+        media_type,
+        thumbnail_url,
+        instruction_bullets,
+        mantra,
+        timer_minutes,
+        has_chime,
+        practice_recommendations!practice_id(
+          feeling_slug,
+          support_mode_slug,
+          sequence_index
+        )
+      `)
       .order("created_at", { ascending: false })
 
     if (error) {
