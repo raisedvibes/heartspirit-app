@@ -40,7 +40,8 @@ interface Practice {
 }
 
 type RecommendationAssignment = {
-  feelingtone: string
+  feeling_slug: string
+  support_mode_slug: string
   sequence_index: string
 }
 
@@ -230,10 +231,16 @@ export default function AdminPracticesPage() {
           has_chime: createDraft.has_chime,
           recommendation_assignments: createDraft.recommendation_assignments
             .map((item) => ({
-              feelingtone: item.feelingtone.trim(),
+              feeling_slug: item.feeling_slug.trim(),
+              support_mode_slug: item.support_mode_slug.trim(),
               sequence_index: toNumberOrNull(item.sequence_index),
             }))
-            .filter((item) => item.feelingtone && item.sequence_index),
+            .filter(
+              (item) =>
+                item.feeling_slug &&
+                item.support_mode_slug &&
+                item.sequence_index
+            ),
         }),
       })
 
@@ -284,10 +291,16 @@ export default function AdminPracticesPage() {
           has_chime: editDraft.has_chime,
           recommendation_assignments: editDraft.recommendation_assignments
             .map((item) => ({
-              feelingtone: item.feelingtone.trim(),
+              feeling_slug: item.feeling_slug.trim(),
+              support_mode_slug: item.support_mode_slug.trim(),
               sequence_index: toNumberOrNull(item.sequence_index),
             }))
-            .filter((item) => item.feelingtone && item.sequence_index),
+            .filter(
+              (item) =>
+                item.feeling_slug &&
+                item.support_mode_slug &&
+                item.sequence_index
+            ),
         }),
       })
 
@@ -542,7 +555,7 @@ function PracticeForm({
       ...d,
       recommendation_assignments: [
         ...d.recommendation_assignments,
-        { feelingtone: "", sequence_index: "" },
+        { feeling_slug: "", support_mode_slug: "", sequence_index: "" },
       ],
     }))
   }
@@ -740,17 +753,29 @@ function PracticeForm({
             {draft.recommendation_assignments.map((assignment, index) => (
               <div
                 key={index}
-                className="grid grid-cols-1 gap-3 rounded-xl border border-white/10 bg-black/10 p-3 md:grid-cols-[1fr_140px_auto]"
+                className="grid grid-cols-1 gap-3 rounded-xl border border-white/10 bg-black/10 p-3 md:grid-cols-[1fr_1fr_140px_auto]"
               >
                 <div>
-                  <label className="text-xs text-white/60">Feeling</label>
+                  <label className="text-xs text-white/60">Feeling Slug</label>
                   <input
-                    value={assignment.feelingtone}
+                    value={assignment.feeling_slug}
                     onChange={(e) =>
-                      updateRecommendationAssignment(index, "feelingtone", e.target.value)
+                      updateRecommendationAssignment(index, "feeling_slug", e.target.value)
                     }
                     className="mt-1 w-full rounded-xl border border-white/20 bg-black/20 px-4 py-2 text-white outline-none focus:border-white/35"
-                    placeholder="irritable"
+                    placeholder="foggy"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-white/60">Support Mode Slug</label>
+                  <input
+                    value={assignment.support_mode_slug}
+                    onChange={(e) =>
+                      updateRecommendationAssignment(index, "support_mode_slug", e.target.value)
+                    }
+                    className="mt-1 w-full rounded-xl border border-white/20 bg-black/20 px-4 py-2 text-white outline-none focus:border-white/35"
+                    placeholder="clear_head"
                   />
                 </div>
 

@@ -34,21 +34,30 @@ function normalizeRecommendationAssignments(value: unknown) {
 
   return value
     .map((item) => {
-      const feelingtone =
-        typeof item?.feelingtone === "string" ? item.feelingtone.trim() : ""
+      const feeling_slug =
+        typeof item?.feeling_slug === "string" ? item.feeling_slug.trim() : ""
+
+      const support_mode_slug =
+        typeof item?.support_mode_slug === "string" ? item.support_mode_slug.trim() : ""
+
       const sequence_index =
         typeof item?.sequence_index === "number" && Number.isFinite(item.sequence_index)
           ? item.sequence_index
           : null
 
-      if (!feelingtone || !sequence_index) return null
+      if (!feeling_slug || !support_mode_slug || !sequence_index) return null
 
       return {
-        feelingtone,
+        feeling_slug,
+        support_mode_slug,
         sequence_index,
       }
     })
-    .filter(Boolean) as Array<{ feelingtone: string; sequence_index: number }>
+    .filter(Boolean) as Array<{
+    feeling_slug: string
+    support_mode_slug: string
+    sequence_index: number
+  }>
 }
 
 export async function POST(req: Request) {
@@ -113,7 +122,8 @@ export async function POST(req: Request) {
     if (recommendationAssignments.length > 0) {
       const rows = recommendationAssignments.map((item) => ({
         practice_id: data.id,
-        feelingtone: item.feelingtone,
+        feeling_slug: item.feeling_slug,
+        support_mode_slug: item.support_mode_slug,
         sequence_index: item.sequence_index,
       }))
 
