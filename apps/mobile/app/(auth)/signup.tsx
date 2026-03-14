@@ -45,6 +45,7 @@ export default function SignupScreen() {
       return
     }
 
+    const trimmedName = name.trim()
     const trimmedEmail = email.trim()
     if (!trimmedEmail || !password) return
 
@@ -62,8 +63,8 @@ export default function SignupScreen() {
       password,
       options: {
         data: {
-          display_name: name.trim(),
-          full_name: name.trim(),
+          display_name: trimmedName ? trimmedName.split(/\s+/)[0] : "",
+          full_name: trimmedName,
         },
       },
     })

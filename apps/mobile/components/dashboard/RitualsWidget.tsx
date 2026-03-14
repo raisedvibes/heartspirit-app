@@ -79,7 +79,7 @@ export function RitualsWidget() {
       ) : (
       <View style={styles.listSection}>
         <ThemedText type="muted" style={styles.todayLabel}>
-          today
+          Today
         </ThemedText>
         <View style={styles.list}>
         {rituals.map((r) => {
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16 },
   emptyBody: { fontSize: 14 },
   listSection: { gap: 6 },
-  todayLabel: { fontSize: 11, opacity: 0.7 },
+  todayLabel: { fontSize: 13, opacity: 0.7 },
   list: { gap: 10 },
   row: {
     flexDirection: "row",

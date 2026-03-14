@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
+import { useFocusEffect } from "expo-router"
 import { View, StyleSheet, ImageBackground, ScrollView, Pressable } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/ScreenContent"
@@ -6,6 +7,8 @@ import TranslucentCard from "@/components/ui/TranslucentCard"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import { ThemedText } from "@/components/themed-text"
 import BottomFade from "@/components/ui/BottomFade"
+import { useAuth } from "@/lib/auth"
+import { getSupabaseClient } from "@/lib/supabaseClient"
 
 type SeasonKey = "Winter" | "Spring" | "Summer" | "Autumn"
 
@@ -64,7 +67,48 @@ function ActionRow({
 
 export default function EnergyCheckScreen() {
   const insets = useSafeAreaInsets()
-  const [userName] = useState<string | undefined>(undefined)
+  const { user } = useAuth()
+  const [userName, setUserName] = useState<string | undefined>(undefined)
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false
+
+      async function loadProfileName() {
+        if (!user?.id) {
+          setUserName(undefined)
+          return
+        }
+
+        const supabase = getSupabaseClient()
+        if (!supabase) {
+          setUserName(undefined)
+          return
+        }
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("id", user.id)
+          .single()
+
+        if (!cancelled) {
+          if (error) {
+            console.log("[energy] failed loading display_name", error.message)
+            setUserName(undefined)
+          } else {
+            setUserName(data?.display_name ?? undefined)
+          }
+        }
+      }
+
+      loadProfileName()
+
+      return () => {
+        cancelled = true
+      }
+    }, [user?.id])
+  )
 
   const season = useMemo(() => {
     const now = new Date()

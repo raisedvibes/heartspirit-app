@@ -1,3 +1,5 @@
+import { useCallback, useState } from "react"
+import { useFocusEffect } from "expo-router"
 import { View, StyleSheet, ImageBackground, ScrollView } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/ScreenContent"
@@ -5,9 +7,54 @@ import { CirclesWidget } from "@/components/dashboard/Circles"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import { RitualsWidget } from "@/components/dashboard/RitualsWidget"
 import BottomFade from "@/components/ui/BottomFade"
+import { useAuth } from "@/lib/auth"
+import { getSupabaseClient } from "@/lib/supabaseClient"
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets()
+  const { user } = useAuth()
+  const [userName, setUserName] = useState<string | undefined>(undefined)
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false
+
+      async function loadProfileName() {
+        if (!user?.id) {
+          setUserName(undefined)
+          return
+        }
+
+        const supabase = getSupabaseClient()
+        if (!supabase) {
+          setUserName(undefined)
+          return
+        }
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("id", user.id)
+          .single()
+
+        if (!cancelled) {
+          if (error) {
+            console.log("[dashboard] failed loading display_name", error.message)
+            setUserName(undefined)
+          } else {
+            setUserName(data?.display_name ?? undefined)
+          }
+        }
+      }
+
+      loadProfileName()
+
+      return () => {
+        cancelled = true
+      }
+    }, [user?.id])
+  )
+
   return (
     <View style={styles.root}>
       <ImageBackground
@@ -18,16 +65,16 @@ export default function HomeScreen() {
         <ScreenContent>
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={[styles.content, { paddingBottom: getTabBarBottomPadding(insets), flexGrow: 1 }]}
+            contentContainerStyle={[
+              styles.content,
+              { paddingBottom: getTabBarBottomPadding(insets), flexGrow: 1 },
+            ]}
             showsVerticalScrollIndicator={false}
           >
-            {/* Section 1: Energy Check (top) */}
-            <EnergyCheck userName={undefined} />
+            <EnergyCheck userName={userName} />
 
-            {/* Section 2: Rituals mark-today widget */}
             <RitualsWidget />
 
-            {/* Section 3: Grid (stacked vertically) */}
             <View style={styles.grid}>
               <CirclesWidget />
             </View>
