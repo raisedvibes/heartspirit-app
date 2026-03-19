@@ -107,6 +107,16 @@ export default function SettingsScreen() {
           setDailyCheckIn(false)
           setCirclesWeekBefore(false)
           setCirclesDayBefore(false)
+
+          const { error: upsertErr } = await supabase.from("profiles").upsert({
+            id: user.id,
+            display_name: fallbackDisplayName || null,
+            full_name: metadataFullName || null,
+            email: user.email ?? null,
+          })
+          if (upsertErr) {
+            console.log("[Settings] profile upsert on init:", upsertErr.message)
+          }
         }
       } else {
         setProfile({ display_name: "", full_name: "", email: "" })
@@ -169,12 +179,15 @@ export default function SettingsScreen() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .update({
-          full_name: full_name || null,
-          display_name: display_name || null,
-          email: email || null,
-        })
-        .eq("id", authUser.id)
+        .upsert(
+          {
+            id: authUser.id,
+            full_name: full_name || null,
+            display_name: display_name || null,
+            email: email || null,
+          },
+          { onConflict: "id" }
+        )
         .select("id, display_name, full_name, email")
         .single()
 
@@ -187,7 +200,7 @@ export default function SettingsScreen() {
         full_name: data.full_name ?? "",
         email: data.email ?? "",
       })
-  
+
       return true
     } catch (e: unknown) {
       console.log("SAVE PROFILE ERROR", e)

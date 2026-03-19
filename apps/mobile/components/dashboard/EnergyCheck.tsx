@@ -106,15 +106,20 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
         .from("profiles")
         .select("display_name")
         .eq("id", user.id)
-        .single()
+        .maybeSingle()
 
       if (!cancelled) {
-        if (error) {
-          console.log("[EnergyCheck] failed loading display_name", error.message)
-          setResolvedUserName(undefined)
-        } else {
-          setResolvedUserName(data?.display_name ?? undefined)
+        const fromProfile = data?.display_name?.trim()
+        if (fromProfile) {
+          setResolvedUserName(fromProfile)
+          return
         }
+        const metadataDisplay = (user.user_metadata?.display_name as string | undefined)?.trim()
+        const metadataFull = (user.user_metadata?.full_name as string | undefined)?.trim()
+        const fallback =
+          metadataDisplay
+          || (metadataFull ? metadataFull.split(/\s+/)[0] : undefined)
+        setResolvedUserName(fallback ?? undefined)
       }
     }
 
