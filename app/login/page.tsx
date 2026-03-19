@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, type FormEvent } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,12 +13,13 @@ import { createClient } from "@/lib/supabase/client"
 const supabase = createClient()
 
 export default function LoginPage() {
+  const router = useRouter()
+
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({ email: "", password: "" })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // ✅ Added: nicer messaging for unconfirmed email state
   const [notice, setNotice] = useState<string | null>(null)
   const [noticeEmail, setNoticeEmail] = useState<string>("")
 
@@ -40,11 +42,13 @@ export default function LoginPage() {
     if (error) {
       console.log("LOGIN ERROR:", error)
 
-      // ✅ Guard: common case when email confirmations are enabled
       const msg = (error.message || "").toLowerCase()
       if (
         msg.includes("email") &&
-        (msg.includes("confirm") || msg.includes("confirmed") || msg.includes("verify") || msg.includes("verification"))
+        (msg.includes("confirm") ||
+          msg.includes("confirmed") ||
+          msg.includes("verify") ||
+          msg.includes("verification"))
       ) {
         setNoticeEmail(email)
         setNotice("Your portal isn’t activated yet. Confirm your email, then sign in.")
@@ -55,7 +59,6 @@ export default function LoginPage() {
       return
     }
 
-    // ✅ Extra guard: if a session exists but email isn't confirmed (rare, but safe)
     const user = data?.user
     if (user && !user.email_confirmed_at) {
       await supabase.auth.signOut()
@@ -64,7 +67,7 @@ export default function LoginPage() {
       return
     }
 
-    window.location.href = "/dashboard"
+    router.replace("/admin")
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -73,7 +76,6 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center p-4">
-      {/* Background Video */}
       <video
         autoPlay
         loop
@@ -94,15 +96,12 @@ export default function LoginPage() {
         />
       </video>
 
-      {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/60 z-10" />
 
-      {/* Header */}
       <div className="absolute top-6 left-6 z-20 text-white">
         <h1 className="text-xl font-semibold tracking-wide">heartspirit</h1>
       </div>
 
-      {/* Content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -115,7 +114,6 @@ export default function LoginPage() {
               <h1 className="text-2xl font-semibold tracking-wide">Enter Your Portal</h1>
             </div>
 
-            {/* ✅ Notice (activation guidance) */}
             {notice && (
               <div className="rounded-xl border border-white/20 bg-white/10 p-4 text-sm text-white/80 space-y-2">
                 <p>{notice}</p>
@@ -127,7 +125,6 @@ export default function LoginPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email */}
               <div className="space-y-2">
                 <label className="text-sm text-white/80">Email</label>
                 <Input
@@ -140,7 +137,6 @@ export default function LoginPage() {
                 />
               </div>
 
-              {/* Password */}
               <div className="space-y-2">
                 <label className="text-sm text-white/80">Password</label>
                 <div className="relative">
@@ -168,7 +164,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Forgot Password */}
               <div className="text-right">
                 <Link
                   href="/forgot-password"
@@ -178,10 +173,8 @@ export default function LoginPage() {
                 </Link>
               </div>
 
-              {/* Error */}
               {error && <p className="text-sm text-red-400">{error}</p>}
 
-              {/* Submit Button */}
               <Button
                 type="submit"
                 disabled={isLoading}
@@ -203,7 +196,6 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* Sign Up */}
             <div className="text-center">
               <span className="text-sm text-white/70">Don&apos;t have an account? </span>
               <Link

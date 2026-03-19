@@ -21,6 +21,10 @@ export default function AdminHome() {
               Manage Practices
             </Button>
 
+            <Button onClick={() => router.push("/admin/placements")}>
+              Energy Placements
+            </Button>
+
             <Button onClick={() => router.push("/admin/recommendations")}>
               Manage Recommendations
             </Button>
