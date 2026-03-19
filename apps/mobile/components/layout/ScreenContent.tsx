@@ -15,14 +15,22 @@ export default function ScreenContent({
   children,
   style,
   noTabPadding,
+  bottomPaddingOverride,
 }: {
   children: React.ReactNode
   style?: any
   noTabPadding?: boolean
+  bottomPaddingOverride?: number
 }) {
   const insets = useSafeAreaInsets()
   const CONTENT_TOP = insets.top + 64
-  const paddingBottom = noTabPadding ? insets.bottom + 24 : getTabBarBottomPadding(insets)
+
+  const paddingBottom =
+    typeof bottomPaddingOverride === "number"
+      ? bottomPaddingOverride
+      : noTabPadding
+        ? insets.bottom + 24
+        : getTabBarBottomPadding(insets)
 
   return (
     <View

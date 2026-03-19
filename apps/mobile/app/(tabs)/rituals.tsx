@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { useFocusEffect } from "expo-router"
 import {
   View,
@@ -30,6 +30,7 @@ import {
   ensureNotifPermissions,
   scheduleDailyReminder,
 } from "../../lib/ritualNotifications"
+import { getSupabaseClient } from "@/lib/supabaseClient"
 
 function startOfWeekMonday(d: Date): Date {
   const out = new Date(d)
@@ -71,6 +72,35 @@ export default function RitualsScreen() {
 
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => new Date())
   const [selectedDayISO, setSelectedDayISO] = useState<string>(() => todayISO())
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadBackground() {
+      const supabase = getSupabaseClient()
+      if (!supabase) return
+
+      const { data, error } = await supabase
+        .from("app_backgrounds")
+        .select("https://dddhogjwllfurcvhjseh.supabase.co/storage/v1/object/public/app-assets/fern.background.png")
+        .eq("page_key", "(tabs)/rituals")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!error && data?.image_url && isMounted) {
+        setBackgroundUrl(data.image_url)
+      }
+    }
+
+    loadBackground()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   useFocusEffect(
     useCallback(() => {
@@ -201,10 +231,14 @@ export default function RitualsScreen() {
     setShowAdd(false)
   }
 
+  const backgroundSource = backgroundUrl
+    ? { uri: backgroundUrl }
+    : require("@/assets/images/fern.background.png")
+
   return (
     <View style={styles.root}>
       <ImageBackground
-        source={require("@/assets/images/fern.background.png")}
+        source={backgroundSource}
         style={styles.bg}
         resizeMode="cover"
       >
@@ -329,98 +363,99 @@ export default function RitualsScreen() {
                   )
                 }
                 const r = item as Ritual
-              const streak = computeStreak(r.history || {}, todayISOStr)
-              return (
-                <TranslucentCard style={styles.ritualRow}>
-                  <View style={styles.ritualHeaderRow}>
-                    <ThemedText type="defaultSemiBold" style={styles.ritualName}>
-                      {r.name}
-                    </ThemedText>
-                    <View style={styles.ritualHeaderRight}>
-                      {streak >= 3 && (
-                        <View style={styles.streakBadge}>
-                          <ThemedText type="defaultSemiBold" style={styles.streakText}>
-                            {streak}🔥
-                          </ThemedText>
+                const streak = computeStreak(r.history || {}, todayISOStr)
+
+                return (
+                  <TranslucentCard style={styles.ritualRow}>
+                    <View style={styles.ritualHeaderRow}>
+                      <ThemedText type="defaultSemiBold" style={styles.ritualName}>
+                        {r.name}
+                      </ThemedText>
+                      <View style={styles.ritualHeaderRight}>
+                        {streak >= 3 && (
+                          <View style={styles.streakBadge}>
+                            <ThemedText type="defaultSemiBold" style={styles.streakText}>
+                              {streak}🔥
+                            </ThemedText>
+                          </View>
+                        )}
+                        <View style={styles.ritualActions}>
+                          <Pressable
+                            onPress={() => {
+                              setEditRitualId(r.id)
+                              setName(r.name)
+                              setTags((r.tags || []).join(", "))
+                              if (r.reminder) {
+                                setReminderEnabled(true)
+                                const [h, m] = r.reminder.split(":").map(Number)
+                                const d = new Date()
+                                d.setHours(h)
+                                d.setMinutes(m)
+                                setReminderTime(d)
+                              } else {
+                                setReminderEnabled(false)
+                              }
+                              setShowAdd(true)
+                            }}
+                          >
+                            <ThemedText type="muted" style={styles.actionText}>
+                              edit
+                            </ThemedText>
+                          </Pressable>
+                          <Pressable onPress={() => setDeleteTarget(r)}>
+                            <ThemedText type="muted" style={[styles.actionText, styles.deleteText]}>
+                              delete
+                            </ThemedText>
+                          </Pressable>
                         </View>
-                      )}
-                      <View style={styles.ritualActions}>
-                        <Pressable
-                          onPress={() => {
-                            setEditRitualId(r.id)
-                            setName(r.name)
-                            setTags((r.tags || []).join(", "))
-                            if (r.reminder) {
-                              setReminderEnabled(true)
-                              const [h, m] = r.reminder.split(":").map(Number)
-                              const d = new Date()
-                              d.setHours(h)
-                              d.setMinutes(m)
-                              setReminderTime(d)
-                            } else {
-                              setReminderEnabled(false)
-                            }
-                            setShowAdd(true)
-                          }}
-                        >
-                          <ThemedText type="muted" style={styles.actionText}>
-                            edit
-                          </ThemedText>
-                        </Pressable>
-                        <Pressable onPress={() => setDeleteTarget(r)}>
-                          <ThemedText type="muted" style={[styles.actionText, styles.deleteText]}>
-                            delete
-                          </ThemedText>
-                        </Pressable>
                       </View>
                     </View>
-                  </View>
-                  <View style={styles.dayRow}>
-                    {days.map((day, i) => {
-                      const isoDay = localISODate(day)
-                      const isFuture = isoDay > todayISOStr
-                      const status = r.history[isoDay] as Mark | undefined
-                      const baseBox = {
-                        width: 40,
-                        height: 40,
-                        borderRadius: 10,
-                        borderWidth: 1,
-                        alignItems: "center" as const,
-                        justifyContent: "center" as const,
-                        paddingTop: 2,
-                        marginRight: 8,
-                      }
-                      const boxStyle =
-                        status === "yes"
-                          ? { ...baseBox, backgroundColor: "rgba(100,200,120,0.25)", borderColor: "rgba(100,200,120,0.5)" }
-                          : status === "no"
-                            ? { ...baseBox, backgroundColor: "rgba(255,80,80,0.18)", borderColor: "rgba(255,80,80,0.35)" }
-                            : status === "skip"
-                              ? { ...baseBox, backgroundColor: "rgba(255,255,255,0.10)", borderColor: "rgba(255,255,255,0.25)" }
-                              : { ...baseBox, borderColor: "rgba(255,255,255,0.18)" }
-                      return (
-                        <Pressable
-                          key={isoDay}
-                          style={[
-                            boxStyle,
-                            isoDay === todayISOStr && styles.dayBoxToday,
-                            isFuture && styles.dayBoxFuture,
-                          ]}
-                          disabled={isFuture}
-                          onPress={() => {
-                            if (isFuture) return
-                            setActiveRitualId(r.id)
-                            setActiveISO(isoDay)
-                            setMarkOpen(true)
-                          }}
-                        />
-                      )
-                    })}
-                  </View>
-                </TranslucentCard>
-              )
-            }}
-          />
+                    <View style={styles.dayRow}>
+                      {days.map((day) => {
+                        const isoDay = localISODate(day)
+                        const isFuture = isoDay > todayISOStr
+                        const status = r.history[isoDay] as Mark | undefined
+                        const baseBox = {
+                          width: 40,
+                          height: 40,
+                          borderRadius: 10,
+                          borderWidth: 1,
+                          alignItems: "center" as const,
+                          justifyContent: "center" as const,
+                          paddingTop: 2,
+                          marginRight: 8,
+                        }
+                        const boxStyle =
+                          status === "yes"
+                            ? { ...baseBox, backgroundColor: "rgba(100,200,120,0.25)", borderColor: "rgba(100,200,120,0.5)" }
+                            : status === "no"
+                              ? { ...baseBox, backgroundColor: "rgba(255,80,80,0.18)", borderColor: "rgba(255,80,80,0.35)" }
+                              : status === "skip"
+                                ? { ...baseBox, backgroundColor: "rgba(255,255,255,0.10)", borderColor: "rgba(255,255,255,0.25)" }
+                                : { ...baseBox, borderColor: "rgba(255,255,255,0.18)" }
+                        return (
+                          <Pressable
+                            key={isoDay}
+                            style={[
+                              boxStyle,
+                              isoDay === todayISOStr && styles.dayBoxToday,
+                              isFuture && styles.dayBoxFuture,
+                            ]}
+                            disabled={isFuture}
+                            onPress={() => {
+                              if (isFuture) return
+                              setActiveRitualId(r.id)
+                              setActiveISO(isoDay)
+                              setMarkOpen(true)
+                            }}
+                          />
+                        )
+                      })}
+                    </View>
+                  </TranslucentCard>
+                )
+              }}
+            />
           </View>
         </ScreenContent>
       </ImageBackground>
@@ -431,11 +466,11 @@ export default function RitualsScreen() {
         transparent
         animationType="fade"
         onRequestClose={() => {
-        setEditRitualId(null)
-        setShowAdd(false)
-        setReminderEnabled(false)
-        setReminderTime(new Date())
-      }}
+          setEditRitualId(null)
+          setShowAdd(false)
+          setReminderEnabled(false)
+          setReminderTime(new Date())
+        }}
       >
         <Pressable
           style={styles.modalBackdrop}
@@ -449,76 +484,76 @@ export default function RitualsScreen() {
           <Pressable onPress={(e) => e.stopPropagation()} style={styles.modalShell}>
             <TranslucentCard style={styles.modalCard}>
               <ScrollView>
-              <ThemedText type="defaultSemiBold" style={styles.modalTitle}>
-                {editRitualId ? "Edit ritual" : "Add ritual"}
-              </ThemedText>
-
-              <ThemedText type="muted" style={styles.inputLabel}>
-                Name
-              </ThemedText>
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder="name"
-                placeholderTextColor="rgba(255,255,255,0.5)"
-                autoCapitalize="words"
-              />
-
-              <ThemedText type="muted" style={styles.inputLabel}>
-                Tags
-              </ThemedText>
-              <TextInput
-                style={styles.input}
-                value={tags}
-                onChangeText={setTags}
-                placeholder="tags (comma separated)"
-                placeholderTextColor="rgba(255,255,255,0.5)"
-              />
-
-              <View style={styles.reminderRow}>
-                <ThemedText type="muted" style={styles.inputLabel}>
-                  Reminder
+                <ThemedText type="defaultSemiBold" style={styles.modalTitle}>
+                  {editRitualId ? "Edit ritual" : "Add ritual"}
                 </ThemedText>
-                <Switch value={reminderEnabled} onValueChange={setReminderEnabled} />
-              </View>
-              {reminderEnabled && (
-                <View style={styles.timePickerWrap}>
-                  <DateTimePicker
-                    value={reminderTime}
-                    mode="time"
-                    display="default"
-                    onChange={(_, date) => {
-                      if (date) setReminderTime(date)
-                    }}
-                  />
-                  <ThemedText type="muted" style={{ marginTop: 8 }}>
-                    set for {hhmm(reminderTime)}
-                  </ThemedText>
-                </View>
-              )}
 
-              <View style={styles.modalButtons}>
-                <Pressable
-                  style={styles.cancelButton}
-                  onPress={() => {
-                    setEditRitualId(null)
-                    setShowAdd(false)
-                    setReminderEnabled(false)
-                    setReminderTime(new Date())
-                  }}
-                >
-                  <ThemedText type="defaultSemiBold" style={styles.cancelButtonText}>
-                    cancel
+                <ThemedText type="muted" style={styles.inputLabel}>
+                  Name
+                </ThemedText>
+                <TextInput
+                  style={styles.input}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="name"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  autoCapitalize="words"
+                />
+
+                <ThemedText type="muted" style={styles.inputLabel}>
+                  Tags
+                </ThemedText>
+                <TextInput
+                  style={styles.input}
+                  value={tags}
+                  onChangeText={setTags}
+                  placeholder="tags (comma separated)"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                />
+
+                <View style={styles.reminderRow}>
+                  <ThemedText type="muted" style={styles.inputLabel}>
+                    Reminder
                   </ThemedText>
-                </Pressable>
-                <Pressable style={styles.addSubmitButton} onPress={addRitual}>
-                  <ThemedText type="defaultSemiBold" style={styles.addSubmitButtonText}>
-                    {editRitualId ? "save" : "add"}
-                  </ThemedText>
-                </Pressable>
-              </View>
-            </ScrollView>
+                  <Switch value={reminderEnabled} onValueChange={setReminderEnabled} />
+                </View>
+                {reminderEnabled && (
+                  <View style={styles.timePickerWrap}>
+                    <DateTimePicker
+                      value={reminderTime}
+                      mode="time"
+                      display="default"
+                      onChange={(_, date) => {
+                        if (date) setReminderTime(date)
+                      }}
+                    />
+                    <ThemedText type="muted" style={{ marginTop: 8 }}>
+                      set for {hhmm(reminderTime)}
+                    </ThemedText>
+                  </View>
+                )}
+
+                <View style={styles.modalButtons}>
+                  <Pressable
+                    style={styles.cancelButton}
+                    onPress={() => {
+                      setEditRitualId(null)
+                      setShowAdd(false)
+                      setReminderEnabled(false)
+                      setReminderTime(new Date())
+                    }}
+                  >
+                    <ThemedText type="defaultSemiBold" style={styles.cancelButtonText}>
+                      cancel
+                    </ThemedText>
+                  </Pressable>
+                  <Pressable style={styles.addSubmitButton} onPress={addRitual}>
+                    <ThemedText type="defaultSemiBold" style={styles.addSubmitButtonText}>
+                      {editRitualId ? "save" : "add"}
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              </ScrollView>
             </TranslucentCard>
           </Pressable>
         </Pressable>

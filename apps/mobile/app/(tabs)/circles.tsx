@@ -47,7 +47,6 @@ function getCircleImageUrl(imageUrl: string | null, supabase: SupabaseClient | n
   if (!raw) return null
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw
   if (!supabase) return null
-  // Supabase Storage: "circles/xyz.png" -> bucket circles, path xyz.png; "public/circles/xyz.png" -> bucket public, path circles/xyz.png
   const bucket = raw.startsWith("public/") ? "public" : raw.startsWith("circles/") ? "circles" : "public"
   const path = raw.startsWith("public/") ? raw.slice(7) : raw.startsWith("circles/") ? raw.slice(8) : raw
   const { data } = supabase.storage.from(bucket).getPublicUrl(path)
@@ -79,12 +78,14 @@ function CircleCardImage({
 
 export default function CirclesScreen() {
   const insets = useSafeAreaInsets()
+  const supabase = getSupabaseClient()
+
   const [circles, setCircles] = useState<CircleRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
 
   const fetchCircles = useCallback(async () => {
-    const supabase = getSupabaseClient()
     if (!supabase) {
       setLoadError("Not configured")
       setCircles([])
@@ -108,7 +109,7 @@ export default function CirclesScreen() {
       setCircles((data ?? []) as CircleRow[])
     }
     setLoading(false)
-  }, [])
+  }, [supabase])
 
   useFocusEffect(
     useCallback(() => {
@@ -117,7 +118,33 @@ export default function CirclesScreen() {
   )
 
   useEffect(() => {
-    const supabase = getSupabaseClient()
+    let isMounted = true
+
+    async function loadBackground() {
+      if (!supabase) return
+
+      const { data, error } = await supabase
+        .from("app_backgrounds")
+        .select("https://dddhogjwllfurcvhjseh.supabase.co/storage/v1/object/public/app-assets/fern.background.png")
+        .eq("page_key", "(tabs)/circles")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!error && data?.image_url && isMounted) {
+        setBackgroundUrl(data.image_url)
+      }
+    }
+
+    loadBackground()
+
+    return () => {
+      isMounted = false
+    }
+  }, [supabase])
+
+  useEffect(() => {
     if (!supabase) return
 
     const channel = supabase
@@ -134,9 +161,13 @@ export default function CirclesScreen() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [fetchCircles])
+  }, [supabase, fetchCircles])
 
   const hasCircles = circles.length > 0
+
+  const backgroundSource = backgroundUrl
+    ? { uri: backgroundUrl }
+    : require("@/assets/images/fern.background.png")
 
   const handleJoin = (circle: CircleRow) => {
     const url = circle.payment_url?.trim()
@@ -153,7 +184,7 @@ export default function CirclesScreen() {
   return (
     <View style={styles.root}>
       <ImageBackground
-        source={require("@/assets/images/fern.background.png")}
+        source={backgroundSource}
         style={styles.bg}
         resizeMode="cover"
       >
@@ -191,7 +222,7 @@ export default function CirclesScreen() {
                   <TranslucentCard key={circle.id} style={styles.circleCard}>
                     <CircleCardImage
                       imageUrl={circle.image_url}
-                      supabase={getSupabaseClient()}
+                      supabase={supabase}
                       style={styles.circleImage}
                     />
                     <ThemedText type="defaultSemiBold" style={styles.circleName}>

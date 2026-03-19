@@ -1,16 +1,85 @@
-import { useCallback, useMemo, useState } from "react"
-import { useFocusEffect } from "expo-router"
-import { View, StyleSheet, ImageBackground, ScrollView, Pressable } from "react-native"
+import { useEffect, useMemo, useState } from "react"
+import {
+  View,
+  StyleSheet,
+  ImageBackground,
+  ScrollView,
+  Pressable,
+  Dimensions,
+} from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { router } from "expo-router"
 import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/ScreenContent"
-import TranslucentCard from "@/components/ui/TranslucentCard"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import { ThemedText } from "@/components/themed-text"
 import BottomFade from "@/components/ui/BottomFade"
-import { useAuth } from "@/lib/auth"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 
-type SeasonKey = "Winter" | "Spring" | "Summer" | "Autumn"
+type SeasonKey = "spring" | "summer" | "autumn" | "winter"
+
+type TodaySlotSlug =
+  | "open_the_portal"
+  | "hold_the_frequency"
+  | "return_to_source"
+
+type SeasonalSlotSlug =
+  | "seasonal_1"
+  | "seasonal_2"
+  | "seasonal_3"
+  | "seasonal_4"
+
+type PracticeSummary = {
+  id: string
+  title: string
+  short_summary: string | null
+  duration: number | null
+  timer_minutes: number | null
+  cover_image: string | null
+  thumbnail_url: string | null
+}
+
+type PlacementRow = {
+  slot_slug: TodaySlotSlug | SeasonalSlotSlug
+  sort_order: number
+  practice: PracticeSummary | null
+}
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window")
+
+// Calm-style featured tiles: wider, landscape-featured (one dominant card visible, next peeking)
+const RAIL_CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.84, 332)
+const RAIL_CARD_HEIGHT = Math.round(RAIL_CARD_WIDTH * 0.60)
+
+const SHELL_PADDING = 10
+const INNER_WIDTH = RAIL_CARD_WIDTH - SHELL_PADDING * 2
+const INNER_HEIGHT = RAIL_CARD_HEIGHT - SHELL_PADDING * 2
+
+const PEEK_PADDING = 20
+
+const TODAY_SLOT_LABELS: Record<TodaySlotSlug, string> = {
+  open_the_portal: "Open the Portal",
+  hold_the_frequency: "Hold the Frequency",
+  return_to_source: "Return to Source",
+}
+
+const TODAY_SLOT_PERIODS: Record<TodaySlotSlug, string> = {
+  open_the_portal: "Morning",
+  hold_the_frequency: "Midday",
+  return_to_source: "Evening",
+}
+
+const TODAY_SLOT_ORDER: Record<TodaySlotSlug, number> = {
+  open_the_portal: 0,
+  hold_the_frequency: 1,
+  return_to_source: 2,
+}
+
+const SEASONAL_SLOT_ORDER: Record<SeasonalSlotSlug, number> = {
+  seasonal_1: 0,
+  seasonal_2: 1,
+  seasonal_3: 2,
+  seasonal_4: 3,
+}
 
 function toLocalStartOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
@@ -30,85 +99,173 @@ function computeSeason(
   boundaries: { spring: Date; summer: Date; autumn: Date; winter: Date }
 ): SeasonKey {
   const t = toLocalStartOfDay(today)
-  if (t >= boundaries.winter || t < boundaries.spring) return "Winter"
-  if (t >= boundaries.spring && t < boundaries.summer) return "Spring"
-  if (t >= boundaries.summer && t < boundaries.autumn) return "Summer"
-  return "Autumn"
+  if (t >= boundaries.winter || t < boundaries.spring) return "winter"
+  if (t >= boundaries.spring && t < boundaries.summer) return "spring"
+  if (t >= boundaries.summer && t < boundaries.autumn) return "summer"
+  return "autumn"
 }
 
-function ActionRow({
+function formatSeasonLabel(season: SeasonKey) {
+  switch (season) {
+    case "spring":
+      return "Spring"
+    case "summer":
+      return "Summer"
+    case "autumn":
+      return "Autumn"
+    case "winter":
+      return "Winter"
+    default:
+      return "Seasonal"
+  }
+}
+
+function getCurrentTodaySlot(date = new Date()): TodaySlotSlug {
+  const hour = date.getHours()
+
+  if (hour >= 4 && hour < 11) return "open_the_portal"
+  if (hour >= 11 && hour < 17) return "hold_the_frequency"
+  return "return_to_source"
+}
+
+function rotateTodaySlots(activeSlot: TodaySlotSlug): TodaySlotSlug[] {
+  const slots: TodaySlotSlug[] = [
+    "open_the_portal",
+    "hold_the_frequency",
+    "return_to_source",
+  ]
+  const startIndex = slots.indexOf(activeSlot)
+  if (startIndex === -1) return slots
+  return [...slots.slice(startIndex), ...slots.slice(0, startIndex)]
+}
+
+function getImageSource(practice?: PracticeSummary | null) {
+  const remoteUrl = practice?.cover_image?.trim() || practice?.thumbnail_url?.trim()
+
+  if (remoteUrl && remoteUrl.startsWith("http")) {
+    return { uri: remoteUrl }
+  }
+
+  return require("@/assets/images/fern.background.png")
+}
+
+function TodayPracticeCard({
+  slotSlug,
+  practice,
+  isActive,
+  onPress,
+}: {
+  slotSlug: TodaySlotSlug
+  practice?: PracticeSummary | null
+  isActive: boolean
+  onPress?: () => void
+}) {
+  const [useLocalFallback, setUseLocalFallback] = useState(false)
+
+  const source = useMemo(() => {
+    if (useLocalFallback) return require("@/assets/images/fern.background.png")
+    return getImageSource(practice)
+  }, [practice, useLocalFallback])
+
+  return (
+    <View style={styles.cardSlot}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.shellCardWrap,
+          isActive && styles.shellCardWrapActive,
+          pressed && styles.shellCardWrapPressed,
+        ]}
+      >
+        <View style={styles.shellCardInner}>
+          <ImageBackground
+            source={source}
+            style={styles.railCardBg}
+            imageStyle={styles.railCardImage}
+            resizeMode="cover"
+            onError={() => {
+              console.log("[energy] today card image failed, using fallback")
+              setUseLocalFallback(true)
+            }}
+          >
+            <View style={styles.railCardOverlay} />
+
+            <View style={styles.railCardTop}>
+              <ThemedText style={styles.railCardPeriod}>
+                {TODAY_SLOT_PERIODS[slotSlug]}
+              </ThemedText>
+            </View>
+
+            <View style={styles.railCardBottom}>
+              <ThemedText type="defaultSemiBold" style={styles.railCardTitle}>
+                {TODAY_SLOT_LABELS[slotSlug]}
+              </ThemedText>
+            </View>
+          </ImageBackground>
+        </View>
+      </Pressable>
+    </View>
+  )
+}
+
+function SeasonalPracticeCard({
   title,
-  subtitle,
+  practice,
   onPress,
 }: {
   title: string
-  subtitle?: string
+  practice?: PracticeSummary | null
   onPress?: () => void
 }) {
+  const [useLocalFallback, setUseLocalFallback] = useState(false)
+
+  const source = useMemo(() => {
+    if (useLocalFallback) return require("@/assets/images/fern.background.png")
+    return getImageSource(practice)
+  }, [practice, useLocalFallback])
+
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.actionRow,
-        pressed && styles.actionRowPressed,
-      ]}
-    >
-      <ThemedText type="defaultSemiBold" style={styles.actionRowTitle}>
-        {title}
-      </ThemedText>
-      {subtitle ? (
-        <ThemedText type="muted" style={styles.actionRowSubtitle}>
-          {subtitle}
-        </ThemedText>
-      ) : null}
-    </Pressable>
+    <View style={styles.cardSlot}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.shellCardWrap,
+          pressed && styles.shellCardWrapPressed,
+        ]}
+      >
+        <View style={styles.shellCardInner}>
+          <ImageBackground
+            source={source}
+            style={styles.railCardBg}
+            imageStyle={styles.railCardImage}
+            resizeMode="cover"
+            onError={() => {
+              console.log("[energy] seasonal card image failed, using fallback")
+              setUseLocalFallback(true)
+            }}
+          >
+            <View style={styles.railCardOverlay} />
+
+            <View style={styles.railCardBottom}>
+              <ThemedText type="defaultSemiBold" style={styles.railCardTitle}>
+                {title}
+              </ThemedText>
+            </View>
+          </ImageBackground>
+        </View>
+      </Pressable>
+    </View>
   )
 }
 
 export default function EnergyCheckScreen() {
   const insets = useSafeAreaInsets()
-  const { user } = useAuth()
-  const [userName, setUserName] = useState<string | undefined>(undefined)
-
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false
-
-      async function loadProfileName() {
-        if (!user?.id) {
-          setUserName(undefined)
-          return
-        }
-
-        const supabase = getSupabaseClient()
-        if (!supabase) {
-          setUserName(undefined)
-          return
-        }
-
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("id", user.id)
-          .single()
-
-        if (!cancelled) {
-          if (error) {
-            console.log("[energy] failed loading display_name", error.message)
-            setUserName(undefined)
-          } else {
-            setUserName(data?.display_name ?? undefined)
-          }
-        }
-      }
-
-      loadProfileName()
-
-      return () => {
-        cancelled = true
-      }
-    }, [user?.id])
-  )
+  const [userName] = useState<string | undefined>(undefined)
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
+  const [todayPlacements, setTodayPlacements] = useState<PlacementRow[]>([])
+  const [seasonalPlacements, setSeasonalPlacements] = useState<PlacementRow[]>([])
+  const [loadingPlacements, setLoadingPlacements] = useState(true)
+  const [useLocalPageBackground, setUseLocalPageBackground] = useState(false)
 
   const season = useMemo(() => {
     const now = new Date()
@@ -117,26 +274,177 @@ export default function EnergyCheckScreen() {
     return computeSeason(now, boundaries)
   }, [])
 
-  const todayPractices = useMemo(
-    () => [
-      { title: "Open the Portal", subtitle: "morning" },
-      { title: "Hold the Frequency", subtitle: "mid-day" },
-      { title: "Return to Source", subtitle: "evening" },
-    ],
-    []
+  const currentTodaySlot = useMemo(() => getCurrentTodaySlot(), [])
+  const orderedTodaySlots = useMemo(
+    () => rotateTodaySlots(currentTodaySlot),
+    [currentTodaySlot]
   )
+
+  const orderedTodayPlacements = useMemo(() => {
+    const placementMap = new Map(
+      todayPlacements.map((item) => [item.slot_slug as TodaySlotSlug, item])
+    )
+
+    return orderedTodaySlots
+      .map((slot) => placementMap.get(slot))
+      .filter(Boolean) as PlacementRow[]
+  }, [todayPlacements, orderedTodaySlots])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadBackground() {
+      const supabase = getSupabaseClient()
+      if (!supabase) return
+
+      const { data, error } = await supabase
+        .from("app_backgrounds")
+        .select("image_url")
+        .eq("page_key", "(tabs)/energy")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      console.log("[energy] background row:", data)
+      console.log("[energy] background error:", error)
+
+      const url = data?.image_url?.trim()
+      const isUsableUrl =
+        !!url &&
+        url.startsWith("http") &&
+        !url.includes("your-image-url.com")
+
+      if (!error && isUsableUrl && isMounted) {
+        setBackgroundUrl(url)
+      } else if (isMounted) {
+        setBackgroundUrl(null)
+      }
+    }
+
+    loadBackground()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadPlacements() {
+      const supabase = getSupabaseClient()
+      if (!supabase) {
+        if (isMounted) setLoadingPlacements(false)
+        return
+      }
+
+      setLoadingPlacements(true)
+
+      const [{ data: todayData, error: todayError }, { data: seasonalData, error: seasonalError }] =
+        await Promise.all([
+          supabase
+            .from("practice_placements")
+            .select(`
+              slot_slug,
+              sort_order,
+              practice:practices (
+                id,
+                title,
+                short_summary,
+                duration,
+                timer_minutes,
+                cover_image,
+                thumbnail_url
+              )
+            `)
+            .eq("placement_group", "today")
+            .eq("is_active", true),
+
+          supabase
+            .from("practice_placements")
+            .select(`
+              slot_slug,
+              sort_order,
+              practice:practices (
+                id,
+                title,
+                short_summary,
+                duration,
+                timer_minutes,
+                cover_image,
+                thumbnail_url
+              )
+            `)
+            .eq("placement_group", "season")
+            .eq("season_key", season)
+            .eq("is_active", true),
+        ])
+
+      if (!isMounted) return
+
+      if (todayError) {
+        console.log("[energy] failed to load today placements:", todayError.message)
+      }
+
+      if (seasonalError) {
+        console.log("[energy] failed to load seasonal placements:", seasonalError.message)
+      }
+
+      const normalizedToday = ((todayData as PlacementRow[] | null) ?? [])
+        .filter((row) => row.practice?.id)
+        .sort((a, b) => {
+          const aOrder = TODAY_SLOT_ORDER[a.slot_slug as TodaySlotSlug] ?? 999
+          const bOrder = TODAY_SLOT_ORDER[b.slot_slug as TodaySlotSlug] ?? 999
+          return aOrder - bOrder
+        })
+
+      const normalizedSeasonal = ((seasonalData as PlacementRow[] | null) ?? [])
+        .filter((row) => row.practice?.id)
+        .sort((a, b) => {
+          const aOrder = SEASONAL_SLOT_ORDER[a.slot_slug as SeasonalSlotSlug] ?? 999
+          const bOrder = SEASONAL_SLOT_ORDER[b.slot_slug as SeasonalSlotSlug] ?? 999
+          return aOrder - bOrder
+        })
+
+      setTodayPlacements(normalizedToday)
+      setSeasonalPlacements(normalizedSeasonal)
+      setLoadingPlacements(false)
+    }
+
+    loadPlacements()
+
+    return () => {
+      isMounted = false
+    }
+  }, [season])
+
+  const backgroundSource =
+    !useLocalPageBackground && backgroundUrl && backgroundUrl.startsWith("http")
+      ? { uri: backgroundUrl }
+      : require("@/assets/images/fern.background.png")
 
   return (
     <View style={styles.root}>
       <ImageBackground
-        source={require("@/assets/images/fern.background.png")}
+        source={backgroundSource}
         style={styles.bg}
         resizeMode="cover"
+        onError={() => {
+          console.log("[energy] background failed, using fallback")
+          setUseLocalPageBackground(true)
+          setBackgroundUrl(null)
+        }}
       >
+        <View style={styles.pageOverlay} />
+
         <ScreenContent>
           <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={[styles.content, { paddingBottom: getTabBarBottomPadding(insets), flexGrow: 1 }]}
+            style={styles.mainScroll}
+            contentContainerStyle={[
+              styles.content,
+              { paddingBottom: getTabBarBottomPadding(insets), flexGrow: 1 },
+            ]}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.headerBlock}>
@@ -150,37 +458,66 @@ export default function EnergyCheckScreen() {
 
             <EnergyCheck userName={userName} />
 
-            <TranslucentCard style={styles.card}>
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                Today
-              </ThemedText>
-              <View style={styles.actionList}>
-                {todayPractices.map((p) => (
-                  <ActionRow
-                    key={p.title}
-                    title={p.title}
-                    subtitle={p.subtitle}
-                    onPress={() => console.log("[energy] today practice clicked:", p.title)}
+            <View style={styles.sectionBlock}>
+              <ThemedText style={styles.sectionTitle}>Today</ThemedText>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalRail}
+                style={styles.railScroll}
+              >
+                {orderedTodayPlacements.length > 0 ? (
+                  orderedTodayPlacements.map((item) => (
+                    <TodayPracticeCard
+                      key={item.slot_slug}
+                      slotSlug={item.slot_slug as TodaySlotSlug}
+                      practice={item.practice}
+                      isActive={item.slot_slug === currentTodaySlot}
+                      onPress={() => {
+                        if (!item.practice?.id) return
+                        router.push(`/practice/${item.practice.id}`)
+                      }}
+                    />
+                  ))
+                ) : (
+                  <TodayPracticeCard
+                    slotSlug={currentTodaySlot}
+                    isActive
+                    onPress={undefined}
                   />
-                ))}
-              </View>
-            </TranslucentCard>
+                )}
+              </ScrollView>
+            </View>
 
-            <TranslucentCard style={styles.card}>
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                {season}
+            <View style={styles.sectionBlock}>
+              <ThemedText style={styles.sectionTitle}>
+                {formatSeasonLabel(season)}
               </ThemedText>
-              <View style={styles.actionList}>
-                <ActionRow
-                  title="Seasonal Practice (Placeholder)"
-                  onPress={() => console.log("[energy] seasonal placeholder 1")}
-                />
-                <ActionRow
-                  title="Seasonal Practice (Placeholder)"
-                  onPress={() => console.log("[energy] seasonal placeholder 2")}
-                />
-              </View>
-            </TranslucentCard>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalRail}
+                style={styles.railScroll}
+              >
+                {seasonalPlacements.length > 0 ? (
+                  seasonalPlacements.map((item) => (
+                    <SeasonalPracticeCard
+                      key={item.slot_slug}
+                      title={item.practice?.title ?? "Untitled Practice"}
+                      practice={item.practice}
+                      onPress={() => {
+                        if (!item.practice?.id) return
+                        router.push(`/practice/${item.practice.id}`)
+                      }}
+                    />
+                  ))
+                ) : (
+                  <SeasonalPracticeCard
+                    title={loadingPlacements ? "Loading..." : "No seasonal practices assigned yet"}
+                  />
+                )}
+              </ScrollView>
+            </View>
           </ScrollView>
         </ScreenContent>
       </ImageBackground>
@@ -192,27 +529,149 @@ export default function EnergyCheckScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   bg: { flex: 1 },
-  content: { gap: 16 },
+
+  pageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(3, 10, 7, 0.22)",
+  },
+
+  mainScroll: {
+    flex: 1,
+  },
+
+  content: {
+    gap: 20,
+  },
+
   headerBlock: {
     alignSelf: "flex-end",
     alignItems: "flex-end",
   },
-  title: { fontSize: 24, fontWeight: "600" },
-  subtitle: { marginTop: 6 },
-  card: { padding: 16 },
-  sectionTitle: { fontSize: 16, marginBottom: 12 },
-  actionList: { gap: 10 },
-  actionRow: {
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.2)",
-    backgroundColor: "rgba(0,0,0,0.2)",
+
+  title: {
+    fontSize: 24,
+    fontWeight: "600",
   },
-  actionRowPressed: {
-    borderColor: "rgba(255,255,255,0.4)",
-    backgroundColor: "rgba(255,255,255,0.1)",
+
+  subtitle: {
+    marginTop: 6,
   },
-  actionRowTitle: { fontSize: 14 },
-  actionRowSubtitle: { fontSize: 12, marginTop: 4 },
+
+  sectionBlock: {
+    gap: 12,
+  },
+
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+    color: "#FFFFFF",
+    marginBottom: 4,
+    paddingHorizontal: 16,
+    textShadowColor: "rgba(0,0,0,0.82)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 14,
+  },
+
+  railScroll: {
+    marginHorizontal: -16,
+    height: RAIL_CARD_HEIGHT + 32,
+  },
+
+  horizontalRail: {
+    flexDirection: "row",
+    paddingLeft: 16,
+    paddingRight: 16 + PEEK_PADDING,
+    paddingVertical: 8,
+    gap: 14,
+    alignItems: "flex-start",
+  },
+
+  cardSlot: {
+    width: RAIL_CARD_WIDTH,
+    height: RAIL_CARD_HEIGHT,
+    flexShrink: 0,
+    flexGrow: 0,
+  },
+
+  shellCardWrap: {
+    width: RAIL_CARD_WIDTH,
+    height: RAIL_CARD_HEIGHT,
+    flexShrink: 0,
+    flexGrow: 0,
+    borderRadius: 24,
+    backgroundColor: "rgba(6, 14, 10, 0.58)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.24)",
+    padding: SHELL_PADDING,
+    shadowColor: "#000000",
+    shadowOpacity: 0.28,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+
+  shellCardWrapActive: {
+    borderColor: "rgba(255,255,255,0.38)",
+    shadowOpacity: 0.36,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+
+  shellCardWrapPressed: {
+    opacity: 0.96,
+  },
+
+  shellCardInner: {
+    width: INNER_WIDTH,
+    height: INNER_HEIGHT,
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: "rgba(0,0,0,0.12)",
+  },
+
+  railCardBg: {
+    width: INNER_WIDTH,
+    height: INNER_HEIGHT,
+    justifyContent: "space-between",
+  },
+
+  railCardImage: {
+    borderRadius: 18,
+  },
+
+  railCardOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.22)",
+  },
+
+  railCardTop: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    alignItems: "flex-start",
+  },
+
+  railCardPeriod: {
+    color: "rgba(255,255,255,0.96)",
+    fontSize: 11,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+    textShadowColor: "rgba(0,0,0,0.55)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+
+  railCardBottom: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+  },
+
+  railCardTitle: {
+    fontSize: 17,
+    lineHeight: 22,
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0,0,0,0.58)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
+  },
 })

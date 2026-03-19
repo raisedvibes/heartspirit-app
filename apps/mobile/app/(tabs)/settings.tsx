@@ -45,7 +45,7 @@ export default function SettingsScreen() {
   // Auth & profile
   const [authUser, setAuthUser] = useState<{ id: string; email?: string } | null>(null)
   const [profileLoading, setProfileLoading] = useState(true)
-  const [profile, setProfile] = useState({ display_name: "", email: "" })
+  const [profile, setProfile] = useState({ display_name: "", full_name: "", email: "" })
   const [editingProfile, setEditingProfile] = useState(false)
   const [editName, setEditName] = useState("")
   const [editEmail, setEditEmail] = useState("")
@@ -65,33 +65,89 @@ export default function SettingsScreen() {
     }
 
     const init = async () => {
-      const { data: auth } = await supabase.auth.getUser()
-      setAuthUser(auth?.user ? { id: auth.user.id, email: auth.user.email } : null)
+      setProfileLoading(true)
+      setNotifPrefsLoading(true)
+      setProfileError(null)
+      setLogoutError(null)
 
-      if (auth?.user) {
+      const { data: auth } = await supabase.auth.getUser()
+      const user = auth?.user ?? null
+
+      setAuthUser(user ? { id: user.id, email: user.email ?? undefined } : null)
+
+      if (user) {
         const { data: prof } = await supabase
           .from("profiles")
-          .select("display_name, email, notif_rituals_enabled, notif_circles_week_before, notif_circles_day_before")
-          .eq("id", auth.user.id)
+          .select("display_name, full_name, email, notif_rituals_enabled, notif_circles_week_before, notif_circles_day_before")
+          .eq("id", user.id)
           .maybeSingle()
+
         if (prof) {
           setProfile({
             display_name: prof.display_name ?? "",
-            email: prof.email ?? auth.user.email ?? "",
+            full_name: prof.full_name ?? "",
+            email: prof.email ?? user.email ?? "",
           })
           setDailyCheckIn(prof.notif_rituals_enabled ?? false)
           setCirclesWeekBefore(prof.notif_circles_week_before ?? false)
           setCirclesDayBefore(prof.notif_circles_day_before ?? false)
+        } else {
+          const metadataDisplayName =
+            (user.user_metadata?.display_name as string | undefined)?.trim() || ""
+          const metadataFullName =
+            (user.user_metadata?.full_name as string | undefined)?.trim() || ""
+          const fallbackDisplayName =
+            metadataDisplayName || (metadataFullName ? metadataFullName.split(/\s+/)[0] : "")
+
+          setProfile({
+            display_name: fallbackDisplayName,
+            full_name: metadataFullName,
+            email: user.email ?? "",
+          })
+          setDailyCheckIn(false)
+          setCirclesWeekBefore(false)
+          setCirclesDayBefore(false)
+
+          const { error: upsertErr } = await supabase.from("profiles").upsert({
+            id: user.id,
+            display_name: fallbackDisplayName || null,
+            full_name: metadataFullName || null,
+            email: user.email ?? null,
+          })
+          if (upsertErr) {
+            console.log("[Settings] profile upsert on init:", upsertErr.message)
+          }
         }
       } else {
+        setProfile({ display_name: "", full_name: "", email: "" })
+        setEditingProfile(false)
+
         const prefs = await loadCircleReminderPrefs()
         setCirclesWeekBefore(prefs.weekBefore)
         setCirclesDayBefore(prefs.dayBefore)
       }
+
       setProfileLoading(false)
       setNotifPrefsLoading(false)
     }
+
     init()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user ?? null
+      setAuthUser(user ? { id: user.id, email: user.email ?? undefined } : null)
+
+      if (!user) {
+        setProfile({ display_name: "", full_name: "", email: "" })
+        setEditingProfile(false)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   const toggleSection = (section: SectionKey) => {
@@ -100,23 +156,54 @@ export default function SettingsScreen() {
 
   const saveProfileToSupabase = async (): Promise<boolean> => {
     const supabase = getSupabaseClient()
+
+    const full_name = editName.trim()
+    const display_name = full_name ? full_name.split(/\s+/)[0] : ""
+    const email = editEmail.trim()
+
+    console.log("SAVE PROFILE INPUT", {
+      full_name,
+      display_name,
+      email,
+      authUserId: authUser?.id,
+    })
+
     if (!supabase || !authUser) {
-      setProfile({ display_name: editName.trim(), email: editEmail.trim() })
+      setProfile({ display_name, full_name, email })
       return true
     }
+
     setProfileError(null)
     setSaveProfileLoading(true)
+
     try {
-      const display_name = editName.trim()
-      const email = editEmail.trim()
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .update({ display_name: display_name || null, email: email || null })
-        .eq("id", authUser.id)
+        .upsert(
+          {
+            id: authUser.id,
+            full_name: full_name || null,
+            display_name: display_name || null,
+            email: email || null,
+          },
+          { onConflict: "id" }
+        )
+        .select("id, display_name, full_name, email")
+        .single()
+
+      console.log("SAVE PROFILE RESPONSE", { data, error })
+
       if (error) throw error
-      setProfile({ display_name, email })
+
+      setProfile({
+        display_name: data.display_name ?? "",
+        full_name: data.full_name ?? "",
+        email: data.email ?? "",
+      })
+
       return true
     } catch (e: unknown) {
+      console.log("SAVE PROFILE ERROR", e)
       setProfileError((e as Error)?.message ?? "Could not save profile")
       return false
     } finally {
@@ -128,6 +215,7 @@ export default function SettingsScreen() {
     setDailyCheckIn(enabled)
     const supabase = getSupabaseClient()
     if (!supabase || !authUser) return
+
     await supabase
       .from("profiles")
       .update({ notif_rituals_enabled: enabled })
@@ -151,10 +239,7 @@ export default function SettingsScreen() {
     iconName: keyof typeof MaterialIcons.glyphMap
     title: string
   }) => (
-    <Pressable
-      onPress={() => toggleSection(section)}
-      style={styles.sectionHeader}
-    >
+    <Pressable onPress={() => toggleSection(section)} style={styles.sectionHeader}>
       <View style={styles.sectionHeaderLeft}>
         <MaterialIcons name={iconName} size={20} color="rgba(255,255,255,0.9)" />
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
@@ -192,12 +277,11 @@ export default function SettingsScreen() {
               </ThemedText>
             </View>
 
-            {/* Profile & Contact */}
             <TranslucentCard style={styles.card}>
               <SectionHeader section="profile" iconName="person" title="Profile & Contact" />
               {openSections.profile && (
                 <View style={styles.sectionBody}>
-                  {profileLoading && !authUser ? (
+                  {profileLoading ? (
                     <ThemedText type="muted" style={styles.profileEmail}>
                       Loading…
                     </ThemedText>
@@ -210,7 +294,7 @@ export default function SettingsScreen() {
                       </View>
                       <Pressable
                         style={styles.editButton}
-                        onPress={() => router.push("/(auth)/login" as never)}
+                        onPress={() => router.push("/login" as never)}
                       >
                         <ThemedText type="defaultSemiBold" style={styles.editButtonText}>
                           Sign in
@@ -221,10 +305,10 @@ export default function SettingsScreen() {
                     <View style={styles.profileRow}>
                       <View style={styles.profileInfo}>
                         <ThemedText type="defaultSemiBold" style={styles.profileName}>
-                          {profileLoading ? "Loading..." : profile.display_name || "Your name"}
+                          {profile.display_name || "Your name"}
                         </ThemedText>
                         <ThemedText type="muted" style={styles.profileEmail}>
-                          {profileLoading ? "" : profile.email || authUser.email || "your@email.com"}
+                          {profile.email || authUser.email || "your@email.com"}
                         </ThemedText>
                       </View>
                       <View style={styles.profileActions}>
@@ -232,7 +316,7 @@ export default function SettingsScreen() {
                           style={styles.editButton}
                           onPress={() => {
                             setProfileError(null)
-                            setEditName(profile.display_name)
+                            setEditName(profile.full_name || profile.display_name)
                             setEditEmail(profile.email)
                             setEditingProfile(true)
                           }}
@@ -242,21 +326,27 @@ export default function SettingsScreen() {
                             Edit
                           </ThemedText>
                         </Pressable>
+
                         <Pressable
                           style={[styles.editButton, styles.signOutButton]}
                           onPress={async () => {
                             setLogoutError(null)
                             const supabase = getSupabaseClient()
+
                             if (!supabase) {
                               setLogoutError("App not configured")
                               return
                             }
+
                             const { error } = await supabase.auth.signOut()
                             if (error) {
                               setLogoutError(error.message)
                               return
                             }
+
                             setAuthUser(null)
+                            setProfile({ display_name: "", full_name: "", email: "" })
+                            setEditingProfile(false)
                           }}
                         >
                           <ThemedText type="defaultSemiBold" style={styles.editButtonText}>
@@ -278,6 +368,7 @@ export default function SettingsScreen() {
                         placeholderTextColor="rgba(255,255,255,0.5)"
                         autoCapitalize="words"
                       />
+
                       <ThemedText type="muted" style={styles.inputLabel}>
                         Email
                       </ThemedText>
@@ -290,14 +381,17 @@ export default function SettingsScreen() {
                         keyboardType="email-address"
                         autoCapitalize="none"
                       />
+
                       <ThemedText type="muted" style={styles.inputHint}>
                         This updates the email we use for support. Sign-in email may require a separate change.
                       </ThemedText>
+
                       {profileError && (
                         <ThemedText style={[styles.inputLabel, { color: "rgba(255,100,100,0.9)" }]}>
                           {profileError}
                         </ThemedText>
                       )}
+
                       <View style={styles.modalButtons}>
                         <Pressable
                           style={styles.cancelButton}
@@ -310,6 +404,7 @@ export default function SettingsScreen() {
                             Cancel
                           </ThemedText>
                         </Pressable>
+
                         <Pressable
                           style={styles.saveButton}
                           onPress={async () => {
@@ -325,24 +420,27 @@ export default function SettingsScreen() {
                       </View>
                     </View>
                   )}
+
                   {profileError && !editingProfile && authUser && (
                     <ThemedText style={[styles.inputLabel, { color: "rgba(255,100,100,0.9)", marginTop: 8 }]}>
                       {profileError}
                     </ThemedText>
                   )}
+
                   {logoutError && authUser && (
                     <ThemedText style={[styles.inputLabel, { color: "rgba(255,100,100,0.9)", marginTop: 8 }]}>
                       {logoutError}
                     </ThemedText>
                   )}
+
                   <ThemedText type="muted" style={styles.footnote}>
-                    We only use your contact info for account access and support. Your ritual history and check-ins stay on your device.
+                    We only use your contact info for account access and support. Your ritual history and
+                    check-ins stay on your device.
                   </ThemedText>
                 </View>
               )}
             </TranslucentCard>
 
-            {/* Notifications */}
             <TranslucentCard style={styles.card}>
               <SectionHeader section="notifications" iconName="notifications" title="Notifications" />
               {openSections.notifications && (
@@ -361,6 +459,7 @@ export default function SettingsScreen() {
                       onValueChange={(v: boolean) => updateNotifRitualsEnabled(v)}
                     />
                   </View>
+
                   {dailyCheckIn && (
                     <View style={styles.timeRow}>
                       <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
@@ -378,6 +477,7 @@ export default function SettingsScreen() {
                       </ThemedText>
                     </View>
                   )}
+
                   <View style={styles.toggleRow}>
                     <View style={styles.toggleLabel}>
                       <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
@@ -389,6 +489,7 @@ export default function SettingsScreen() {
                     </View>
                     <Switch value={weeklyReport} onValueChange={setWeeklyReport} />
                   </View>
+
                   <View style={styles.toggleRow}>
                     <View style={styles.toggleLabel}>
                       <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
@@ -400,6 +501,7 @@ export default function SettingsScreen() {
                     </View>
                     <Switch value={communityCircles} onValueChange={setCommunityCircles} />
                   </View>
+
                   <View style={styles.toggleRow}>
                     <View style={styles.toggleLabel}>
                       <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
@@ -417,6 +519,7 @@ export default function SettingsScreen() {
                       }}
                     />
                   </View>
+
                   <View style={styles.toggleRow}>
                     <View style={styles.toggleLabel}>
                       <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
@@ -430,7 +533,6 @@ export default function SettingsScreen() {
                       value={circlesDayBefore}
                       onValueChange={async (v: boolean) => {
                         setCirclesDayBefore(v)
-                        const { updateCircleReminderPrefs } = await import("@/lib/pushTokenRegistration")
                         await updateCircleReminderPrefs(circlesWeekBefore, v)
                       }}
                     />
@@ -439,7 +541,6 @@ export default function SettingsScreen() {
               )}
             </TranslucentCard>
 
-            {/* Privacy & Data */}
             <TranslucentCard style={styles.card}>
               <SectionHeader section="privacy" iconName="shield" title="Privacy & Data" />
               {openSections.privacy && (
@@ -458,6 +559,7 @@ export default function SettingsScreen() {
                       • Community content (only if you post in Circles)
                     </ThemedText>
                   </View>
+
                   <ThemedText type="defaultSemiBold" style={[styles.toggleTitle, { marginTop: 12 }]}>
                     What we don't keep
                   </ThemedText>
@@ -469,6 +571,7 @@ export default function SettingsScreen() {
                       • We don't sell your personal data
                     </ThemedText>
                   </View>
+
                   <View style={styles.toggleRow}>
                     <View style={styles.toggleLabel}>
                       <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
@@ -480,50 +583,49 @@ export default function SettingsScreen() {
                     </View>
                     <Switch value={saveHistoryOnDevice} onValueChange={setSaveHistoryOnDevice} />
                   </View>
+
                   <Pressable style={styles.linkButton} onPress={handleExportData}>
                     <MaterialIcons name="download" size={18} color="rgba(255,255,255,0.9)" />
                     <ThemedText type="defaultSemiBold" style={styles.linkButtonText}>
                       Export My Data
                     </ThemedText>
                   </Pressable>
+
                   <Pressable style={[styles.linkButton, styles.destructiveLink]} onPress={handleClearHistory}>
                     <MaterialIcons name="delete" size={18} color="rgba(255,150,150,0.95)" />
-                    <ThemedText type="defaultSemiBold" style={[styles.linkButtonText, { color: "rgba(255,150,150,0.95)" }]}>
+                    <ThemedText
+                      type="defaultSemiBold"
+                      style={[styles.linkButtonText, { color: "rgba(255,150,150,0.95)" }]}
+                    >
                       Clear Local History
                     </ThemedText>
                   </Pressable>
+
                   <ThemedText type="muted" style={styles.footnote}>
-                    Clearing local history removes ritual completion and check-ins from this device. This can't be undone.
+                    Clearing local history removes ritual completion and check-ins from this device. This
+                    can't be undone.
                   </ThemedText>
                 </View>
               )}
             </TranslucentCard>
 
-            {/* Support & Legal */}
             <TranslucentCard style={styles.card}>
               <SectionHeader section="support" iconName="help-outline" title="Support & Legal" />
               {openSections.support && (
                 <View style={styles.sectionBody}>
-                  <Pressable
-                    style={styles.linkButton}
-                    onPress={() => router.push("/support" as never)}
-                  >
+                  <Pressable style={styles.linkButton} onPress={() => router.push("/support" as never)}>
                     <ThemedText type="defaultSemiBold" style={styles.linkButtonText}>
                       Help
                     </ThemedText>
                   </Pressable>
-                  <Pressable
-                    style={styles.linkButton}
-                    onPress={() => router.push("/privacy" as never)}
-                  >
+
+                  <Pressable style={styles.linkButton} onPress={() => router.push("/privacy" as never)}>
                     <ThemedText type="defaultSemiBold" style={styles.linkButtonText}>
                       Privacy Policy
                     </ThemedText>
                   </Pressable>
-                  <Pressable
-                    style={styles.linkButton}
-                    onPress={() => router.push("/terms" as never)}
-                  >
+
+                  <Pressable style={styles.linkButton} onPress={() => router.push("/terms" as never)}>
                     <ThemedText type="defaultSemiBold" style={styles.linkButtonText}>
                       Terms of Use
                     </ThemedText>

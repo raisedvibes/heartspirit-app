@@ -24,16 +24,13 @@ import {
 const supabase = createClient()
 
 export default function SettingsPage() {
-  // Notifications
   const [dailyCheckIn, setDailyCheckIn] = useState(true)
   const [weeklyReport, setWeeklyReport] = useState(false)
   const [communityCircles, setCommunityCircles] = useState(false)
   const [checkInTime, setCheckInTime] = useState("09:00")
 
-  // Privacy / local data
   const [saveHistoryOnDevice, setSaveHistoryOnDevice] = useState(true)
 
-  // Profile (Supabase)
   const [profileLoading, setProfileLoading] = useState(true)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [profile, setProfile] = useState<{
@@ -44,7 +41,6 @@ export default function SettingsPage() {
     email: "",
   })
 
-  // Inline edit mode (no modal)
   const [editingProfile, setEditingProfile] = useState(false)
   const [editName, setEditName] = useState("")
   const [editEmail, setEditEmail] = useState("")
@@ -68,11 +64,21 @@ export default function SettingsPage() {
 
         const user = authData?.user
         if (!user) {
-          setProfileLoading(false)
+          setProfile({
+            display_name: "",
+            email: "",
+          })
           return
         }
 
         const fallbackEmail = user.email ?? ""
+        const metadataDisplayName =
+          (user.user_metadata?.display_name as string | undefined)?.trim() || ""
+        const metadataFullName =
+          (user.user_metadata?.full_name as string | undefined)?.trim() || ""
+
+        const fallbackDisplayName =
+          metadataDisplayName || (metadataFullName ? metadataFullName.split(/\s+/)[0] : "")
 
         const { data, error } = await supabase
           .from("profiles")
@@ -83,27 +89,29 @@ export default function SettingsPage() {
         if (error) throw error
 
         if (!data) {
-          // If a legacy account somehow has no profile row, create one.
-          // (Your new DB trigger should prevent this for new signups.)
           const { error: upsertErr } = await supabase.from("profiles").upsert({
             id: user.id,
-            display_name: (user.user_metadata?.display_name as string | undefined)?.trim() || null,
+            display_name: fallbackDisplayName || null,
             email: fallbackEmail || null,
           })
+
           if (upsertErr) throw upsertErr
 
           setProfile({
-            display_name: (user.user_metadata?.display_name as string | undefined)?.trim() || "",
+            display_name: fallbackDisplayName,
             email: fallbackEmail,
           })
         } else {
+          const existingDisplayName = data.display_name?.trim() || ""
+          const finalDisplayName = existingDisplayName || fallbackDisplayName
+
           setProfile({
-            display_name: data.display_name ?? "",
+            display_name: finalDisplayName,
             email: data.email ?? fallbackEmail,
           })
         }
-      } catch (e: any) {
-        setProfileError(e?.message ?? "Could not load profile")
+      } catch (e: unknown) {
+        setProfileError((e as Error)?.message ?? "Could not load profile")
       } finally {
         setProfileLoading(false)
       }
@@ -116,10 +124,7 @@ export default function SettingsPage() {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
   }
 
-  // ✅ Category headers: NO hover (tap/click opens anyway)
   const headerBase = "transition-none"
-
-  // ✅ Support links: subtle LIGHT hover
   const supportHover = "hover:bg-white/10 hover:text-white transition-colors"
 
   const SectionHeader = ({
@@ -131,7 +136,7 @@ export default function SettingsPage() {
     icon: React.ElementType
     title: string
   }) => (
-    <button onClick={() => toggleSection(section)} className="w-full p-2">
+    <button type="button" onClick={() => toggleSection(section)} className="w-full p-2">
       <div className={`flex items-center justify-between rounded-xl px-3 py-3 ${headerBase}`}>
         <div className="flex items-center gap-3">
           <Icon className="w-5 h-5 text-accent" />
@@ -144,7 +149,6 @@ export default function SettingsPage() {
     </button>
   )
 
-  // ✅ This is the part that ensures clicking "Save" writes to Supabase.
   const saveProfileToSupabase = async (): Promise<boolean> => {
     try {
       setProfileError(null)
@@ -159,7 +163,6 @@ export default function SettingsPage() {
 
       const user = authData.user
 
-      // Upsert ensures it saves even if the row didn't exist for some reason.
       const { error } = await supabase
         .from("profiles")
         .upsert({
@@ -172,15 +175,14 @@ export default function SettingsPage() {
 
       setProfile({ display_name, email })
       return true
-    } catch (e: any) {
-      setProfileError(e?.message ?? "Could not save profile")
+    } catch (e: unknown) {
+      setProfileError((e as Error)?.message ?? "Could not save profile")
       return false
     } finally {
       setSaveProfileLoading(false)
     }
   }
 
-  // TODO: wire these to your local storage / IndexedDB layer
   const handleExportData = async () => {
     console.log("Export data (local)")
   }
@@ -199,7 +201,6 @@ export default function SettingsPage() {
 
       <main className="app-main max-w-6xl mx-auto px-4">
         <div className="space-y-4">
-          {/* Header (matches Circles page) */}
           <div className="flex items-center justify-between mb-6 w-full pt-4">
             <Link href="/dashboard" className="shrink-0">
               <Button
@@ -212,12 +213,12 @@ export default function SettingsPage() {
             </Link>
           </div>
 
-          {/* Profile & Contact */}
           <TranslucentCard>
             <SectionHeader section="profile" icon={User} title="Profile & Contact" />
             <div
-              className={`overflow-hidden transition-all duration-300 ${openSections.profile ? "max-h-[820px]" : "max-h-0"
-                }`}
+              className={`overflow-hidden transition-all duration-300 ${
+                openSections.profile ? "max-h-[820px]" : "max-h-0"
+              }`}
             >
               <div className="p-4 pt-0 space-y-3">
                 {!editingProfile ? (
@@ -274,7 +275,8 @@ export default function SettingsPage() {
                         placeholder="you@email.com"
                       />
                       <p className="text-[11px] leading-snug text-muted-foreground">
-                        This updates the email we use for support and contact. Your sign-in email may require a separate change.
+                        This updates the email we use for support and contact. Your sign-in email
+                        may require a separate change.
                       </p>
                     </div>
 
@@ -311,18 +313,19 @@ export default function SettingsPage() {
                 )}
 
                 <p className="text-xs text-muted-foreground px-1">
-                  We only use your contact info for account access and support. Your journal + ritual history stays on your device.
+                  We only use your contact info for account access and support. Your journal +
+                  ritual history stays on your device.
                 </p>
               </div>
             </div>
           </TranslucentCard>
 
-          {/* Notifications */}
           <TranslucentCard>
             <SectionHeader section="notifications" icon={Bell} title="Notifications" />
             <div
-              className={`overflow-hidden transition-all duration-300 ${openSections.notifications ? "max-h-[520px]" : "max-h-0"
-                }`}
+              className={`overflow-hidden transition-all duration-300 ${
+                openSections.notifications ? "max-h-[520px]" : "max-h-0"
+              }`}
             >
               <div className="p-4 pt-0 space-y-4">
                 <div className="flex items-center justify-between">
@@ -347,7 +350,9 @@ export default function SettingsPage() {
                       onChange={(e) => setCheckInTime(e.target.value)}
                       className="w-28 h-8"
                     />
-                    <p className="text-xs text-muted-foreground">Reminders depend on device/browser support.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Reminders depend on device/browser support.
+                    </p>
                   </div>
                 )}
 
@@ -356,7 +361,9 @@ export default function SettingsPage() {
                     <Label htmlFor="weekly-report" className="text-sm font-medium">
                       Weekly Reflection
                     </Label>
-                    <p className="text-xs text-muted-foreground">A gentle weekly recap (generated on your device)</p>
+                    <p className="text-xs text-muted-foreground">
+                      A gentle weekly recap (generated on your device)
+                    </p>
                   </div>
                   <Switch id="weekly-report" checked={weeklyReport} onCheckedChange={setWeeklyReport} />
                 </div>
@@ -378,12 +385,12 @@ export default function SettingsPage() {
             </div>
           </TranslucentCard>
 
-          {/* Privacy & Data */}
           <TranslucentCard>
             <SectionHeader section="privacy" icon={Shield} title="Privacy & Data" />
             <div
-              className={`overflow-hidden transition-all duration-300 ${openSections.privacy ? "max-h-[620px]" : "max-h-0"
-                }`}
+              className={`overflow-hidden transition-all duration-300 ${
+                openSections.privacy ? "max-h-[620px]" : "max-h-0"
+              }`}
             >
               <div className="p-4 pt-0 space-y-4">
                 <div className="space-y-2">
@@ -411,7 +418,11 @@ export default function SettingsPage() {
                       Keeps your journal, check-ins, and ritual history stored locally on your device.
                     </p>
                   </div>
-                  <Switch id="save-history" checked={saveHistoryOnDevice} onCheckedChange={handleToggleSaveHistory} />
+                  <Switch
+                    id="save-history"
+                    checked={saveHistoryOnDevice}
+                    onCheckedChange={handleToggleSaveHistory}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -436,17 +447,21 @@ export default function SettingsPage() {
                   </Button>
 
                   <p className="text-[11px] leading-snug text-muted-foreground px-1">
-                    Clearing local history removes journal entries, ritual completion, and check-ins from this device. This can’t be undone.
+                    Clearing local history removes journal entries, ritual completion, and check-ins
+                    from this device. This can’t be undone.
                   </p>
                 </div>
               </div>
             </div>
           </TranslucentCard>
 
-          {/* Support & Legal */}
           <TranslucentCard>
             <SectionHeader section="support" icon={HelpCircle} title="Support & Legal" />
-            <div className={`overflow-hidden transition-all duration-300 ${openSections.support ? "max-h-96" : "max-h-0"}`}>
+            <div
+              className={`overflow-hidden transition-all duration-300 ${
+                openSections.support ? "max-h-96" : "max-h-0"
+              }`}
+            >
               <div className="p-4 pt-0 space-y-2">
                 <Link href="/support" className="block">
                   <Button variant="ghost" size="sm" className={`w-full justify-start h-9 ${supportHover}`}>
