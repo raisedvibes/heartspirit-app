@@ -15,6 +15,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import { ThemedText } from "@/components/themed-text"
+import { useScreenBackground } from "@/hooks/useScreenBackground"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import { registerPushToken } from "@/lib/pushTokenRegistration"
 import { LOGIN_COPY } from "@/constants/signup"
@@ -28,39 +29,10 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [noticeEmail, setNoticeEmail] = useState("")
-  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let isMounted = true
-
-    async function loadBackground() {
-      const supabase = getSupabaseClient()
-      if (!supabase) return
-
-      const { data, error } = await supabase
-        .from("app_backgrounds")
-        .select("https://dddhogjwllfurcvhjseh.supabase.co/storage/v1/object/public/app-assets/redwoods.trail1.png")
-        .eq("page_key", "(auth)/login")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (!error && data?.image_url && isMounted) {
-        setBackgroundUrl(data.image_url)
-      }
-    }
-
-    loadBackground()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  const backgroundSource = backgroundUrl
-    ? { uri: backgroundUrl }
-    : require("@/assets/images/redwoods.trail1.png")
+  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground(
+    "(auth)/login",
+    require("@/assets/images/redwoods.trail1.png")
+  )
 
   const handleSubmit = async () => {
     const trimmed = email.trim()
@@ -115,7 +87,12 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.root}>
-      <ImageBackground source={backgroundSource} style={styles.bg} resizeMode="cover">
+      <ImageBackground
+        source={backgroundSource}
+        style={styles.bg}
+        resizeMode="cover"
+        onError={onBackgroundError}
+      >
         <View style={styles.overlay} />
 
         <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>

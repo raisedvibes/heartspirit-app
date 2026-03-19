@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from "react"
-import { View, StyleSheet, ImageBackground, ScrollView, Pressable, Linking, Alert } from "react-native"
+import {
+  View,
+  StyleSheet,
+  ImageBackground,
+  ScrollView,
+  Pressable,
+  Linking,
+  Alert,
+} from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useFocusEffect } from "expo-router"
 import { Image } from "expo-image"
@@ -9,7 +17,8 @@ import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/Scree
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
 import { ThemedText } from "@/components/themed-text"
-import { getSupabaseClient } from "../../lib/supabaseClient"
+import { useScreenBackground } from "@/hooks/useScreenBackground"
+import { getSupabaseClient } from "@/lib/supabaseClient"
 
 type CircleRow = {
   id: string
@@ -23,7 +32,6 @@ type CircleRow = {
   payment_url: string | null
 }
 
-/** Format starts_at in local time for display. */
 function formatStartsAt(startsAt: string | null): string {
   if (!startsAt) return ""
   try {
@@ -41,38 +49,50 @@ function formatStartsAt(startsAt: string | null): string {
   }
 }
 
-/** Normalize image_url to a loadable URL. Direct http(s) URLs pass through; storage paths use getPublicUrl. */
 function getCircleImageUrl(imageUrl: string | null, supabase: SupabaseClient | null): string | null {
   const raw = imageUrl?.trim()
   if (!raw) return null
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw
   if (!supabase) return null
-  const bucket = raw.startsWith("public/") ? "public" : raw.startsWith("circles/") ? "circles" : "public"
-  const path = raw.startsWith("public/") ? raw.slice(7) : raw.startsWith("circles/") ? raw.slice(8) : raw
+
+  const bucket = raw.startsWith("public/")
+    ? "public"
+    : raw.startsWith("circles/")
+      ? "circles"
+      : "public"
+
+  const path = raw.startsWith("public/")
+    ? raw.slice(7)
+    : raw.startsWith("circles/")
+      ? raw.slice(8)
+      : raw
+
   const { data } = supabase.storage.from(bucket).getPublicUrl(path)
   return data?.publicUrl ?? null
 }
 
-/** Renders circle image when URL is valid. Hides on load error. */
 function CircleCardImage({
   imageUrl,
   supabase,
-  style,
 }: {
   imageUrl: string | null
   supabase: SupabaseClient | null
-  style?: object
 }) {
   const [errored, setErrored] = useState(false)
   const url = getCircleImageUrl(imageUrl, supabase)
+
   if (!url || errored) return null
+
   return (
-    <Image
-      source={{ uri: url }}
-      style={[styles.circleImage, style]}
-      contentFit="cover"
-      onError={() => setErrored(true)}
-    />
+    <View style={styles.circleImageWrap}>
+      <Image
+        source={{ uri: url }}
+        style={styles.circleImage}
+        contentFit="cover"
+        transition={120}
+        onError={() => setErrored(true)}
+      />
+    </View>
   )
 }
 
@@ -83,7 +103,7 @@ export default function CirclesScreen() {
   const [circles, setCircles] = useState<CircleRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
+  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground("(tabs)/circles")
 
   const fetchCircles = useCallback(async () => {
     if (!supabase) {
@@ -108,6 +128,7 @@ export default function CirclesScreen() {
     } else {
       setCircles((data ?? []) as CircleRow[])
     }
+
     setLoading(false)
   }, [supabase])
 
@@ -116,33 +137,6 @@ export default function CirclesScreen() {
       fetchCircles()
     }, [fetchCircles])
   )
-
-  useEffect(() => {
-    let isMounted = true
-
-    async function loadBackground() {
-      if (!supabase) return
-
-      const { data, error } = await supabase
-        .from("app_backgrounds")
-        .select("https://dddhogjwllfurcvhjseh.supabase.co/storage/v1/object/public/app-assets/fern.background.png")
-        .eq("page_key", "(tabs)/circles")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (!error && data?.image_url && isMounted) {
-        setBackgroundUrl(data.image_url)
-      }
-    }
-
-    loadBackground()
-
-    return () => {
-      isMounted = false
-    }
-  }, [supabase])
 
   useEffect(() => {
     if (!supabase) return
@@ -165,10 +159,6 @@ export default function CirclesScreen() {
 
   const hasCircles = circles.length > 0
 
-  const backgroundSource = backgroundUrl
-    ? { uri: backgroundUrl }
-    : require("@/assets/images/fern.background.png")
-
   const handleJoin = (circle: CircleRow) => {
     const url = circle.payment_url?.trim()
     if (!url) {
@@ -178,6 +168,7 @@ export default function CirclesScreen() {
       )
       return
     }
+
     Linking.openURL(url)
   }
 
@@ -187,11 +178,15 @@ export default function CirclesScreen() {
         source={backgroundSource}
         style={styles.bg}
         resizeMode="cover"
+        onError={onBackgroundError}
       >
         <ScreenContent>
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: getTabBarBottomPadding(insets) }]}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: getTabBarBottomPadding(insets) },
+            ]}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.headerBlock}>
@@ -219,45 +214,50 @@ export default function CirclesScreen() {
             ) : hasCircles ? (
               <View style={styles.grid}>
                 {circles.map((circle) => (
-                  <TranslucentCard key={circle.id} style={styles.circleCard}>
-                    <CircleCardImage
-                      imageUrl={circle.image_url}
-                      supabase={supabase}
-                      style={styles.circleImage}
-                    />
-                    <ThemedText type="defaultSemiBold" style={styles.circleName}>
-                      {circle.name}
-                    </ThemedText>
-                    {(formatStartsAt(circle.starts_at) || circle.frequency) && (
-                      <ThemedText type="muted" style={styles.dateLine}>
-                        {[formatStartsAt(circle.starts_at), circle.frequency].filter(Boolean).join(" • ")}
+                  <View key={circle.id} style={styles.circleCard}>
+                    <CircleCardImage imageUrl={circle.image_url} supabase={supabase} />
+
+                    <View style={styles.circleCardBody}>
+                      <ThemedText type="defaultSemiBold" style={styles.circleName}>
+                        {circle.name}
                       </ThemedText>
-                    )}
-                    {circle.description ? (
-                      <ThemedText type="muted" style={styles.circleDescription}>
-                        {circle.description}
-                      </ThemedText>
-                    ) : null}
-                    {circle.tags && circle.tags.length > 0 && (
-                      <View style={styles.tagsRow}>
-                        {circle.tags.map((tag, i) => (
-                          <View key={i} style={styles.tag}>
-                            <ThemedText type="muted" style={styles.tagText}>
-                              {tag}
-                            </ThemedText>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                    <Pressable
-                      style={styles.reserveButton}
-                      onPress={() => handleJoin(circle)}
-                    >
-                      <ThemedText type="defaultSemiBold" style={styles.reserveButtonText}>
-                        Reserve
-                      </ThemedText>
-                    </Pressable>
-                  </TranslucentCard>
+
+                      {(formatStartsAt(circle.starts_at) || circle.frequency) && (
+                        <ThemedText type="muted" style={styles.dateLine}>
+                          {[formatStartsAt(circle.starts_at), circle.frequency]
+                            .filter(Boolean)
+                            .join(" • ")}
+                        </ThemedText>
+                      )}
+
+                      {circle.description ? (
+                        <ThemedText type="muted" style={styles.circleDescription}>
+                          {circle.description}
+                        </ThemedText>
+                      ) : null}
+
+                      {circle.tags && circle.tags.length > 0 ? (
+                        <View style={styles.tagsRow}>
+                          {circle.tags.map((tag, i) => (
+                            <View key={i} style={styles.tag}>
+                              <ThemedText type="muted" style={styles.tagText}>
+                                {tag}
+                              </ThemedText>
+                            </View>
+                          ))}
+                        </View>
+                      ) : null}
+
+                      <Pressable
+                        style={styles.reserveButton}
+                        onPress={() => handleJoin(circle)}
+                      >
+                        <ThemedText type="defaultSemiBold" style={styles.reserveButtonText}>
+                          Reserve
+                        </ThemedText>
+                      </Pressable>
+                    </View>
+                  </View>
                 ))}
               </View>
             ) : (
@@ -276,6 +276,7 @@ export default function CirclesScreen() {
           </ScrollView>
         </ScreenContent>
       </ImageBackground>
+
       <BottomFade />
     </View>
   )
@@ -284,43 +285,104 @@ export default function CirclesScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   bg: { flex: 1 },
-  scrollContent: { gap: 16, paddingTop: 8 },
+
+  scrollContent: {
+    gap: 16,
+    paddingTop: 8,
+  },
+
   headerBlock: {
     alignSelf: "flex-end",
     alignItems: "flex-end",
   },
-  title: { fontSize: 24, fontWeight: "600" },
-  subtitle: { marginTop: 6 },
-  statusText: { fontSize: 14, marginTop: 16 },
-  errorBlock: { marginTop: 16 },
-  errorTitle: { fontSize: 14 },
-  errorBody: { fontSize: 14, marginTop: 4 },
-  grid: { marginTop: 16, gap: 16 },
+
+  title: {
+    fontSize: 24,
+    fontWeight: "600",
+  },
+
+  subtitle: {
+    marginTop: 6,
+  },
+
+  statusText: {
+    fontSize: 14,
+    marginTop: 16,
+  },
+
+  errorBlock: {
+    marginTop: 16,
+  },
+
+  errorTitle: {
+    fontSize: 14,
+  },
+
+  errorBody: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+
+  grid: {
+    marginTop: 16,
+    gap: 16,
+  },
+
   circleCard: {
-    padding: 16,
+    borderRadius: 22,
+    overflow: "hidden",
+    backgroundColor: "rgba(18, 24, 20, 0.52)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+    shadowColor: "#000",
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+    backdropFilter: "blur(12px)",
   },
-  circleImage: {
-    height: 140,
+
+  circleImageWrap: {
     width: "100%",
-    marginHorizontal: -16,
-    marginTop: -16,
-    marginBottom: 12,
-    borderRadius: 12,
+    height: 148,
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
-  circleName: { fontSize: 18, marginBottom: 8 },
-  dateLine: { fontSize: 12, marginBottom: 6 },
+
+  circleImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  circleCardBody: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
+  },
+
+  circleName: {
+    fontSize: 18,
+    marginBottom: 8,
+  },
+
+  dateLine: {
+    fontSize: 12,
+    marginBottom: 6,
+  },
+
   circleDescription: {
     marginTop: 6,
     fontSize: 14,
     lineHeight: 20,
     flexShrink: 1,
   },
+
   tagsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
     marginTop: 12,
   },
+
   tag: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -329,7 +391,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
   },
-  tagText: { fontSize: 12 },
+
+  tagText: {
+    fontSize: 12,
+  },
+
   reserveButton: {
     alignSelf: "flex-end",
     marginTop: 12,
@@ -340,12 +406,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
   },
-  reserveButtonText: { fontSize: 14 },
+
+  reserveButtonText: {
+    fontSize: 14,
+  },
+
   emptyState: {
     alignItems: "center",
     paddingVertical: 48,
     marginTop: 16,
   },
+
   emptyIcon: {
     width: 64,
     height: 64,
@@ -357,6 +428,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 16,
   },
-  emptyTitle: { fontSize: 18, marginBottom: 8 },
-  emptyBody: { fontSize: 14 },
+
+  emptyTitle: {
+    fontSize: 18,
+    marginBottom: 8,
+  },
+
+  emptyBody: {
+    fontSize: 14,
+  },
 })

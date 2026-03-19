@@ -13,6 +13,7 @@ import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/Scree
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import { ThemedText } from "@/components/themed-text"
 import BottomFade from "@/components/ui/BottomFade"
+import { useScreenBackground } from "@/hooks/useScreenBackground"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 
 type SeasonKey = "spring" | "summer" | "autumn" | "winter"
@@ -261,11 +262,10 @@ function SeasonalPracticeCard({
 export default function EnergyCheckScreen() {
   const insets = useSafeAreaInsets()
   const [userName] = useState<string | undefined>(undefined)
-  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
+  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground("(tabs)/energy")
   const [todayPlacements, setTodayPlacements] = useState<PlacementRow[]>([])
   const [seasonalPlacements, setSeasonalPlacements] = useState<PlacementRow[]>([])
   const [loadingPlacements, setLoadingPlacements] = useState(true)
-  const [useLocalPageBackground, setUseLocalPageBackground] = useState(false)
 
   const season = useMemo(() => {
     const now = new Date()
@@ -289,45 +289,6 @@ export default function EnergyCheckScreen() {
       .map((slot) => placementMap.get(slot))
       .filter(Boolean) as PlacementRow[]
   }, [todayPlacements, orderedTodaySlots])
-
-  useEffect(() => {
-    let isMounted = true
-
-    async function loadBackground() {
-      const supabase = getSupabaseClient()
-      if (!supabase) return
-
-      const { data, error } = await supabase
-        .from("app_backgrounds")
-        .select("image_url")
-        .eq("page_key", "(tabs)/energy")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      console.log("[energy] background row:", data)
-      console.log("[energy] background error:", error)
-
-      const url = data?.image_url?.trim()
-      const isUsableUrl =
-        !!url &&
-        url.startsWith("http") &&
-        !url.includes("your-image-url.com")
-
-      if (!error && isUsableUrl && isMounted) {
-        setBackgroundUrl(url)
-      } else if (isMounted) {
-        setBackgroundUrl(null)
-      }
-    }
-
-    loadBackground()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -419,22 +380,13 @@ export default function EnergyCheckScreen() {
     }
   }, [season])
 
-  const backgroundSource =
-    !useLocalPageBackground && backgroundUrl && backgroundUrl.startsWith("http")
-      ? { uri: backgroundUrl }
-      : require("@/assets/images/fern.background.png")
-
   return (
     <View style={styles.root}>
       <ImageBackground
         source={backgroundSource}
         style={styles.bg}
         resizeMode="cover"
-        onError={() => {
-          console.log("[energy] background failed, using fallback")
-          setUseLocalPageBackground(true)
-          setBackgroundUrl(null)
-        }}
+        onError={onBackgroundError}
       >
         <View style={styles.pageOverlay} />
 

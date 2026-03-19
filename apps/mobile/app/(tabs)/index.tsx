@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react"
 import { View, StyleSheet, ImageBackground, ScrollView } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/ScreenContent"
@@ -6,50 +5,19 @@ import { CirclesWidget } from "@/components/dashboard/Circles"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import { RitualsWidget } from "@/components/dashboard/RitualsWidget"
 import BottomFade from "@/components/ui/BottomFade"
-import { getSupabaseClient } from "@/lib/supabaseClient"
+import { useScreenBackground } from "@/hooks/useScreenBackground"
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets()
-  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let isMounted = true
-
-    async function loadBackground() {
-      const supabase = getSupabaseClient()
-      if (!supabase) return
-
-      const { data, error } = await supabase
-        .from("app_backgrounds")
-        .select("image_url")
-        .eq("page_key", "(tabs)/index")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true })
-        .limit(1)
-        .maybeSingle()
-
-      if (!error && data?.image_url && isMounted) {
-        setBackgroundUrl(data.image_url)
-      }
-    }
-
-    loadBackground()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  const backgroundSource = backgroundUrl
-    ? { uri: backgroundUrl }
-    : require("@/assets/images/fern.background.png")
+  const { source, onError } = useScreenBackground("(tabs)/index")
 
   return (
     <View style={styles.root}>
       <ImageBackground
-        source={backgroundSource}
+        source={source}
         style={styles.bg}
         resizeMode="cover"
+        onError={onError}
       >
         <ScreenContent>
           <ScrollView

@@ -15,6 +15,7 @@ import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/Scree
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
 import { ThemedText } from "@/components/themed-text"
+import { useScreenBackground } from "@/hooks/useScreenBackground"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import {
   loadCircleReminderPrefs,
@@ -25,6 +26,7 @@ type SectionKey = "profile" | "notifications" | "privacy" | "support"
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
+  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground("(tabs)/settings")
 
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     profile: false,
@@ -258,9 +260,10 @@ export default function SettingsScreen() {
   return (
     <View style={styles.root}>
       <ImageBackground
-        source={require("@/assets/images/fern.background.png")}
+        source={backgroundSource}
         style={styles.bg}
         resizeMode="cover"
+        onError={onBackgroundError}
       >
         <ScreenContent>
           <ScrollView
