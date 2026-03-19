@@ -30,7 +30,7 @@ import {
   ensureNotifPermissions,
   scheduleDailyReminder,
 } from "../../lib/ritualNotifications"
-import { getSupabaseClient } from "@/lib/supabaseClient"
+import { useScreenBackground } from "@/hooks/useScreenBackground"
 
 function startOfWeekMonday(d: Date): Date {
   const out = new Date(d)
@@ -72,35 +72,7 @@ export default function RitualsScreen() {
 
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => new Date())
   const [selectedDayISO, setSelectedDayISO] = useState<string>(() => todayISO())
-  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let isMounted = true
-
-    async function loadBackground() {
-      const supabase = getSupabaseClient()
-      if (!supabase) return
-
-      const { data, error } = await supabase
-        .from("app_backgrounds")
-        .select("https://dddhogjwllfurcvhjseh.supabase.co/storage/v1/object/public/app-assets/fern.background.png")
-        .eq("page_key", "(tabs)/rituals")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (!error && data?.image_url && isMounted) {
-        setBackgroundUrl(data.image_url)
-      }
-    }
-
-    loadBackground()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
+  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground("(tabs)/rituals")
 
   useFocusEffect(
     useCallback(() => {
@@ -231,16 +203,13 @@ export default function RitualsScreen() {
     setShowAdd(false)
   }
 
-  const backgroundSource = backgroundUrl
-    ? { uri: backgroundUrl }
-    : require("@/assets/images/fern.background.png")
-
   return (
     <View style={styles.root}>
       <ImageBackground
         source={backgroundSource}
         style={styles.bg}
         resizeMode="cover"
+        onError={onBackgroundError}
       >
         <ScreenContent>
           <View style={styles.inner}>

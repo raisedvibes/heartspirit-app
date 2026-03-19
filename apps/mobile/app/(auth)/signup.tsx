@@ -17,6 +17,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import { ThemedText } from "@/components/themed-text"
+import { useScreenBackground } from "@/hooks/useScreenBackground"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import { SIGNUP_COPY, TERMS_URL, PRIVACY_URL } from "@/constants/signup"
 
@@ -46,41 +47,12 @@ export default function SignupScreen() {
 
   const [emailSent, setEmailSent] = useState(false)
   const [signupEmail, setSignupEmail] = useState("")
-  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
+  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground(
+    "(auth)/signup",
+    require("@/assets/images/redwoods.trail1.png")
+  )
 
   const strength = passwordStrength(password)
-
-  useEffect(() => {
-    let isMounted = true
-
-    async function loadBackground() {
-      const supabase = getSupabaseClient()
-      if (!supabase) return
-
-      const { data, error } = await supabase
-        .from("app_backgrounds")
-        .select("image_url")
-        .eq("page_key", "(auth)/signup")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (!error && data?.image_url && isMounted) {
-        setBackgroundUrl(data.image_url)
-      }
-    }
-
-    loadBackground()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  const backgroundSource = backgroundUrl
-    ? { uri: backgroundUrl }
-    : require("@/assets/images/redwoods.trail1.png")
 
   const handleSubmit = async () => {
     const trimmedEmail = email.trim()
@@ -138,7 +110,12 @@ export default function SignupScreen() {
 
   return (
     <View style={styles.root}>
-      <ImageBackground source={backgroundSource} style={styles.bg} resizeMode="cover">
+      <ImageBackground
+        source={backgroundSource}
+        style={styles.bg}
+        resizeMode="cover"
+        onError={onBackgroundError}
+      >
         <View style={styles.overlay} />
 
         <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
