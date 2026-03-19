@@ -1,5 +1,4 @@
-import { useCallback, useState } from "react"
-import { useFocusEffect } from "expo-router"
+import { useEffect, useState } from "react"
 import { View, StyleSheet, ImageBackground, ScrollView } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/ScreenContent"
@@ -7,58 +6,48 @@ import { CirclesWidget } from "@/components/dashboard/Circles"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import { RitualsWidget } from "@/components/dashboard/RitualsWidget"
 import BottomFade from "@/components/ui/BottomFade"
-import { useAuth } from "@/lib/auth"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets()
-  const { user } = useAuth()
-  const [userName, setUserName] = useState<string | undefined>(undefined)
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
 
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false
+  useEffect(() => {
+    let isMounted = true
 
-      async function loadProfileName() {
-        if (!user?.id) {
-          setUserName(undefined)
-          return
-        }
+    async function loadBackground() {
+      const supabase = getSupabaseClient()
+      if (!supabase) return
 
-        const supabase = getSupabaseClient()
-        if (!supabase) {
-          setUserName(undefined)
-          return
-        }
+      const { data, error } = await supabase
+        .from("app_backgrounds")
+        .select("image_url")
+        .eq("page_key", "(tabs)/index")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .limit(1)
+        .maybeSingle()
 
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("id", user.id)
-          .single()
-
-        if (!cancelled) {
-          if (error) {
-            console.log("[dashboard] failed loading display_name", error.message)
-            setUserName(undefined)
-          } else {
-            setUserName(data?.display_name ?? undefined)
-          }
-        }
+      if (!error && data?.image_url && isMounted) {
+        setBackgroundUrl(data.image_url)
       }
+    }
 
-      loadProfileName()
+    loadBackground()
 
-      return () => {
-        cancelled = true
-      }
-    }, [user?.id])
-  )
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const backgroundSource = backgroundUrl
+    ? { uri: backgroundUrl }
+    : require("@/assets/images/fern.background.png")
 
   return (
     <View style={styles.root}>
       <ImageBackground
-        source={require("@/assets/images/fern.background.png")}
+        source={backgroundSource}
         style={styles.bg}
         resizeMode="cover"
       >
@@ -71,7 +60,7 @@ export default function HomeScreen() {
             ]}
             showsVerticalScrollIndicator={false}
           >
-            <EnergyCheck userName={userName} />
+            <EnergyCheck userName={undefined} />
 
             <RitualsWidget />
 

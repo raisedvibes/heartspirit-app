@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { router } from "expo-router"
 import {
   View,
@@ -10,13 +10,14 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
-import ScreenContent from "@/components/layout/ScreenContent"
+
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import { ThemedText } from "@/components/themed-text"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import { registerPushToken } from "@/lib/pushTokenRegistration"
+import { LOGIN_COPY } from "@/constants/signup"
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets()
@@ -27,6 +28,39 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [noticeEmail, setNoticeEmail] = useState("")
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadBackground() {
+      const supabase = getSupabaseClient()
+      if (!supabase) return
+
+      const { data, error } = await supabase
+        .from("app_backgrounds")
+        .select("https://dddhogjwllfurcvhjseh.supabase.co/storage/v1/object/public/app-assets/redwoods.trail1.png")
+        .eq("page_key", "(auth)/login")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!error && data?.image_url && isMounted) {
+        setBackgroundUrl(data.image_url)
+      }
+    }
+
+    loadBackground()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const backgroundSource = backgroundUrl
+    ? { uri: backgroundUrl }
+    : require("@/assets/images/redwoods.trail1.png")
 
   const handleSubmit = async () => {
     const trimmed = email.trim()
@@ -61,7 +95,7 @@ export default function LoginScreen() {
           msg.includes("verification"))
       ) {
         setNoticeEmail(trimmed)
-        setNotice("Your portal isn't activated yet. Confirm your email, then sign in.")
+        setNotice(LOGIN_COPY.unconfirmedNotice)
         return
       }
       setError(err.message)
@@ -71,7 +105,7 @@ export default function LoginScreen() {
     if (data?.user && !data.user.email_confirmed_at) {
       await supabase.auth.signOut()
       setNoticeEmail(trimmed)
-      setNotice("Your portal isn't activated yet. Confirm your email, then sign in.")
+      setNotice(LOGIN_COPY.unconfirmedNotice)
       return
     }
 
@@ -81,12 +115,10 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.root}>
-      <ImageBackground
-        source={require("@/assets/images/fern.background.png")}
-        style={styles.bg}
-        resizeMode="cover"
-      >
-        <ScreenContent noTabPadding>
+      <ImageBackground source={backgroundSource} style={styles.bg} resizeMode="cover">
+        <View style={styles.overlay} />
+
+        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
           <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -94,28 +126,25 @@ export default function LoginScreen() {
           >
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+              contentContainerStyle={[
+                styles.scrollContent,
+                {
+                  paddingTop: 6,
+                  paddingBottom: Math.max(insets.bottom + 40, 56),
+                },
+              ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              <Pressable onPress={() => router.back()} style={[styles.backButton, { marginTop: insets.top + 8 }]}>
-                <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.9)" />
-                <ThemedText type="defaultSemiBold" style={styles.backText}>
-                  Back
-                </ThemedText>
-              </Pressable>
-
               <View style={styles.headerBlock}>
-                <ThemedText type="title" style={styles.headerTitle}>
-                  Enter Your Portal
-                </ThemedText>
-                <ThemedText type="muted" style={styles.headerSubtitle}>
-                  Sync notification preferences and receive circle reminders
+                <ThemedText style={styles.pageTitle}>Enter Your Portal</ThemedText>
+                <ThemedText type="muted" style={styles.pageSubhead}>
+                  Rituals • Energy • Circles
                 </ThemedText>
               </View>
 
-              <TranslucentCard style={styles.card}>
-                {notice && (
+              <TranslucentCard tone="dark" opacity={1.18} style={styles.card}>
+                {notice ? (
                   <View style={styles.notice}>
                     <ThemedText type="default" style={styles.noticeText}>
                       {notice}
@@ -126,10 +155,10 @@ export default function LoginScreen() {
                       </ThemedText>
                     ) : null}
                     <ThemedText type="muted" style={styles.noticeHint}>
-                      If you don't see the message, check spam/promotions.
+                      {LOGIN_COPY.spamHint}
                     </ThemedText>
                   </View>
-                )}
+                ) : null}
 
                 <ThemedText type="muted" style={styles.label}>
                   Email
@@ -139,7 +168,7 @@ export default function LoginScreen() {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="Enter your email"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor="rgba(255,255,255,0.48)"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -155,7 +184,7 @@ export default function LoginScreen() {
                     value={password}
                     onChangeText={setPassword}
                     placeholder="Enter your password"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor="rgba(255,255,255,0.48)"
                     secureTextEntry={!showPassword}
                     editable={!loading}
                   />
@@ -167,14 +196,12 @@ export default function LoginScreen() {
                     <MaterialIcons
                       name={showPassword ? "visibility-off" : "visibility"}
                       size={22}
-                      color="rgba(255,255,255,0.6)"
+                      color="rgba(255,255,255,0.72)"
                     />
                   </Pressable>
                 </View>
 
-                {error && (
-                  <ThemedText style={[styles.label, { color: "rgba(255,120,120,0.95)" }]}>{error}</ThemedText>
-                )}
+                {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
 
                 <Pressable
                   style={[styles.submitButton, loading && styles.submitButtonDisabled]}
@@ -182,24 +209,26 @@ export default function LoginScreen() {
                   disabled={loading}
                 >
                   <ThemedText type="defaultSemiBold" style={styles.submitText}>
-                    {loading ? "Signing in…" : "Sign In"}
+                    {loading ? "Signing In..." : "Sign In"}
                   </ThemedText>
                 </Pressable>
 
-                <View style={styles.signupLink}>
+                <Pressable
+                  style={styles.signupLink}
+                  onPress={() => router.push("/(auth)/signup")}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
                   <ThemedText type="muted" style={styles.signupLinkText}>
-                    Don't have an account?{" "}
+                    Don&apos;t have an account?
                   </ThemedText>
-                  <Pressable onPress={() => router.replace("/(auth)/signup")}>
-                    <ThemedText type="defaultSemiBold" style={styles.signupLinkButton}>
-                      Create account
-                    </ThemedText>
-                  </Pressable>
-                </View>
+                  <ThemedText type="defaultSemiBold" style={styles.signupLinkButton}>
+                    Create account
+                  </ThemedText>
+                </Pressable>
               </TranslucentCard>
             </ScrollView>
           </KeyboardAvoidingView>
-        </ScreenContent>
+        </SafeAreaView>
       </ImageBackground>
     </View>
   )
@@ -207,41 +236,117 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+
   bg: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 12 },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 24,
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.16)",
   },
-  backText: { color: "rgba(255,255,255,0.9)", fontSize: 16 },
-  headerBlock: { marginBottom: 24 },
-  headerTitle: { fontSize: 24 },
-  headerSubtitle: { marginTop: 8 },
-  card: { padding: 20 },
+
+  safe: { flex: 1 },
+
+  scrollContent: {
+    paddingHorizontal: 20,
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+
+  headerBlock: {
+    marginTop: 24,
+    marginBottom: 32,
+    alignItems: "center",
+  },
+
+  pageTitle: {
+    fontSize: 32,
+    lineHeight: 38,
+    color: "#ffffff",
+    textAlign: "center",
+    letterSpacing: 0.4,
+    textShadowColor: "rgba(0,0,0,0.9)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 12,
+  },
+
+  pageSubhead: {
+    marginTop: 6,
+    fontSize: 16,
+    lineHeight: 22,
+    textAlign: "center",
+    color: "rgba(255,255,255,0.88)",
+    letterSpacing: 0.3,
+    textShadowColor: "rgba(0,0,0,0.9)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 12,
+  },
+
+  card: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 18,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
+
   notice: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: "rgba(255,255,255,0.18)",
     gap: 8,
   },
-  noticeText: { color: "rgba(255,255,255,0.9)", fontSize: 14 },
-  noticeEmail: { fontSize: 12, color: "rgba(255,255,255,0.6)" },
-  noticeHint: { fontSize: 12, color: "rgba(255,255,255,0.6)" },
-  passwordRow: { position: "relative" },
-  inputWithToggle: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 10,
+
+  noticeText: {
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 14,
+  },
+
+  noticeEmail: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.68)",
+  },
+
+  noticeHint: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.68)",
+  },
+
+  label: {
+    fontSize: 15,
+    marginBottom: 7,
+    marginTop: 10,
+  },
+
+  input: {
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    paddingRight: 44,
-    fontSize: 16,
+    fontSize: 17,
     color: "white",
   },
+
+  passwordRow: {
+    position: "relative",
+  },
+
+  inputWithToggle: {
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingRight: 46,
+    fontSize: 17,
+    color: "white",
+  },
+
   toggleButton: {
     position: "absolute",
     right: 12,
@@ -249,31 +354,46 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
   },
-  label: { fontSize: 12, marginBottom: 6, marginTop: 12 },
-  input: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    color: "white",
+
+  errorText: {
+    color: "rgba(255,120,120,0.96)",
+    fontSize: 12,
+    marginTop: 10,
   },
+
   submitButton: {
-    marginTop: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
+    marginTop: 18,
+    paddingVertical: 16,
+    borderRadius: 14,
     backgroundColor: "rgba(120, 170, 140, 0.65)",
     alignItems: "center",
   },
-  submitButtonDisabled: { opacity: 0.6 },
-  submitText: { color: "white", fontSize: 16 },
+
+  submitButtonDisabled: {
+    opacity: 0.55,
+  },
+
+  submitText: {
+    color: "white",
+    fontSize: 16,
+  },
+
   signupLink: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: 14,
     gap: 4,
+    flexWrap: "wrap",
   },
-  signupLinkText: { fontSize: 14, color: "rgba(255,255,255,0.7)" },
-  signupLinkButton: { fontSize: 14, color: "rgba(255,255,255,0.9)" },
+
+  signupLinkText: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.72)",
+  },
+
+  signupLinkButton: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.95)",
+  },
 })
