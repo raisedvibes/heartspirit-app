@@ -7,13 +7,14 @@ import {
   Pressable,
   Dimensions,
 } from "react-native"
+import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { router } from "expo-router"
 import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/ScreenContent"
+import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import { ThemedText } from "@/components/themed-text"
 import BottomFade from "@/components/ui/BottomFade"
-import { useScreenBackground } from "@/hooks/useScreenBackground"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 
 type SeasonKey = "spring" | "summer" | "autumn" | "winter"
@@ -49,7 +50,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window")
 
 // Calm-style featured tiles: wider, landscape-featured (one dominant card visible, next peeking)
 const RAIL_CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.84, 332)
-const RAIL_CARD_HEIGHT = Math.round(RAIL_CARD_WIDTH * 0.60)
+const RAIL_CARD_HEIGHT = Math.round(RAIL_CARD_WIDTH * 0.72)
 
 const SHELL_PADDING = 10
 const INNER_WIDTH = RAIL_CARD_WIDTH - SHELL_PADDING * 2
@@ -150,6 +151,21 @@ function getImageSource(practice?: PracticeSummary | null) {
   return require("@/assets/images/fern.background.png")
 }
 
+function RailCardFooterTitle({ title }: { title: string }) {
+  return (
+    <View style={styles.railCardBottom}>
+      <ThemedText
+        type="defaultSemiBold"
+        style={styles.railCardTitle}
+        numberOfLines={2}
+        ellipsizeMode="tail"
+      >
+        {title}
+      </ThemedText>
+    </View>
+  )
+}
+
 function TodayPracticeCard({
   slotSlug,
   practice,
@@ -181,7 +197,7 @@ function TodayPracticeCard({
         <View style={styles.shellCardInner}>
           <ImageBackground
             source={source}
-            style={styles.railCardBg}
+            style={[styles.railCardBg, styles.railCardBgBottomAligned]}
             imageStyle={styles.railCardImage}
             resizeMode="cover"
             onError={() => {
@@ -197,11 +213,7 @@ function TodayPracticeCard({
               </ThemedText>
             </View>
 
-            <View style={styles.railCardBottom}>
-              <ThemedText type="defaultSemiBold" style={styles.railCardTitle}>
-                {TODAY_SLOT_LABELS[slotSlug]}
-              </ThemedText>
-            </View>
+            <RailCardFooterTitle title={TODAY_SLOT_LABELS[slotSlug]} />
           </ImageBackground>
         </View>
       </Pressable>
@@ -237,7 +249,7 @@ function SeasonalPracticeCard({
         <View style={styles.shellCardInner}>
           <ImageBackground
             source={source}
-            style={styles.railCardBg}
+            style={[styles.railCardBg, styles.railCardBgBottomAligned]}
             imageStyle={styles.railCardImage}
             resizeMode="cover"
             onError={() => {
@@ -247,11 +259,7 @@ function SeasonalPracticeCard({
           >
             <View style={styles.railCardOverlay} />
 
-            <View style={styles.railCardBottom}>
-              <ThemedText type="defaultSemiBold" style={styles.railCardTitle}>
-                {title}
-              </ThemedText>
-            </View>
+            <RailCardFooterTitle title={title} />
           </ImageBackground>
         </View>
       </Pressable>
@@ -261,8 +269,8 @@ function SeasonalPracticeCard({
 
 export default function EnergyCheckScreen() {
   const insets = useSafeAreaInsets()
+  const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("energy")
   const [userName] = useState<string | undefined>(undefined)
-  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground("(tabs)/energy")
   const [todayPlacements, setTodayPlacements] = useState<PlacementRow[]>([])
   const [seasonalPlacements, setSeasonalPlacements] = useState<PlacementRow[]>([])
   const [loadingPlacements, setLoadingPlacements] = useState(true)
@@ -382,97 +390,90 @@ export default function EnergyCheckScreen() {
 
   return (
     <View style={styles.root}>
-      <ImageBackground
-        source={backgroundSource}
-        style={styles.bg}
-        resizeMode="cover"
-        onError={onBackgroundError}
-      >
-        <View style={styles.pageOverlay} />
+      <ScreenContent animatedOuterStyle={animatedScreenOuterStyle}>
+        <Animated.ScrollView
+          style={styles.mainScroll}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: getTabBarBottomPadding(insets), flexGrow: 1 },
+          ]}
+          showsVerticalScrollIndicator={false}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
+        >
+          <View style={styles.headerBlock}>
+            <ThemedText type="title" style={styles.title}>
+              Energy
+            </ThemedText>
+            <ThemedText type="muted" style={styles.subtitle}>
+              check in with yourself
+            </ThemedText>
+          </View>
 
-        <ScreenContent>
-          <ScrollView
-            style={styles.mainScroll}
-            contentContainerStyle={[
-              styles.content,
-              { paddingBottom: getTabBarBottomPadding(insets), flexGrow: 1 },
-            ]}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.headerBlock}>
-              <ThemedText type="title" style={styles.title}>
-                Energy
-              </ThemedText>
-              <ThemedText type="muted" style={styles.subtitle}>
-                check in with yourself
-              </ThemedText>
-            </View>
+          <EnergyCheck userName={userName} />
 
-            <EnergyCheck userName={userName} />
-
-            <View style={styles.sectionBlock}>
-              <ThemedText style={styles.sectionTitle}>Today</ThemedText>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalRail}
-                style={styles.railScroll}
-              >
-                {orderedTodayPlacements.length > 0 ? (
-                  orderedTodayPlacements.map((item) => (
-                    <TodayPracticeCard
-                      key={item.slot_slug}
-                      slotSlug={item.slot_slug as TodaySlotSlug}
-                      practice={item.practice}
-                      isActive={item.slot_slug === currentTodaySlot}
-                      onPress={() => {
-                        if (!item.practice?.id) return
-                        router.push(`/practice/${item.practice.id}`)
-                      }}
-                    />
-                  ))
-                ) : (
+          <View style={styles.sectionBlock}>
+            <ThemedText style={styles.sectionTitle}>Today</ThemedText>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalRail}
+              style={styles.railScroll}
+            >
+              {orderedTodayPlacements.length > 0 ? (
+                orderedTodayPlacements.map((item) => (
                   <TodayPracticeCard
-                    slotSlug={currentTodaySlot}
-                    isActive
-                    onPress={undefined}
+                    key={item.slot_slug}
+                    slotSlug={item.slot_slug as TodaySlotSlug}
+                    practice={item.practice}
+                    isActive={item.slot_slug === currentTodaySlot}
+                    onPress={() => {
+                      if (!item.practice?.id) return
+                      router.push(`/practice/${item.practice.id}`)
+                    }}
                   />
-                )}
-              </ScrollView>
-            </View>
+                ))
+              ) : (
+                <TodayPracticeCard
+                  slotSlug={currentTodaySlot}
+                  isActive
+                  onPress={undefined}
+                />
+              )}
+            </ScrollView>
+          </View>
 
-            <View style={styles.sectionBlock}>
-              <ThemedText style={styles.sectionTitle}>
-                {formatSeasonLabel(season)}
-              </ThemedText>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalRail}
-                style={styles.railScroll}
-              >
-                {seasonalPlacements.length > 0 ? (
-                  seasonalPlacements.map((item) => (
-                    <SeasonalPracticeCard
-                      key={item.slot_slug}
-                      title={item.practice?.title ?? "Untitled Practice"}
-                      practice={item.practice}
-                      onPress={() => {
-                        if (!item.practice?.id) return
-                        router.push(`/practice/${item.practice.id}`)
-                      }}
-                    />
-                  ))
-                ) : (
+          <View style={styles.sectionBlock}>
+            <ThemedText style={styles.sectionTitle}>
+              {formatSeasonLabel(season)}
+            </ThemedText>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalRail}
+              style={styles.railScroll}
+            >
+              {seasonalPlacements.length > 0 ? (
+                seasonalPlacements.map((item) => (
                   <SeasonalPracticeCard
-                    title={loadingPlacements ? "Loading..." : "No seasonal practices assigned yet"}
+                    key={item.slot_slug}
+                    title={item.practice?.title ?? "Untitled Practice"}
+                    practice={item.practice}
+                    onPress={() => {
+                      if (!item.practice?.id) return
+                      router.push(`/practice/${item.practice.id}`)
+                    }}
                   />
-                )}
-              </ScrollView>
-            </View>
-          </ScrollView>
-        </ScreenContent>
-      </ImageBackground>
+                ))
+              ) : (
+                <SeasonalPracticeCard
+                  title={loadingPlacements ? "Loading..." : "No seasonal practices assigned yet"}
+                />
+              )}
+            </ScrollView>
+          </View>
+        </Animated.ScrollView>
+      </ScreenContent>
       <BottomFade />
     </View>
   )
@@ -480,12 +481,6 @@ export default function EnergyCheckScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  bg: { flex: 1 },
-
-  pageOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(3, 10, 7, 0.22)",
-  },
 
   mainScroll: {
     flex: 1,
@@ -588,6 +583,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
+  railCardBgBottomAligned: {
+    justifyContent: "flex-end",
+  },
+
   railCardImage: {
     borderRadius: 18,
   },
@@ -599,7 +598,7 @@ const styles = StyleSheet.create({
 
   railCardTop: {
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 16,
     alignItems: "flex-start",
   },
 
@@ -615,7 +614,7 @@ const styles = StyleSheet.create({
 
   railCardBottom: {
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingBottom: 16,
   },
 
   railCardTitle: {

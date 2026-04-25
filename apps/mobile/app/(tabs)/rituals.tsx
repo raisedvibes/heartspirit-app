@@ -3,18 +3,19 @@ import { useFocusEffect } from "expo-router"
 import {
   View,
   StyleSheet,
-  ImageBackground,
   Pressable,
   Modal,
   TextInput,
-  FlatList,
   ScrollView,
   Switch,
+  type FlatList as RNFlatList,
 } from "react-native"
+import Animated from "react-native-reanimated"
 import * as Notifications from "expo-notifications"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/ScreenContent"
+import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import BottomFade from "@/components/ui/BottomFade"
 import TranslucentCard from "../../components/ui/TranslucentCard"
 import { ThemedText } from "@/components/themed-text"
@@ -30,7 +31,6 @@ import {
   ensureNotifPermissions,
   scheduleDailyReminder,
 } from "../../lib/ritualNotifications"
-import { useScreenBackground } from "@/hooks/useScreenBackground"
 
 function startOfWeekMonday(d: Date): Date {
   const out = new Date(d)
@@ -63,8 +63,15 @@ function hhmm(d: Date) {
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"]
 
+type RitualsListRow =
+  | { _type: "headerTitle"; id: string }
+  | { _type: "headerWeek"; id: string }
+  | { _type: "empty"; id: string }
+  | Ritual
+
 export default function RitualsScreen() {
   const insets = useSafeAreaInsets()
+  const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("rituals")
   const rituals = useRitualsStore((s) => s.rituals)
   const upsert = useRitualsStore((s) => s.upsert)
   const remove = useRitualsStore((s) => s.remove)
@@ -72,7 +79,6 @@ export default function RitualsScreen() {
 
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => new Date())
   const [selectedDayISO, setSelectedDayISO] = useState<string>(() => todayISO())
-  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground("(tabs)/rituals")
 
   useFocusEffect(
     useCallback(() => {
@@ -96,12 +102,12 @@ export default function RitualsScreen() {
     rituals.length === 0
       ? [headerTitleItem, headerWeekItem, emptyItem]
       : [headerTitleItem, headerWeekItem, ...ritualsSorted]
-  const flatListRef = useRef<FlatList>(null)
+  const flatListRef = useRef<RNFlatList<RitualsListRow>>(null)
 
   const [showAdd, setShowAdd] = useState(false)
   const [editRitualId, setEditRitualId] = useState<string | null>(null)
   const [name, setName] = useState("")
-  const [tags, setTags] = useState("")
+  const [intention, setIntention] = useState("")
   const [reminderEnabled, setReminderEnabled] = useState(false)
   const [reminderTime, setReminderTime] = useState<Date>(() => new Date())
 
@@ -113,10 +119,6 @@ export default function RitualsScreen() {
   const addRitual = async () => {
     if (!name.trim()) return
     const now = new Date().toISOString()
-    const parsedTags = tags
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean)
 
     if (editRitualId) {
       const existing = rituals.find((x) => x.id === editRitualId)
@@ -150,7 +152,8 @@ export default function RitualsScreen() {
       upsert({
         ...existing,
         name: name.trim(),
-        tags: parsedTags,
+        intention: intention.trim() ? intention.trim() : undefined,
+        tags: existing.tags ?? [],
         reminder: newReminder,
         notificationId,
         updatedAt: now,
@@ -158,7 +161,7 @@ export default function RitualsScreen() {
 
       setEditRitualId(null)
       setName("")
-      setTags("")
+      setIntention("")
       setReminderEnabled(false)
       setReminderTime(new Date())
       setShowAdd(false)
@@ -187,7 +190,8 @@ export default function RitualsScreen() {
     upsert({
       id,
       name: name.trim(),
-      tags: parsedTags,
+      intention: intention.trim() ? intention.trim() : undefined,
+      tags: [],
       reminder: reminderEnabled ? hhmm(reminderTime) : undefined,
       notificationId,
       history: {},
@@ -197,7 +201,7 @@ export default function RitualsScreen() {
     requestAnimationFrame(() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true }))
     setEditRitualId(null)
     setName("")
-    setTags("")
+    setIntention("")
     setReminderEnabled(false)
     setReminderTime(new Date())
     setShowAdd(false)
@@ -205,27 +209,26 @@ export default function RitualsScreen() {
 
   return (
     <View style={styles.root}>
-      <ImageBackground
-        source={backgroundSource}
-        style={styles.bg}
-        resizeMode="cover"
-        onError={onBackgroundError}
-      >
-        <ScreenContent>
-          <View style={styles.inner}>
-            <FlatList
-              ref={flatListRef}
-              data={listData}
-              keyExtractor={(item) => (item as { id: string }).id}
-              style={{ flex: 1 }}
-              contentContainerStyle={[styles.listContent, { paddingBottom: getTabBarBottomPadding(insets) }]}
-              stickyHeaderIndices={[1]}
-              renderItem={({ item }) => {
+      <ScreenContent animatedOuterStyle={animatedScreenOuterStyle}>
+        <View style={styles.inner}>
+          <Animated.FlatList<RitualsListRow>
+            ref={flatListRef}
+            data={listData as RitualsListRow[]}
+            keyExtractor={(item) => (item as { id: string }).id}
+            style={{ flex: 1 }}
+            contentContainerStyle={[styles.listContent, { paddingBottom: getTabBarBottomPadding(insets) }]}
+            stickyHeaderIndices={[1]}
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+            renderItem={({ item }) => {
                 if ("_type" in item && item._type === "headerTitle") {
                   return (
                     <View style={styles.headerBlock}>
                       <ThemedText type="title" style={styles.title}>
                         Rituals
+                      </ThemedText>
+                      <ThemedText type="muted" style={styles.subtitle}>
+                        anchor your intention
                       </ThemedText>
                       <Pressable
                         style={styles.addRitualBtn}
@@ -337,9 +340,16 @@ export default function RitualsScreen() {
                 return (
                   <TranslucentCard style={styles.ritualRow}>
                     <View style={styles.ritualHeaderRow}>
-                      <ThemedText type="defaultSemiBold" style={styles.ritualName}>
-                        {r.name}
-                      </ThemedText>
+                      <View style={styles.ritualTitleBlock}>
+                        <ThemedText type="defaultSemiBold" style={styles.ritualName}>
+                          {r.name}
+                        </ThemedText>
+                        {!!r.intention?.trim() && (
+                          <ThemedText type="muted" style={styles.ritualIntention}>
+                            {r.intention.trim()}
+                          </ThemedText>
+                        )}
+                      </View>
                       <View style={styles.ritualHeaderRight}>
                         {streak >= 3 && (
                           <View style={styles.streakBadge}>
@@ -353,7 +363,7 @@ export default function RitualsScreen() {
                             onPress={() => {
                               setEditRitualId(r.id)
                               setName(r.name)
-                              setTags((r.tags || []).join(", "))
+                              setIntention(r.intention ?? "")
                               if (r.reminder) {
                                 setReminderEnabled(true)
                                 const [h, m] = r.reminder.split(":").map(Number)
@@ -423,11 +433,10 @@ export default function RitualsScreen() {
                     </View>
                   </TranslucentCard>
                 )
-              }}
-            />
-          </View>
-        </ScreenContent>
-      </ImageBackground>
+            }}
+          />
+        </View>
+      </ScreenContent>
       <BottomFade />
 
       <Modal
@@ -437,6 +446,7 @@ export default function RitualsScreen() {
         onRequestClose={() => {
           setEditRitualId(null)
           setShowAdd(false)
+          setIntention("")
           setReminderEnabled(false)
           setReminderTime(new Date())
         }}
@@ -446,6 +456,7 @@ export default function RitualsScreen() {
           onPress={() => {
             setEditRitualId(null)
             setShowAdd(false)
+            setIntention("")
             setReminderEnabled(false)
             setReminderTime(new Date())
           }}
@@ -464,19 +475,19 @@ export default function RitualsScreen() {
                   style={styles.input}
                   value={name}
                   onChangeText={setName}
-                  placeholder="name"
+                 
                   placeholderTextColor="rgba(255,255,255,0.5)"
                   autoCapitalize="words"
                 />
 
                 <ThemedText type="muted" style={styles.inputLabel}>
-                  Tags
+                  How is my intention supported?
                 </ThemedText>
                 <TextInput
                   style={styles.input}
-                  value={tags}
-                  onChangeText={setTags}
-                  placeholder="tags (comma separated)"
+                  value={intention}
+                  onChangeText={setIntention}
+               
                   placeholderTextColor="rgba(255,255,255,0.5)"
                 />
 
@@ -508,6 +519,7 @@ export default function RitualsScreen() {
                     onPress={() => {
                       setEditRitualId(null)
                       setShowAdd(false)
+                      setIntention("")
                       setReminderEnabled(false)
                       setReminderTime(new Date())
                     }}
@@ -622,7 +634,6 @@ export default function RitualsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  bg: { flex: 1 },
   inner: { flex: 1, minHeight: 0 },
   headerBlock: {
     alignSelf: "flex-end",
@@ -632,6 +643,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "600",
+  },
+  subtitle: {
+    marginTop: 6,
   },
   addButtonText: { color: "white", fontSize: 14 },
   addRitualBtn: {
@@ -688,7 +702,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
   },
+  ritualTitleBlock: {
+    flex: 1,
+    marginRight: 12,
+  },
   ritualName: { fontSize: 16 },
+  ritualIntention: {
+    marginTop: 3,
+    fontSize: 12,
+    lineHeight: 16,
+    opacity: 0.82,
+  },
   ritualHeaderRight: {
     flexDirection: "row",
     alignItems: "center",

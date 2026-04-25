@@ -6,6 +6,7 @@ import {
   Pressable,
   Animated,
   ActivityIndicator,
+  Platform,
 } from "react-native"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import { ThemedText } from "@/components/themed-text"
@@ -30,41 +31,6 @@ const feelingTones = [
   { id: 6, slug: "energized", label: "Energized", icon: "bolt" },
 ] as const
 
-const supportModes = [
-  { slug: "clear_head", label: "Clear my head" },
-  { slug: "connect_inward", label: "Connect inward" },
-  { slug: "create_space", label: "Create space" },
-
-  { slug: "deep_rest", label: "Deep rest" },
-  { slug: "deepen_presence", label: "Deepen presence" },
-  { slug: "expand_it", label: "Expand it" },
-
-  { slug: "feel_safe_body", label: "Feel safe in my body" },
-  { slug: "focus_it", label: "Focus it" },
-  { slug: "gentle_recharge", label: "Gentle recharge" },
-
-  { slug: "gentle_wake", label: "Gently wake up" },
-  { slug: "ground_body", label: "Ground into my body" },
-  { slug: "ground_it", label: "Ground it" },
-
-  { slug: "light_activation", label: "Light activation" },
-  { slug: "maintain_balance", label: "Maintain balance" },
-  { slug: "recenter_emotionally", label: "Recenter emotionally" },
-
-  { slug: "release_mental_loops", label: "Release mental loops" },
-  { slug: "release_tension", label: "Release tension" },
-  { slug: "settle_nervous_system", label: "Settle my nervous system" },
-] as const
-
-const supportModesByFeeling: Record<string, string[]> = {
-  Calm: ["maintain_balance", "deepen_presence", "expand_it"],
-  Foggy: ["clear_head", "focus_it", "light_activation"],
-  Tired: ["gentle_wake", "gentle_recharge", "deep_rest"],
-  Anxious: ["settle_nervous_system", "feel_safe_body", "release_mental_loops"],
-  Irritable: ["release_tension", "create_space", "recenter_emotionally"],
-  Energized: ["ground_it", "ground_body", "connect_inward"],
-}
-
 interface EnergyCheckProps {
   userName?: string
 }
@@ -75,6 +41,9 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
   const [selectedSupportMode, setSelectedSupportMode] = useState<string | null>(null)
   const [recommendedPractice, setRecommendedPractice] = useState<PracticeResult | null>(null)
   const [loading, setLoading] = useState(false)
+  const [availableSupportModes, setAvailableSupportModes] = useState<
+    Array<{ slug: string; label: string }>
+  >([])
 
   const { user } = useAuth()
   const [resolvedUserName, setResolvedUserName] = useState<string | undefined>(userName)
@@ -117,8 +86,8 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
         const metadataDisplay = (user.user_metadata?.display_name as string | undefined)?.trim()
         const metadataFull = (user.user_metadata?.full_name as string | undefined)?.trim()
         const fallback =
-          metadataDisplay
-          || (metadataFull ? metadataFull.split(/\s+/)[0] : undefined)
+          metadataDisplay ||
+          (metadataFull ? metadataFull.split(/\s+/)[0] : undefined)
         setResolvedUserName(fallback ?? undefined)
       }
     }
@@ -140,11 +109,51 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
     return feelingTones.find((f) => f.id === selectedFeeling)?.slug ?? null
   }, [selectedFeeling])
 
-  const visibleSupportModes = useMemo(() => {
-    if (!feelingLabel) return []
-    const allowed = supportModesByFeeling[feelingLabel] ?? []
-    return supportModes.filter((mode) => allowed.includes(mode.slug))
-  }, [feelingLabel])
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadSupportModes() {
+      if (!feelingSlug) {
+        setAvailableSupportModes([])
+        return
+      }
+
+      const supabase = getSupabaseClient()
+      if (!supabase) {
+        setAvailableSupportModes([])
+        return
+      }
+
+      const { data, error } = await supabase
+        .from("support_modes")
+        .select("support_mode_slug, support_mode_label")
+        .eq("feeling_slug", feelingSlug)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+
+      if (!cancelled) {
+        if (error) {
+          console.log("[EnergyCheck] failed loading support modes", error.message)
+          setAvailableSupportModes([])
+        } else {
+          setAvailableSupportModes(
+            (data ?? []).map((item) => ({
+              slug: item.support_mode_slug,
+              label: item.support_mode_label,
+            }))
+          )
+        }
+      }
+    }
+
+    loadSupportModes()
+
+    return () => {
+      cancelled = true
+    }
+  }, [feelingSlug])
+
+  const visibleSupportModes = availableSupportModes
 
   const namePart = resolvedUserName?.trim() ? `, ${resolvedUserName.trim()}` : ""
 
@@ -235,9 +244,8 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
       }
 
       const dayIndex = Math.floor(Date.now() / 86400000)
-      const selected = data[dayIndex % data.length]?.practice as
-        | { id: string; title: string; duration?: number | null }
-        | undefined
+      const rawPractice = data[dayIndex % data.length]?.practice
+      const selected = Array.isArray(rawPractice) ? rawPractice[0] : rawPractice
 
       const nextPractice = selected
         ? {
@@ -335,15 +343,29 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
               {visibleSupportModes.map((mode) => (
                 <Pressable
                   key={mode.slug}
+                  accessibilityRole="button"
+                  // NativeWind uses react-native-css-interop jsxImportSource; Pressable is wrapped so
+                  // `className` maps to `style`. That wrapper can fail to pick up StyleSheet/Fast Refresh
+                  // updates to `style` while children still update — opt into the raw RN Pressable.
+                  // @ts-expect-error react-native-css-interop escape hatch (not on RN PressableProps)
+                  cssInterop={false}
                   onPress={() => {
                     setSelectedSupportMode(mode.slug)
                   }}
+                  android_ripple={
+                    Platform.OS === "android"
+                      ? { color: "rgba(255,255,255,0.14)" }
+                      : undefined
+                  }
                   style={({ pressed }) => [
-                    styles.supportModeButton,
-                    pressed && styles.supportModeButtonPressed,
+                    styles.supportModeCard,
+                    pressed && styles.supportModeCardPressed,
                   ]}
                 >
-                  <ThemedText type="defaultSemiBold" style={styles.supportModeLabel}>
+                  <ThemedText
+                    type="defaultSemiBold"
+                    style={styles.supportModeLabel}
+                  >
                     {mode.label}
                   </ThemedText>
                 </Pressable>
@@ -454,29 +476,66 @@ const styles = StyleSheet.create({
 
   supportModeList: {
     marginTop: 20,
+    width: "100%",
     gap: 12,
-    alignItems: "center",
+    alignItems: "stretch",
   },
 
-  supportModeButton: {
-    width: "92%",
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    borderRadius: 14,
+  supportModeCard: {
+    width: "100%",
+    minHeight: 74,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
-    backgroundColor: "rgba(0,0,0,0.18)",
+    borderColor: "rgba(255,255,255,0.17)",
+    backgroundColor: "rgba(20, 40, 32, 0.44)",
     alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.14,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 4,
+      },
+      default: {},
+    }),
   },
 
-  supportModeButtonPressed: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderColor: "rgba(255,255,255,0.38)",
+  supportModeCardPressed: {
+    transform: [{ scale: 0.99 }],
+    borderColor: "rgba(255,255,255,0.26)",
+    backgroundColor: "rgba(28, 50, 40, 0.52)",
+    borderWidth: 1,
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 5 },
+      },
+      android: {
+        elevation: 6,
+      },
+      default: {},
+    }),
   },
 
   supportModeLabel: {
-    fontSize: 15,
+    fontSize: 16,
+    letterSpacing: 0.2,
     textAlign: "center",
+    fontStyle: "italic",
+    fontWeight: "600",
+    opacity: 0.95,
+    lineHeight: 22,
+    maxWidth: "100%",
+    includeFontPadding: false,
+    color: "rgba(255,255,255,0.95)",
   },
 
   loadingBlock: {

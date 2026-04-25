@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Stack, router, useLocalSearchParams } from "expo-router"
 import {
   View,
@@ -11,13 +11,16 @@ import {
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
-import { Video, ResizeMode } from "expo-av"
+import { Audio, AVPlaybackStatus, ResizeMode, Video } from "expo-av"
 
 import ScreenContent from "@/components/layout/ScreenContent"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
 import { ThemedText } from "@/components/themed-text"
 import { getSupabaseClient } from "@/lib/supabaseClient"
+
+const CHIME_URL =
+  "https://tajqnuta9fwavw6h.public.blob.vercel-storage.com/triangle-percussion-ding-smartsound-fx-3-3-00-03.mp3"
 
 type PracticeRecord = {
   id: string
@@ -29,6 +32,7 @@ type PracticeRecord = {
   instruction_bullets: string[] | null
   mantra: string | null
   timer_minutes: number | null
+  has_chime: boolean
   media_url: string | null
   audio_url: string | null
   media_type: string | null
@@ -44,6 +48,13 @@ function splitTitleAndDescription(title: string) {
   }
 }
 
+function formatClock(totalSeconds: number) {
+  const safeSeconds = Math.max(0, totalSeconds)
+  const minutes = Math.floor(safeSeconds / 60)
+  const seconds = safeSeconds % 60
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`
+}
+
 export default function PracticeDetailScreen() {
   const insets = useSafeAreaInsets()
   const { height: windowHeight } = useWindowDimensions()
@@ -53,7 +64,238 @@ export default function PracticeDetailScreen() {
   const [loading, setLoading] = useState(true)
   const [showVideo, setShowVideo] = useState(false)
 
+  const [audioReady, setAudioReady] = useState(false)
+  const [audioLoading, setAudioLoading] = useState(false)
+  const [audioError, setAudioError] = useState<string | null>(null)
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false)
+  const [audioPositionMillis, setAudioPositionMillis] = useState(0)
+  const [audioDurationMillis, setAudioDurationMillis] = useState(0)
+
+  const [timeLeft, setTimeLeft] = useState(0)
+  const [isTimerRunning, setIsTimerRunning] = useState(false)
+  const [hasTimerStarted, setHasTimerStarted] = useState(false)
+
+  const practiceSoundRef = useRef<Audio.Sound | null>(null)
+  const chimeSoundRef = useRef<Audio.Sound | null>(null)
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
   const contentMinHeight = Math.max(420, windowHeight - insets.top - 96)
+
+  const titleParts = practice ? splitTitleAndDescription(practice.title) : null
+  const mediaUrl = practice?.media_url?.trim() || null
+  const audioUrl = practice?.audio_url?.trim() || null
+  const mediaType = practice?.media_type?.trim()?.toLowerCase() || null
+
+  const videoUrl = mediaType === "video" ? mediaUrl : null
+  const resolvedAudioUrl = audioUrl || (mediaType === "audio" ? mediaUrl : null)
+  const timerMinutes = useMemo(() => {
+    if (!practice) return null
+    const raw = practice.timer_minutes ?? practice.duration
+    return typeof raw === "number" && raw > 0 ? raw : null
+  }, [practice])
+
+  const hasChime = practice?.has_chime ?? true
+
+  const unloadPracticeSound = useCallback(async () => {
+    const currentSound = practiceSoundRef.current
+    if (!currentSound) return
+
+    try {
+      currentSound.setOnPlaybackStatusUpdate(null)
+      await currentSound.unloadAsync()
+    } catch (error) {
+      console.log("[practice audio] unload failed", error)
+    } finally {
+      practiceSoundRef.current = null
+      setAudioReady(false)
+      setIsAudioPlaying(false)
+      setAudioPositionMillis(0)
+      setAudioDurationMillis(0)
+    }
+  }, [])
+
+  const unloadChimeSound = useCallback(async () => {
+    const currentSound = chimeSoundRef.current
+    if (!currentSound) return
+
+    try {
+      await currentSound.unloadAsync()
+    } catch (error) {
+      console.log("[practice chime] unload failed", error)
+    } finally {
+      chimeSoundRef.current = null
+    }
+  }, [])
+
+  const stopTimerInterval = useCallback(() => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current)
+      timerIntervalRef.current = null
+    }
+  }, [])
+
+  const ensureAudioMode = useCallback(async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      })
+    } catch (error) {
+      console.log("[practice audio] setAudioModeAsync failed", error)
+    }
+  }, [])
+
+  const ensureChimeLoaded = useCallback(async () => {
+    if (!hasChime) return null
+
+    if (chimeSoundRef.current) {
+      return chimeSoundRef.current
+    }
+
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: CHIME_URL },
+        { shouldPlay: false, progressUpdateIntervalMillis: 250 }
+      )
+      chimeSoundRef.current = sound
+      return sound
+    } catch (error) {
+      console.log("[practice chime] failed to load", error)
+      return null
+    }
+  }, [hasChime])
+
+  const playChime = useCallback(async () => {
+    if (!hasChime) return
+
+    try {
+      const sound = await ensureChimeLoaded()
+      if (!sound) return
+
+      await sound.setPositionAsync(0)
+      await sound.playAsync()
+    } catch (error) {
+      console.log("[practice chime] playback failed", error)
+    }
+  }, [ensureChimeLoaded, hasChime])
+
+  const loadPracticeAudio = useCallback(
+    async (url: string) => {
+      setAudioLoading(true)
+      setAudioError(null)
+
+      try {
+        await ensureAudioMode()
+        await unloadPracticeSound()
+
+        const { sound, status } = await Audio.Sound.createAsync(
+          { uri: url },
+          {
+            shouldPlay: false,
+            progressUpdateIntervalMillis: 500,
+          }
+        )
+
+        sound.setOnPlaybackStatusUpdate((playbackStatus: AVPlaybackStatus) => {
+          if (!playbackStatus.isLoaded) {
+            if (playbackStatus.error) {
+              console.log("[practice audio] playback status error", playbackStatus.error)
+              setAudioError("Audio failed to play.")
+              setAudioReady(false)
+              setIsAudioPlaying(false)
+            }
+            return
+          }
+
+          setAudioReady(true)
+          setIsAudioPlaying(playbackStatus.isPlaying)
+          setAudioPositionMillis(playbackStatus.positionMillis ?? 0)
+          setAudioDurationMillis(playbackStatus.durationMillis ?? 0)
+
+          if (playbackStatus.didJustFinish) {
+            setIsAudioPlaying(false)
+          }
+        })
+
+        practiceSoundRef.current = sound
+
+        if (status.isLoaded) {
+          setAudioReady(true)
+          setAudioPositionMillis(status.positionMillis ?? 0)
+          setAudioDurationMillis(status.durationMillis ?? 0)
+        } else {
+          setAudioError("Audio failed to load.")
+          setAudioReady(false)
+        }
+      } catch (error) {
+        console.log("[practice audio] failed to load", error)
+        setAudioError("Audio failed to load.")
+        setAudioReady(false)
+      } finally {
+        setAudioLoading(false)
+      }
+    },
+    [ensureAudioMode, unloadPracticeSound]
+  )
+
+  const handleToggleAudio = useCallback(async () => {
+    const sound = practiceSoundRef.current
+    if (!sound) return
+
+    try {
+      const status = await sound.getStatusAsync()
+      if (!status.isLoaded) return
+
+      if (status.isPlaying) {
+        await sound.pauseAsync()
+      } else {
+        await sound.playAsync()
+      }
+    } catch (error) {
+      console.log("[practice audio] toggle failed", error)
+      setAudioError("Audio controls failed.")
+    }
+  }, [])
+
+  const handleResetAudio = useCallback(async () => {
+    const sound = practiceSoundRef.current
+    if (!sound) return
+
+    try {
+      const status = await sound.getStatusAsync()
+      if (!status.isLoaded) return
+
+      await sound.stopAsync()
+      await sound.setPositionAsync(0)
+    } catch (error) {
+      console.log("[practice audio] reset failed", error)
+    }
+  }, [])
+
+  const startTimer = useCallback(async () => {
+    if (!timerMinutes) return
+
+    if (timeLeft <= 0) {
+      setTimeLeft(timerMinutes * 60)
+    }
+
+    setHasTimerStarted(true)
+    setIsTimerRunning(true)
+    await playChime()
+  }, [playChime, timeLeft, timerMinutes])
+
+  const pauseTimer = useCallback(() => {
+    setIsTimerRunning(false)
+  }, [])
+
+  const resetTimer = useCallback(() => {
+    setIsTimerRunning(false)
+    setHasTimerStarted(false)
+    setTimeLeft(timerMinutes ? timerMinutes * 60 : 0)
+  }, [timerMinutes])
 
   useEffect(() => {
     let cancelled = false
@@ -73,29 +315,33 @@ export default function PracticeDetailScreen() {
       const { data, error } = await supabase
         .from("practices")
         .select(
-          "id, title, short_summary, description, duration, category, instruction_bullets, mantra, timer_minutes, media_url, audio_url, media_type, cover_image, thumbnail_url"
+          "id, title, short_summary, description, duration, category, instruction_bullets, mantra, timer_minutes, has_chime, media_url, audio_url, media_type, cover_image, thumbnail_url"
         )
         .eq("id", id)
         .single()
 
-      if (!cancelled) {
-        if (error) {
-          console.log("[practice] failed loading practice", error.message)
-          setPractice(null)
-        } else {
-          console.log("[practice media]", {
-            id: data?.id,
-            title: data?.title,
-            media_url: data?.media_url,
-            audio_url: data?.audio_url,
-            media_type: data?.media_type,
-            thumbnail_url: data?.thumbnail_url,
-          })
-          setShowVideo(false)
-          setPractice(data)
-        }
-        setLoading(false)
+      if (cancelled) return
+
+      if (error) {
+        console.log("[practice] failed loading practice", error.message)
+        setPractice(null)
+      } else {
+        console.log("[practice media]", {
+          id: data?.id,
+          title: data?.title,
+          media_url: data?.media_url,
+          audio_url: data?.audio_url,
+          media_type: data?.media_type,
+          thumbnail_url: data?.thumbnail_url,
+          timer_minutes: data?.timer_minutes,
+          duration: data?.duration,
+          has_chime: data?.has_chime,
+        })
+        setShowVideo(false)
+        setPractice(data)
       }
+
+      setLoading(false)
     }
 
     loadPractice()
@@ -105,10 +351,68 @@ export default function PracticeDetailScreen() {
     }
   }, [id])
 
-  const titleParts = practice ? splitTitleAndDescription(practice.title) : null
-  const mediaUrl = practice?.media_url?.trim() || null
-  const audioUrl = practice?.audio_url?.trim() || null
-  const mediaType = practice?.media_type?.trim()?.toLowerCase() || null
+  useEffect(() => {
+    ensureAudioMode()
+  }, [ensureAudioMode])
+
+  useEffect(() => {
+    setIsTimerRunning(false)
+    setHasTimerStarted(false)
+    setTimeLeft(timerMinutes ? timerMinutes * 60 : 0)
+  }, [timerMinutes])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function prepareAudio() {
+      if (!resolvedAudioUrl) {
+        await unloadPracticeSound()
+        setAudioError(null)
+        return
+      }
+
+      if (!cancelled) {
+        await loadPracticeAudio(resolvedAudioUrl)
+      }
+    }
+
+    prepareAudio()
+
+    return () => {
+      cancelled = true
+    }
+  }, [resolvedAudioUrl, loadPracticeAudio, unloadPracticeSound])
+
+  useEffect(() => {
+    if (!isTimerRunning) {
+      stopTimerInterval()
+      return
+    }
+
+    timerIntervalRef.current = setInterval(() => {
+      setTimeLeft((current) => {
+        if (current <= 1) {
+          stopTimerInterval()
+          setIsTimerRunning(false)
+          void playChime()
+          return 0
+        }
+        return current - 1
+      })
+    }, 1000)
+
+    return () => {
+      stopTimerInterval()
+    }
+  }, [isTimerRunning, playChime, stopTimerInterval])
+
+  useEffect(() => {
+    return () => {
+      stopTimerInterval()
+      void unloadPracticeSound()
+      void unloadChimeSound()
+    }
+  }, [stopTimerInterval, unloadPracticeSound, unloadChimeSound])
 
   return (
     <View style={styles.root}>
@@ -180,9 +484,13 @@ export default function PracticeDetailScreen() {
                       {titleParts?.mainTitle ?? practice.title}
                     </ThemedText>
 
-                    {mediaUrl && mediaType === "video" && (
+                    <ThemedText type="muted" style={styles.practiceGuideText}>
+                      Start with guidance here, then continue with the practice timer below.
+                    </ThemedText>
+
+                    {videoUrl && (
                       <View style={styles.mediaBlock}>
-                        {!showVideo && practice?.thumbnail_url ? (
+                        {!showVideo && practice.thumbnail_url ? (
                           <Pressable onPress={() => setShowVideo(true)} style={styles.videoPosterWrap}>
                             <ImageBackground
                               source={{ uri: practice.thumbnail_url }}
@@ -199,7 +507,7 @@ export default function PracticeDetailScreen() {
                           </Pressable>
                         ) : (
                           <Video
-                            source={{ uri: mediaUrl }}
+                            source={{ uri: videoUrl }}
                             useNativeControls
                             resizeMode={ResizeMode.COVER}
                             style={styles.video}
@@ -210,29 +518,91 @@ export default function PracticeDetailScreen() {
                       </View>
                     )}
 
-                    {mediaUrl && mediaType === "audio" && (
-                      <View style={styles.mediaBlock}>
-                        <Video
-                          source={{ uri: mediaUrl }}
-                          useNativeControls
-                          resizeMode={ResizeMode.CONTAIN}
-                          style={styles.audio}
-                          isLooping={false}
-                          shouldPlay={false}
-                        />
-                      </View>
-                    )}
+                    {resolvedAudioUrl && (
+                      <View style={styles.audioCard}>
+                        <View style={styles.audioHeaderRow}>
+                          <ThemedText type="defaultSemiBold" style={styles.audioLabel}>
+                            Audio
+                          </ThemedText>
 
-                    {!mediaUrl && audioUrl && (
-                      <View style={styles.mediaBlock}>
-                        <Video
-                          source={{ uri: audioUrl }}
-                          useNativeControls
-                          resizeMode={ResizeMode.CONTAIN}
-                          style={styles.audio}
-                          isLooping={false}
-                          shouldPlay={false}
-                        />
+                          {audioLoading ? (
+                            <ActivityIndicator size="small" color="rgba(255,255,255,0.8)" />
+                          ) : (
+                            <ThemedText type="muted" style={styles.audioMeta}>
+                              {audioDurationMillis > 0
+                                ? formatClock(Math.floor(audioDurationMillis / 1000))
+                                : "Ready"}
+                            </ThemedText>
+                          )}
+                        </View>
+
+                        <View style={styles.audioButtonsRow}>
+                          <Pressable
+                            onPress={handleToggleAudio}
+                            disabled={!audioReady || audioLoading}
+                            style={[
+                              styles.audioButton,
+                              (!audioReady || audioLoading) && styles.audioButtonDisabled,
+                            ]}
+                          >
+                            <MaterialIcons
+                              name={isAudioPlaying ? "pause" : "play-arrow"}
+                              size={20}
+                              color="#fff"
+                            />
+                            <ThemedText type="defaultSemiBold" style={styles.audioButtonText}>
+                              {isAudioPlaying ? "Pause" : "Play"}
+                            </ThemedText>
+                          </Pressable>
+
+                          <Pressable
+                            onPress={handleResetAudio}
+                            disabled={!audioReady || audioLoading}
+                            style={[
+                              styles.audioSecondaryButton,
+                              (!audioReady || audioLoading) && styles.audioButtonDisabled,
+                            ]}
+                          >
+                            <MaterialIcons name="replay" size={18} color="rgba(255,255,255,0.92)" />
+                            <ThemedText type="defaultSemiBold" style={styles.audioSecondaryButtonText}>
+                              Reset
+                            </ThemedText>
+                          </Pressable>
+                        </View>
+
+                        <View style={styles.audioProgressTrack}>
+                          <View
+                            style={[
+                              styles.audioProgressFill,
+                              {
+                                width:
+                                  audioDurationMillis > 0
+                                    ? `${Math.min(
+                                        100,
+                                        Math.max(0, (audioPositionMillis / audioDurationMillis) * 100)
+                                      )}%`
+                                    : "0%",
+                              },
+                            ]}
+                          />
+                        </View>
+
+                        <View style={styles.audioTimeRow}>
+                          <ThemedText type="muted" style={styles.audioMeta}>
+                            {formatClock(Math.floor(audioPositionMillis / 1000))}
+                          </ThemedText>
+                          <ThemedText type="muted" style={styles.audioMeta}>
+                            {audioDurationMillis > 0
+                              ? formatClock(Math.floor(audioDurationMillis / 1000))
+                              : "--:--"}
+                          </ThemedText>
+                        </View>
+
+                        {!!audioError && (
+                          <ThemedText type="muted" style={styles.audioError}>
+                            {audioError}
+                          </ThemedText>
+                        )}
                       </View>
                     )}
 
@@ -282,10 +652,46 @@ export default function PracticeDetailScreen() {
                       </View>
                     )}
 
-                    {typeof practice.timer_minutes === "number" ? (
-                      <View style={styles.timerRow}>
-                        <ThemedText type="muted" style={styles.metaText}>
-                          Timer: ~ {practice.timer_minutes} min
+                    {timerMinutes ? (
+                      <View style={styles.timerCard}>
+                        <View style={styles.timerHeaderRow}>
+                          <ThemedText type="defaultSemiBold" style={styles.timerLabel}>
+                            Practice Timer
+                          </ThemedText>
+                          <ThemedText type="muted" style={styles.timerMeta}>
+                            {timerMinutes} min
+                          </ThemedText>
+                        </View>
+
+                        <ThemedText type="title" style={styles.timerClock}>
+                          {formatClock(timeLeft)}
+                        </ThemedText>
+
+                        <View style={styles.timerButtonsRow}>
+                          {!isTimerRunning ? (
+                            <Pressable onPress={() => void startTimer()} style={styles.timerStartButton}>
+                              <ThemedText type="defaultSemiBold" style={styles.timerStartButtonText}>
+                                {hasTimerStarted ? "Resume" : "Start"}
+                              </ThemedText>
+                            </Pressable>
+                          ) : (
+                            <Pressable onPress={pauseTimer} style={styles.timerPauseButton}>
+                              <ThemedText type="defaultSemiBold" style={styles.timerPauseButtonText}>
+                                Pause
+                              </ThemedText>
+                            </Pressable>
+                          )}
+
+                          <Pressable onPress={resetTimer} style={styles.timerResetButton}>
+                            <ThemedText type="defaultSemiBold" style={styles.timerResetButtonText}>
+                              Reset
+                            </ThemedText>
+                          </Pressable>
+                        </View>
+
+                        <ThemedText type="muted" style={styles.timerHint}>
+                          After this practice, check in with your energy.
+                          {"\n"}How has it shifted?
                         </ThemedText>
                       </View>
                     ) : null}
@@ -382,9 +788,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(18, 24, 20, 0.38)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: "rgba(255,255,255,0.16)",
   },
 
   pillText: {
@@ -398,6 +804,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     marginBottom: 10,
+  },
+
+  practiceGuideText: {
+    fontSize: 14,
+    lineHeight: 17,
+    opacity: 0.9,
+    marginBottom: 6,
   },
 
   mediaBlock: {
@@ -441,10 +854,94 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.25)",
   },
 
-  audio: {
-    width: "100%",
-    height: 64,
-    backgroundColor: "rgba(0,0,0,0.45)",
+  audioCard: {
+    marginVertical: 16,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: "rgba(18, 24, 20, 0.52)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+    gap: 12,
+  },
+
+  audioHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  audioLabel: {
+    fontSize: 15,
+  },
+
+  audioMeta: {
+    fontSize: 12,
+  },
+
+  audioButtonsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+
+  audioButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(53,122,70,0.95)",
+  },
+
+  audioSecondaryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(18, 24, 20, 0.42)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+  },
+
+  audioButtonDisabled: {
+    opacity: 0.45,
+  },
+
+  audioButtonText: {
+    color: "#fff",
+    fontSize: 14,
+  },
+
+  audioSecondaryButtonText: {
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 14,
+  },
+
+  audioProgressTrack: {
+    height: 8,
+    borderRadius: 999,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+
+  audioProgressFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.9)",
+  },
+
+  audioTimeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  audioError: {
+    fontSize: 12,
+    color: "rgba(255,210,210,0.95)",
   },
 
   description: {
@@ -464,7 +961,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     padding: 12,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(18, 24, 20, 0.52)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.16)",
   },
@@ -495,9 +992,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 14,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(18, 24, 20, 0.52)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
+    borderColor: "rgba(255,255,255,0.16)",
   },
 
   mantraLabel: {
@@ -510,7 +1007,93 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  timerRow: {
-    marginTop: 16,
+  timerCard: {
+    marginTop: 18,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "rgba(18, 24, 20, 0.52)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+    gap: 12,
+  },
+
+  timerHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  timerLabel: {
+    fontSize: 15,
+  },
+
+  timerMeta: {
+    fontSize: 12,
+  },
+
+  timerClock: {
+    fontSize: 34,
+    textAlign: "center",
+    marginTop: 4,
+  },
+
+  timerButtonsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 2,
+  },
+
+  timerStartButton: {
+    minWidth: 100,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: "#2f8f4e",
+  },
+
+  timerPauseButton: {
+    minWidth: 100,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: "rgba(70,70,70,0.95)",
+  },
+
+  timerResetButton: {
+    minWidth: 100,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.78)",
+  },
+
+  timerStartButtonText: {
+    color: "#fff",
+    fontSize: 14,
+  },
+
+  timerPauseButtonText: {
+    color: "#fff",
+    fontSize: 14,
+  },
+
+  timerResetButtonText: {
+    color: "#111",
+    fontSize: 14,
+  },
+
+  timerHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "center",
+    marginTop: 4,
   },
 })

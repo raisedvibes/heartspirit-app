@@ -137,9 +137,9 @@ export default function SignupScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.headerBlock}>
-                <ThemedText style={styles.pageTitle}>Enter Your Portal</ThemedText>
+                <ThemedText style={styles.pageTitle}>Your Portal</ThemedText>
                 <ThemedText type="muted" style={styles.pageSubhead}>
-                  Rituals • Energy • Circles
+                  Energy • Rituals • Circles
                 </ThemedText>
               </View>
 

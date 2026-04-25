@@ -1,6 +1,20 @@
 import * as React from "react"
-import { View } from "react-native"
+import { View, type ViewStyle } from "react-native"
+import Animated, { type AnimatedStyle } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+
+/** Extra space below safe area so tab screens clear the shared logo (max / uncollapsed top). */
+export const TAB_SCREEN_TOP_INSET = 64
+
+/**
+ * Minimum extra space below safe area when Home collapses the shared header (animated min).
+ * Small premium gap only; `insets.top` already clears status bar / dynamic island.
+ */
+export const TAB_SCREEN_TOP_INSET_COLLAPSED = 2
+
+export function getTabScreenContentTopMargin(insets: { top: number }): number {
+  return insets.top + TAB_SCREEN_TOP_INSET
+}
 
 /** Tab bar height (matches _layout.tsx) and gap above it. Single source of truth for tab-screen bottom spacing. */
 export const TAB_BAR_HEIGHT = 56
@@ -16,14 +30,17 @@ export default function ScreenContent({
   style,
   noTabPadding,
   bottomPaddingOverride,
+  /** When set, outer wrapper is animated and supplies marginTop (e.g. Home header collapse). Omit static top margin. */
+  animatedOuterStyle,
 }: {
   children: React.ReactNode
   style?: any
   noTabPadding?: boolean
   bottomPaddingOverride?: number
+  animatedOuterStyle?: AnimatedStyle<ViewStyle>
 }) {
   const insets = useSafeAreaInsets()
-  const CONTENT_TOP = insets.top + 64
+  const contentTop = getTabScreenContentTopMargin(insets)
 
   const paddingBottom =
     typeof bottomPaddingOverride === "number"
@@ -32,18 +49,21 @@ export default function ScreenContent({
         ? insets.bottom + 24
         : getTabBarBottomPadding(insets)
 
+  const base = {
+    flex: 1,
+    backgroundColor: "transparent" as const,
+    paddingHorizontal: 16,
+    paddingBottom,
+  }
+
+  if (animatedOuterStyle) {
+    return (
+      <Animated.View style={[base, animatedOuterStyle, style]}>{children}</Animated.View>
+    )
+  }
+
   return (
-    <View
-      style={[
-        {
-          flex: 1,
-          paddingHorizontal: 16,
-          marginTop: CONTENT_TOP,
-          paddingBottom,
-        },
-        style,
-      ]}
-    >
+    <View style={[base, { marginTop: contentTop }, style]}>
       {children}
     </View>
   )

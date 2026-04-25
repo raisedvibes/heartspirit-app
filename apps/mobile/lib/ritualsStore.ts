@@ -7,6 +7,7 @@ export type Mark = "empty" | "yes" | "no" | "skip"
 export type Ritual = {
   id: string
   name: string
+  intention?: string
   tags: string[]
   reminder?: string // "HH:MM"
   notificationId?: string // expo-notifications id

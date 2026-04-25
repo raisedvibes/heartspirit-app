@@ -11,7 +11,11 @@ export async function ensureNotifPermissions(): Promise<boolean> {
   return req.granted
 }
 
-export async function scheduleDailyReminder(title: string, body: string, time: Date) {
+export async function scheduleDailyReminder(
+  title: string,
+  body: string,
+  time: Date
+) {
   const hour = time.getHours()
   const minute = time.getMinutes()
 
@@ -27,13 +31,22 @@ export async function scheduleDailyReminder(title: string, body: string, time: D
     content: {
       title,
       body,
-      ...(Platform.OS === "android" && { channelId: RITUAL_CHANNEL_ID }),
+      ...(Platform.OS === "android" ? { channelId: RITUAL_CHANNEL_ID } : {}),
     },
-    trigger: {
-      hour,
-      minute,
-      repeats: true,
-    },
+    trigger: Platform.select({
+      ios: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour,
+        minute,
+      },
+      android: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        channelId: RITUAL_CHANNEL_ID,
+        hour,
+        minute,
+      },
+      default: null,
+    })!,
   })
 
   return id
@@ -55,6 +68,7 @@ export async function scheduleRitualReminder(
   const [h, m] = hhmm.split(":").map(Number)
   const hour = isNaN(h) ? 8 : h
   const minute = isNaN(m) ? 0 : m
+
   const time = new Date()
   time.setHours(hour, minute, 0, 0)
 
@@ -63,5 +77,6 @@ export async function scheduleRitualReminder(
     "Time for your ritual",
     time
   )
+
   return id
 }

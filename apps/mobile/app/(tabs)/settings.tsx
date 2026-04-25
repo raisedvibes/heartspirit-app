@@ -1,21 +1,14 @@
 import { useState, useEffect } from "react"
 import { router } from "expo-router"
-import {
-  View,
-  StyleSheet,
-  ImageBackground,
-  ScrollView,
-  Pressable,
-  Switch,
-  TextInput,
-} from "react-native"
+import { View, StyleSheet, Pressable, Switch, TextInput } from "react-native"
+import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/ScreenContent"
+import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
 import { ThemedText } from "@/components/themed-text"
-import { useScreenBackground } from "@/hooks/useScreenBackground"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import {
   loadCircleReminderPrefs,
@@ -26,7 +19,7 @@ type SectionKey = "profile" | "notifications" | "privacy" | "support"
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
-  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground("(tabs)/settings")
+  const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("settings")
 
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     profile: false,
@@ -259,26 +252,22 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.root}>
-      <ImageBackground
-        source={backgroundSource}
-        style={styles.bg}
-        resizeMode="cover"
-        onError={onBackgroundError}
-      >
-        <ScreenContent>
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: getTabBarBottomPadding(insets) }]}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.headerBlock}>
-              <ThemedText type="title" style={styles.headerTitle}>
-                Settings
-              </ThemedText>
-              <ThemedText type="muted" style={styles.headerSubtitle}>
-                customize your experience
-              </ThemedText>
-            </View>
+      <ScreenContent animatedOuterStyle={animatedScreenOuterStyle}>
+        <Animated.ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: getTabBarBottomPadding(insets) }]}
+          showsVerticalScrollIndicator={false}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
+        >
+          <View style={styles.headerBlock}>
+            <ThemedText type="title" style={styles.headerTitle}>
+              Settings
+            </ThemedText>
+            <ThemedText type="muted" style={styles.headerSubtitle}>
+              customize your experience
+            </ThemedText>
+          </View>
 
             <TranslucentCard style={styles.card}>
               <SectionHeader section="profile" iconName="person" title="Profile & Contact" />
@@ -636,9 +625,8 @@ export default function SettingsScreen() {
                 </View>
               )}
             </TranslucentCard>
-          </ScrollView>
-        </ScreenContent>
-      </ImageBackground>
+        </Animated.ScrollView>
+      </ScreenContent>
       <BottomFade />
     </View>
   )
@@ -646,7 +634,6 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  bg: { flex: 1 },
   scrollContent: { gap: 12 },
   headerBlock: {
     alignSelf: "flex-end",

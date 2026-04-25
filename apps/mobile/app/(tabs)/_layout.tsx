@@ -1,31 +1,74 @@
 import { BottomTabBar } from "@react-navigation/bottom-tabs"
 import { Tabs } from "expo-router"
 import React from "react"
-import { Platform, View, Pressable, StyleSheet } from "react-native"
+import { Platform, View, Pressable, StyleSheet, ImageBackground } from "react-native"
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedStyle,
+} from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-import { HapticTab } from "@/components/haptic-tab"
+import {
+  HOME_HEADER_SCROLL_RANGE,
+  TabHeaderScrollProvider,
+  useTabHeaderScroll,
+} from "@/contexts/TabHeaderScrollContext"
 import { ThemedText } from "@/components/themed-text"
 import { GLASS } from "@/components/ui/glass"
 import { IconSymbol } from "@/components/ui/icon-symbol"
 
+const HOME_LOGO_TRANSLATE_UP = -14
+
 export default function TabLayout() {
+  return (
+    <TabHeaderScrollProvider>
+      <TabLayoutContent />
+    </TabHeaderScrollProvider>
+  )
+}
+
+function TabLayoutContent() {
   const insets = useSafeAreaInsets()
+  const { scrollY, activeDriverId } = useTabHeaderScroll()
+
+  const brandAnimatedStyle = useAnimatedStyle(() => {
+    if (!activeDriverId.value) {
+      return {
+        opacity: 0.95,
+        transform: [{ translateY: 0 }],
+      }
+    }
+    const y = Math.min(Math.max(scrollY.value, 0), HOME_HEADER_SCROLL_RANGE)
+    const t = interpolate(y, [0, HOME_HEADER_SCROLL_RANGE], [0, 1], Extrapolation.CLAMP)
+    return {
+      opacity: interpolate(t, [0, 1], [0.95, 0]),
+      transform: [{ translateY: interpolate(t, [0, 1], [0, HOME_LOGO_TRANSLATE_UP]) }],
+    }
+  })
 
   return (
     <View style={{ flex: 1 }}>
+      <ImageBackground
+        source={require("@/assets/images/fern.background.png")}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+        pointerEvents="none"
+      />
       <View
           style={[styles.overlayHeader, { paddingTop: insets.top + 6 }]}
           pointerEvents="box-none"
         >
-          <Pressable style={styles.brand} onPress={() => {}}>
-            <ThemedText
-              type="title"
-              style={[styles.brandText, { fontFamily: "AlegreyaSans_500Medium" }]}
-            >
-              heartspirit
-            </ThemedText>
-          </Pressable>
+          <Animated.View style={brandAnimatedStyle}>
+            <Pressable style={styles.brand} onPress={() => {}}>
+              <ThemedText
+                type="title"
+                style={[styles.brandText, { fontFamily: "AlegreyaSans_500Medium" }]}
+              >
+                heartspirit
+              </ThemedText>
+            </Pressable>
+          </Animated.View>
         </View>
       <Tabs
           tabBar={(props) => (
@@ -34,6 +77,12 @@ export default function TabLayout() {
             </View>
           )}
           screenOptions={{
+            sceneStyle: {
+              backgroundColor: "transparent",
+            },
+            contentStyle: {
+              backgroundColor: "transparent",
+            },
             tabBarActiveTintColor: "rgba(255,255,255,0.92)",
             tabBarInactiveTintColor: "rgba(255,255,255,0.45)",
             tabBarStyle: {
@@ -130,6 +179,7 @@ export default function TabLayout() {
   )
 }
 
+
 const styles = StyleSheet.create({
   overlayHeader: {
     position: "absolute",
@@ -141,7 +191,6 @@ const styles = StyleSheet.create({
   },
   brand: { alignSelf: "flex-start" },
   brandText: {
-    opacity: 0.95,
     fontSize: 26,
     fontWeight: "700",
     letterSpacing: 0.2,

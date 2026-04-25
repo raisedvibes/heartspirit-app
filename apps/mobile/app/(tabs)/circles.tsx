@@ -1,23 +1,16 @@
 import { useCallback, useEffect, useState } from "react"
-import {
-  View,
-  StyleSheet,
-  ImageBackground,
-  ScrollView,
-  Pressable,
-  Linking,
-  Alert,
-} from "react-native"
+import { View, StyleSheet, Pressable, Linking, Alert } from "react-native"
+import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useFocusEffect } from "expo-router"
 import { Image } from "expo-image"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/ScreenContent"
+import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
 import { ThemedText } from "@/components/themed-text"
-import { useScreenBackground } from "@/hooks/useScreenBackground"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 
 type CircleRow = {
@@ -98,12 +91,12 @@ function CircleCardImage({
 
 export default function CirclesScreen() {
   const insets = useSafeAreaInsets()
+  const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("circles")
   const supabase = getSupabaseClient()
 
   const [circles, setCircles] = useState<CircleRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground("(tabs)/circles")
 
   const fetchCircles = useCallback(async () => {
     if (!supabase) {
@@ -174,29 +167,25 @@ export default function CirclesScreen() {
 
   return (
     <View style={styles.root}>
-      <ImageBackground
-        source={backgroundSource}
-        style={styles.bg}
-        resizeMode="cover"
-        onError={onBackgroundError}
-      >
-        <ScreenContent>
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={[
-              styles.scrollContent,
-              { paddingBottom: getTabBarBottomPadding(insets) },
-            ]}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.headerBlock}>
-              <ThemedText type="title" style={styles.title}>
-                Circles
-              </ThemedText>
-              <ThemedText type="muted" style={styles.subtitle}>
-                create space together
-              </ThemedText>
-            </View>
+      <ScreenContent animatedOuterStyle={animatedScreenOuterStyle}>
+        <Animated.ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: getTabBarBottomPadding(insets) },
+          ]}
+          showsVerticalScrollIndicator={false}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
+        >
+          <View style={styles.headerBlock}>
+            <ThemedText type="title" style={styles.title}>
+              Circles
+            </ThemedText>
+            <ThemedText type="muted" style={styles.subtitle}>
+              create space together
+            </ThemedText>
+          </View>
 
             {loading ? (
               <ThemedText type="muted" style={styles.statusText}>
@@ -273,9 +262,8 @@ export default function CirclesScreen() {
                 </ThemedText>
               </View>
             )}
-          </ScrollView>
-        </ScreenContent>
-      </ImageBackground>
+        </Animated.ScrollView>
+      </ScreenContent>
 
       <BottomFade />
     </View>
@@ -284,7 +272,6 @@ export default function CirclesScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  bg: { flex: 1 },
 
   scrollContent: {
     gap: 16,
