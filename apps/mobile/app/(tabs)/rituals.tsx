@@ -228,7 +228,7 @@ export default function RitualsScreen() {
                         Rituals
                       </ThemedText>
                       <ThemedText type="muted" style={styles.subtitle}>
-                        anchor your intention
+                        root in presence
                       </ThemedText>
                       <Pressable
                         style={styles.addRitualBtn}

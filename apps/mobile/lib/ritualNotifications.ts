@@ -73,8 +73,8 @@ export async function scheduleRitualReminder(
   time.setHours(hour, minute, 0, 0)
 
   const id = await scheduleDailyReminder(
-    ritualName,
-    "Time for your ritual",
+    `Ritual: ${ritualName}`,
+    "",
     time
   )
 

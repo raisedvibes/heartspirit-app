@@ -275,7 +275,6 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     gap: 16,
-    paddingTop: 8,
   },
 
   headerBlock: {

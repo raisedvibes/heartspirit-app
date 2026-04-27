@@ -265,7 +265,7 @@ export default function SettingsScreen() {
               Settings
             </ThemedText>
             <ThemedText type="muted" style={styles.headerSubtitle}>
-              customize your experience
+              manage your experience
             </ThemedText>
           </View>
 

@@ -22,6 +22,8 @@ type PracticeResult = {
   duration?: number
 }
 
+const GLOBAL_SEQUENCE_COUNT = 3
+
 const feelingTones = [
   { id: 1, slug: "calm", label: "Calm", icon: "drop" },
   { id: 2, slug: "foggy", label: "Foggy", icon: "cloud" },
@@ -244,7 +246,18 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
       }
 
       const dayIndex = Math.floor(Date.now() / 86400000)
-      const rawPractice = data[dayIndex % data.length]?.practice
+      const dailySequenceIndex = (dayIndex % GLOBAL_SEQUENCE_COUNT) + 1
+
+      const normalizedRows = [...data].sort(
+        (a, b) => (a.sequence_index ?? Number.MAX_SAFE_INTEGER) - (b.sequence_index ?? Number.MAX_SAFE_INTEGER)
+      )
+
+      const matchedDailySequence =
+        normalizedRows.find((row) => row.sequence_index === dailySequenceIndex) ?? null
+      const lowestSequenceRow = normalizedRows[0] ?? null
+      const selectedRow = matchedDailySequence ?? lowestSequenceRow ?? data[0] ?? null
+
+      const rawPractice = selectedRow?.practice
       const selected = Array.isArray(rawPractice) ? rawPractice[0] : rawPractice
 
       const nextPractice = selected
@@ -254,6 +267,14 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
             duration: selected.duration ?? undefined,
           }
         : null
+
+      console.log("[EnergyCheck] recommendation pick", {
+        feeling_slug: feelingSlug,
+        support_mode_slug: selectedSupportMode,
+        dailySequenceIndex,
+        selected_sequence_index: selectedRow?.sequence_index ?? null,
+        selected_practice_title: selected?.title ?? null,
+      })
 
       setRecommendedPractice(nextPractice)
       setLoading(false)
