@@ -15,13 +15,14 @@ import {
   updateCircleReminderPrefs,
 } from "@/lib/pushTokenRegistration"
 
-type SectionKey = "profile" | "notifications" | "privacy" | "support"
+type SectionKey = "about" | "profile" | "notifications" | "privacy" | "support"
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
   const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("settings")
 
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
+    about: false,
     profile: false,
     notifications: false,
     privacy: false,
@@ -268,6 +269,38 @@ export default function SettingsScreen() {
               manage your experience
             </ThemedText>
           </View>
+
+            <TranslucentCard style={styles.card}>
+              <SectionHeader section="about" iconName="spa" title="About Heartspirit" />
+              {openSections.about && (
+                <View style={styles.sectionBody}>
+                  <View style={styles.aboutBody}>
+                    <ThemedText type="muted" style={styles.aboutText}>
+                      Heartspirit is a verb, a living action of connecting with heart through spirit.
+                    </ThemedText>
+                    <ThemedText type="muted" style={styles.aboutText}>
+                      Your portal reconnects you with the rhythm and wisdom within.
+                    </ThemedText>
+                    <ThemedText type="muted" style={styles.aboutText}>
+                      It&apos;s a ritual of choosing presence to create a deeper relationship with spirit.
+                    </ThemedText>
+                    <ThemedText type="muted" style={styles.aboutText}>
+                      It&apos;s an invitation to pause, to breathe, and to reset.
+                    </ThemedText>
+                    <ThemedText type="muted" style={styles.aboutText}>
+                      Here, we bring truth and harmony back to our lives.
+                    </ThemedText>
+                    <ThemedText type="muted" style={styles.aboutText}>
+                      May our connection with Source be remembered.
+                    </ThemedText>
+                    <ThemedText type="muted" style={styles.aboutText}>
+                      Created by Gabriel, a wellness guide who teaches simple ways to tune in and restore
+                      energy.
+                    </ThemedText>
+                  </View>
+                </View>
+              )}
+            </TranslucentCard>
 
             <TranslucentCard style={styles.card}>
               <SectionHeader section="profile" iconName="person" title="Profile & Contact" />
@@ -655,6 +688,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionTitle: { fontSize: 16 },
+  aboutBody: { gap: 10 },
+  aboutText: { fontSize: 14, lineHeight: 21 },
   sectionBody: { paddingHorizontal: 4, paddingTop: 4, paddingBottom: 12 },
   profileRow: {
     flexDirection: "row",

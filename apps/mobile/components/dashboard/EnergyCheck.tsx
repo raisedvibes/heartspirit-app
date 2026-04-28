@@ -28,8 +28,8 @@ const feelingTones = [
   { id: 1, slug: "calm", label: "Calm", icon: "drop" },
   { id: 2, slug: "foggy", label: "Foggy", icon: "cloud" },
   { id: 3, slug: "tired", label: "Tired", icon: "moon" },
-  { id: 4, slug: "anxious", label: "Anxious", icon: "exclamationmark.circle" },
-  { id: 5, slug: "irritable", label: "Irritable", icon: "sparkles" },
+  { id: 4, slug: "anxious", label: "Anxious", icon: "warning_amber" },
+  { id: 5, slug: "irritable", label: "Irritable", icon: "do_not_disturb_on" },
   { id: 6, slug: "energized", label: "Energized", icon: "bolt" },
 ] as const
 

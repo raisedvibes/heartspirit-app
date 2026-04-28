@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react"
 import {
   View,
   StyleSheet,
-  ImageBackground,
   ScrollView,
   Pressable,
   Dimensions,
 } from "react-native"
+import { Image } from "expo-image"
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { router } from "expo-router"
@@ -15,6 +15,7 @@ import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import { ThemedText } from "@/components/themed-text"
 import BottomFade from "@/components/ui/BottomFade"
+import { GLASS } from "@/components/ui/glass"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 
 type SeasonKey = "spring" | "summer" | "autumn" | "winter"
@@ -142,7 +143,7 @@ function rotateTodaySlots(activeSlot: TodaySlotSlug): TodaySlotSlug[] {
 }
 
 function getImageSource(practice?: PracticeSummary | null) {
-  const remoteUrl = practice?.cover_image?.trim() || practice?.thumbnail_url?.trim()
+  const remoteUrl = practice?.thumbnail_url?.trim() || practice?.cover_image?.trim()
 
   if (remoteUrl && remoteUrl.startsWith("http")) {
     return { uri: remoteUrl }
@@ -195,16 +196,19 @@ function TodayPracticeCard({
         ]}
       >
         <View style={styles.shellCardInner}>
-          <ImageBackground
-            source={source}
-            style={[styles.railCardBg, styles.railCardBgBottomAligned]}
-            imageStyle={styles.railCardImage}
-            resizeMode="cover"
-            onError={() => {
-              console.log("[energy] today card image failed, using fallback")
-              setUseLocalFallback(true)
-            }}
-          >
+          <View style={[styles.railCardBg, styles.railCardBgBottomAligned]}>
+            <Image
+              source={source}
+              style={styles.railCardImageFill}
+              contentFit="cover"
+              cachePolicy="disk"
+              transition={250}
+              placeholder={require("@/assets/images/fern.background.png")}
+              onError={() => {
+                console.log("[energy] today card image failed, using fallback")
+                setUseLocalFallback(true)
+              }}
+            />
             <View style={styles.railCardOverlay} />
 
             <View style={styles.railCardTop}>
@@ -214,7 +218,7 @@ function TodayPracticeCard({
             </View>
 
             <RailCardFooterTitle title={TODAY_SLOT_LABELS[slotSlug]} />
-          </ImageBackground>
+          </View>
         </View>
       </Pressable>
     </View>
@@ -247,20 +251,23 @@ function SeasonalPracticeCard({
         ]}
       >
         <View style={styles.shellCardInner}>
-          <ImageBackground
-            source={source}
-            style={[styles.railCardBg, styles.railCardBgBottomAligned]}
-            imageStyle={styles.railCardImage}
-            resizeMode="cover"
-            onError={() => {
-              console.log("[energy] seasonal card image failed, using fallback")
-              setUseLocalFallback(true)
-            }}
-          >
+          <View style={[styles.railCardBg, styles.railCardBgBottomAligned]}>
+            <Image
+              source={source}
+              style={styles.railCardImageFill}
+              contentFit="cover"
+              cachePolicy="disk"
+              transition={250}
+              placeholder={require("@/assets/images/fern.background.png")}
+              onError={() => {
+                console.log("[energy] seasonal card image failed, using fallback")
+                setUseLocalFallback(true)
+              }}
+            />
             <View style={styles.railCardOverlay} />
 
             <RailCardFooterTitle title={title} />
-          </ImageBackground>
+          </View>
         </View>
       </Pressable>
     </View>
@@ -547,9 +554,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     flexGrow: 0,
     borderRadius: 24,
-    backgroundColor: "rgba(6, 14, 10, 0.58)",
+    backgroundColor: GLASS.bgDark,
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.24)",
+    borderColor: GLASS.borderDark,
     padding: SHELL_PADDING,
     shadowColor: "#000000",
     shadowOpacity: 0.28,
@@ -581,14 +588,15 @@ const styles = StyleSheet.create({
     width: INNER_WIDTH,
     height: INNER_HEIGHT,
     justifyContent: "space-between",
+    backgroundColor: "rgba(7,14,10,0.32)",
   },
 
   railCardBgBottomAligned: {
     justifyContent: "flex-end",
   },
 
-  railCardImage: {
-    borderRadius: 18,
+  railCardImageFill: {
+    ...StyleSheet.absoluteFillObject,
   },
 
   railCardOverlay: {

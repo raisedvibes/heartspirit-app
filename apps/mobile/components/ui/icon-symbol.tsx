@@ -27,6 +27,9 @@ const MAPPING: Record<string, MaterialIconName> = {
   cloud: "cloud",
   moon: "nights-stay",
   bolt: "bolt",
+  do_not_disturb_on: "do-not-disturb-on",
+  warning_amber: "warning-amber",
+  thunderstorm: "thunderstorm",
   "face.dashed": "sentiment-dissatisfied",
   "exclamationmark.circle": "report-problem",
 

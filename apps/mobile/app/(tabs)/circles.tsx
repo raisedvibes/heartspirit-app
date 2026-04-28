@@ -10,6 +10,7 @@ import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/Scree
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
+import { GLASS } from "@/components/ui/glass"
 import { ThemedText } from "@/components/themed-text"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 
@@ -317,9 +318,9 @@ const styles = StyleSheet.create({
   circleCard: {
     borderRadius: 22,
     overflow: "hidden",
-    backgroundColor: "rgba(18, 24, 20, 0.52)",
+    backgroundColor: GLASS.bgDark,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
+    borderColor: GLASS.borderDark,
     shadowColor: "#000",
     shadowOpacity: 0.22,
     shadowRadius: 16,
