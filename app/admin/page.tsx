@@ -33,6 +33,10 @@ export default function AdminHome() {
               Manage Circles
             </Button>
 
+            <Button onClick={() => router.push("/admin/weekly-reflection")}>
+              Weekly Reflection
+            </Button>
+
             <Button onClick={() => router.push("/admin/settings")}>
               Admin Settings
             </Button>

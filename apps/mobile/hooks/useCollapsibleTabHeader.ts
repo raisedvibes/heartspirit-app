@@ -1,10 +1,11 @@
-import { useEffect } from "react"
-import { useIsFocused } from "@react-navigation/native"
+import { useCallback } from "react"
+import { useFocusEffect } from "@react-navigation/native"
 import {
   Extrapolation,
   interpolate,
   useAnimatedScrollHandler,
   useAnimatedStyle,
+  useSharedValue,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import {
@@ -27,36 +28,47 @@ export type CollapsibleTabHeaderId =
 export function useCollapsibleTabHeader(tabId: CollapsibleTabHeaderId) {
   const insets = useSafeAreaInsets()
   const { scrollY, activeDriverId } = useTabHeaderScroll()
-  const isFocused = useIsFocused()
+  const localTabScrollY = useSharedValue(0)
 
-  useEffect(() => {
-    if (!isFocused) return
-
-    activeDriverId.value = tabId
-    return () => {
-      // Prevent blur from a previous tab clobbering a newly-focused tab.
-      if (activeDriverId.value === tabId) {
-        activeDriverId.value = ""
+  useFocusEffect(
+    useCallback(() => {
+      // Attach header animation to the active tab immediately on focus.
+      scrollY.value = localTabScrollY.value
+      activeDriverId.value = tabId
+      return () => {
+        // Prevent blur from a previous tab clobbering a newly-focused tab.
+        if (activeDriverId.value === tabId) {
+          activeDriverId.value = ""
+        }
       }
-    }
-  }, [isFocused, tabId, activeDriverId])
+    }, [activeDriverId, localTabScrollY, scrollY, tabId])
+  )
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onBeginDrag: () => {
+      // Re-assert active driver at interaction start (helps with delayed focus state on devices).
+      activeDriverId.value = tabId
+    },
+    onScroll: (e) => {
+      localTabScrollY.value = e.contentOffset.y
+      if (activeDriverId.value === tabId) {
+        scrollY.value = e.contentOffset.y
+      }
+    },
+  })
 
   const contentTopMax = getTabScreenContentTopMargin(insets)
   const contentTopMin = insets.top + TAB_SCREEN_TOP_INSET_COLLAPSED
 
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (e) => {
-      scrollY.value = e.contentOffset.y
-    },
-  })
-
   const animatedScreenOuterStyle = useAnimatedStyle(() => {
-    const y = Math.min(Math.max(scrollY.value, 0), HOME_HEADER_SCROLL_RANGE)
+    const activeY =
+      activeDriverId.value === tabId ? scrollY.value : localTabScrollY.value
+    const y = Math.min(Math.max(activeY, 0), HOME_HEADER_SCROLL_RANGE)
     const t = interpolate(y, [0, HOME_HEADER_SCROLL_RANGE], [0, 1], Extrapolation.CLAMP)
     return {
       marginTop: interpolate(t, [0, 1], [contentTopMax, contentTopMin]),
     }
-  }, [contentTopMax, contentTopMin])
+  }, [contentTopMax, contentTopMin, localTabScrollY, scrollY, activeDriverId, tabId])
 
   return { animatedScreenOuterStyle, scrollHandler }
 }

@@ -8,8 +8,10 @@ import {
   TextInput,
   ScrollView,
   Switch,
+  Platform,
   type FlatList as RNFlatList,
 } from "react-native"
+import { BlurView } from "expo-blur"
 import Animated from "react-native-reanimated"
 import * as Notifications from "expo-notifications"
 import DateTimePicker from "@react-native-community/datetimepicker"
@@ -59,6 +61,12 @@ function hhmm(d: Date) {
   const h = String(d.getHours()).padStart(2, "0")
   const m = String(d.getMinutes()).padStart(2, "0")
   return `${h}:${m}`
+}
+function displayTime(d: Date) {
+  return d.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  })
 }
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"]
@@ -139,8 +147,8 @@ export default function RitualsScreen() {
           const ok = await ensureNotifPermissions()
           if (ok) {
             notificationId = await scheduleDailyReminder(
-              "Ritual reminder",
-              `Time for: ${name.trim()}`,
+              `Ritual: ${name.trim()}`,
+              "",
               reminderTime
             )
           } else {
@@ -178,8 +186,8 @@ export default function RitualsScreen() {
       const ok = await ensureNotifPermissions()
       if (ok) {
         notificationId = await scheduleDailyReminder(
-          "Ritual reminder",
-          `Time for: ${name.trim()}`,
+          `Ritual: ${name.trim()}`,
+          "",
           reminderTime
         )
       } else {
@@ -205,7 +213,7 @@ export default function RitualsScreen() {
     setReminderEnabled(false)
     setReminderTime(new Date())
     setShowAdd(false)
-  }
+}
 
   return (
     <View style={styles.root}>
@@ -216,6 +224,7 @@ export default function RitualsScreen() {
             data={listData as RitualsListRow[]}
             keyExtractor={(item) => (item as { id: string }).id}
             style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={[styles.listContent, { paddingBottom: getTabBarBottomPadding(insets) }]}
             stickyHeaderIndices={[1]}
             onScroll={scrollHandler}
@@ -451,93 +460,123 @@ export default function RitualsScreen() {
           setReminderTime(new Date())
         }}
       >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() => {
-            setEditRitualId(null)
-            setShowAdd(false)
-            setIntention("")
-            setReminderEnabled(false)
-            setReminderTime(new Date())
-          }}
-        >
-          <Pressable onPress={(e) => e.stopPropagation()} style={styles.modalShell}>
-            <TranslucentCard style={styles.modalCard}>
-              <ScrollView>
-                <ThemedText type="defaultSemiBold" style={styles.modalTitle}>
-                  {editRitualId ? "Edit ritual" : "Add ritual"}
-                </ThemedText>
-
-                <ThemedText type="muted" style={styles.inputLabel}>
-                  Name
-                </ThemedText>
-                <TextInput
-                  style={styles.input}
-                  value={name}
-                  onChangeText={setName}
-                 
-                  placeholderTextColor="rgba(255,255,255,0.5)"
-                  autoCapitalize="words"
-                />
-
-                <ThemedText type="muted" style={styles.inputLabel}>
-                  How is my intention supported?
-                </ThemedText>
-                <TextInput
-                  style={styles.input}
-                  value={intention}
-                  onChangeText={setIntention}
-               
-                  placeholderTextColor="rgba(255,255,255,0.5)"
-                />
-
-                <View style={styles.reminderRow}>
-                  <ThemedText type="muted" style={styles.inputLabel}>
-                    Reminder
+        <View style={styles.ritualFormModalRoot}>
+          <BlurView
+            intensity={Platform.OS === "ios" ? 62 : 50}
+            tint="dark"
+            style={StyleSheet.absoluteFill}
+          />
+          <Pressable
+            accessibilityRole="button"
+            style={styles.ritualFormModalDim}
+            onPress={() => {
+              setEditRitualId(null)
+              setShowAdd(false)
+              setIntention("")
+              setReminderEnabled(false)
+              setReminderTime(new Date())
+            }}
+          />
+          <View style={styles.ritualFormModalCenter} pointerEvents="box-none">
+            <Pressable onPress={(e) => e.stopPropagation()} style={styles.modalShell}>
+              <View style={styles.ritualFormCardElevated}>
+                <TranslucentCard opacity={1.06} style={styles.ritualFormCardInner}>
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.ritualFormScrollContent}
+                >
+                  <ThemedText type="defaultSemiBold" style={styles.ritualFormTitle}>
+                    {editRitualId ? "Edit ritual" : "Add ritual"}
                   </ThemedText>
-                  <Switch value={reminderEnabled} onValueChange={setReminderEnabled} />
-                </View>
-                {reminderEnabled && (
-                  <View style={styles.timePickerWrap}>
-                    <DateTimePicker
-                      value={reminderTime}
-                      mode="time"
-                      display="default"
-                      onChange={(_, date) => {
-                        if (date) setReminderTime(date)
-                      }}
-                    />
-                    <ThemedText type="muted" style={{ marginTop: 8 }}>
-                      set for {hhmm(reminderTime)}
-                    </ThemedText>
-                  </View>
-                )}
 
-                <View style={styles.modalButtons}>
-                  <Pressable
-                    style={styles.cancelButton}
-                    onPress={() => {
-                      setEditRitualId(null)
-                      setShowAdd(false)
-                      setIntention("")
-                      setReminderEnabled(false)
-                      setReminderTime(new Date())
-                    }}
-                  >
-                    <ThemedText type="defaultSemiBold" style={styles.cancelButtonText}>
-                      cancel
+                  <View style={styles.ritualFormSection}>
+                    <ThemedText type="muted" style={styles.ritualFormLabel}>
+                      NAME
                     </ThemedText>
-                  </Pressable>
-                  <Pressable style={styles.addSubmitButton} onPress={addRitual}>
-                    <ThemedText type="defaultSemiBold" style={styles.addSubmitButtonText}>
-                      {editRitualId ? "save" : "add"}
+                    <TextInput
+                      style={styles.ritualFormInput}
+                      value={name}
+                      onChangeText={setName}
+                      placeholder="i.e. Morning breathwork"
+                      placeholderTextColor="rgba(255,255,255,0.48)"
+                      autoCapitalize="words"
+                    />
+                  </View>
+
+                  <View style={styles.ritualFormSection}>
+                    <ThemedText type="muted" style={styles.ritualFormLabel}>
+                      MY INTENTION
                     </ThemedText>
-                  </Pressable>
-                </View>
-              </ScrollView>
-            </TranslucentCard>
-          </Pressable>
-        </Pressable>
+                    <TextInput
+                      style={styles.ritualFormInput}
+                      value={intention}
+                      onChangeText={setIntention}
+                      placeholder="i.e. I tune in to my life force"
+                      placeholderTextColor="rgba(255,255,255,0.48)"
+                    />
+                  </View>
+
+                  <View style={styles.ritualReminderRow}>
+                    <ThemedText type="muted" style={styles.ritualReminderLabel}>
+                      Reminder
+                    </ThemedText>
+                    <Switch value={reminderEnabled} onValueChange={setReminderEnabled} />
+                  </View>
+
+                  {reminderEnabled && (
+                    <View style={styles.ritualFormTimeWrap}>
+                      <View style={styles.ritualTimePill}>
+                        <ThemedText
+                          type="defaultSemiBold"
+                          style={styles.ritualTimePillText}
+                          pointerEvents="none"
+                        >
+                          {displayTime(reminderTime)}
+                        </ThemedText>
+                        <DateTimePicker
+                          style={styles.ritualTimePickerTouchOverlay}
+                          value={reminderTime}
+                          mode="time"
+                          display="compact"
+                          onChange={(_, date) => {
+                            if (date) setReminderTime(date)
+                          }}
+                        />
+                      </View>
+                      <ThemedText type="muted" style={styles.reminderCaption}>
+                        Daily reminder • {displayTime(reminderTime)}
+                      </ThemedText>
+                    </View>
+                  )}
+
+                  <View style={styles.ritualFormButtons}>
+                    <Pressable
+                      style={styles.ritualFormGhostButton}
+                      onPress={() => {
+                        setEditRitualId(null)
+                        setShowAdd(false)
+                        setIntention("")
+                        setReminderEnabled(false)
+                        setReminderTime(new Date())
+                      }}
+                    >
+                      <ThemedText type="defaultSemiBold" style={styles.ritualFormGhostButtonText}>
+                        Cancel
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable style={styles.ritualFormPrimaryButton} onPress={addRitual}>
+                      <ThemedText type="defaultSemiBold" style={styles.ritualFormPrimaryButtonText}>
+                        {editRitualId ? "Save" : "Add"}
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+                </ScrollView>
+              </TranslucentCard>
+              </View>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <Modal
@@ -776,6 +815,189 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
+  },
+  ritualFormModalRoot: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  ritualFormModalDim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(9, 18, 14, 0.44)",
+  },
+  ritualFormModalCenter: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 22,
+    paddingVertical: 28,
+  },
+  ritualFormCardElevated: {
+    width: "100%",
+    borderRadius: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000000",
+        shadowOffset: { width: 0, height: 22 },
+        shadowOpacity: 0.48,
+        shadowRadius: 40,
+      },
+      android: {
+        elevation: 26,
+      },
+      default: {},
+    }),
+  },
+  ritualFormCardInner: {
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 22,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+    overflow: "hidden",
+  },
+  ritualFormScrollContent: {
+    flexGrow: 1,
+    paddingBottom: 4,
+  },
+  ritualFormTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    letterSpacing: -0.35,
+    color: "#FFFFFF",
+    marginBottom: 22,
+  },
+  ritualFormSection: {
+    marginBottom: 18,
+  },
+  ritualFormLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.35,
+    textTransform: "uppercase",
+    marginBottom: 9,
+    color: "rgba(255,255,255,0.72)",
+  },
+  ritualFormInput: {
+    backgroundColor: "rgba(255,255,255,0.065)",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.13)",
+    paddingVertical: 14,
+    paddingHorizontal: 17,
+    fontSize: 16,
+    color: "#FFFFFF",
+    minHeight: 50,
+  },
+  ritualFormTimeWrap: {
+    marginTop: 8,
+    marginBottom: 8,
+    paddingBottom: 4,
+  },
+  ritualTimePicker: {
+    alignSelf: "flex-start",
+  },
+  ritualTimePill: {
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    alignSelf: "flex-start",
+    position: "relative",
+    justifyContent: "center",
+  },
+  ritualTimePillText: {
+    color: "#102018",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  ritualTimePickerTouchOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+    opacity: 0.02,
+    zIndex: 10,
+  },
+  ritualReminderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    marginTop: 6,
+    marginBottom: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  ritualReminderLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    letterSpacing: 0.15,
+    color: "rgba(255,255,255,0.82)",
+    flex: 1,
+    marginRight: 16,
+  },
+  reminderCaption: {
+    marginTop: 12,
+    fontSize: 17,
+    fontWeight: "500",
+    letterSpacing: 0.12,
+    color: "rgba(255,255,255,0.72)",
+  },
+  ritualFormButtons: {
+    flexDirection: "row",
+    gap: 16,
+    marginTop: 26,
+    alignItems: "stretch",
+  },
+  ritualFormGhostButton: {
+    flex: 1,
+    paddingVertical: 15,
+    minHeight: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ritualFormGhostButtonText: {
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 15,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  ritualFormPrimaryButton: {
+    flex: 1,
+    paddingVertical: 15,
+    minHeight: 50,
+    borderRadius: 14,
+    backgroundColor: "rgba(110, 162, 132, 0.88)",
+    borderWidth: 1,
+    borderColor: "rgba(140, 190, 160, 0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.28,
+        shadowRadius: 14,
+      },
+      android: {
+        elevation: 6,
+      },
+      default: {},
+    }),
+  },
+  ritualFormPrimaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.25,
   },
   modalShell: {
     width: "100%",

@@ -1,0 +1,8 @@
+{
+  "android": {
+    "package": "com.raised_vibes.myv0project"
+  },
+  "ios": {
+    "bundleIdentifier": "com.raised-vibes.myv0project"
+  }
+}

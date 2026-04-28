@@ -29,7 +29,7 @@ const feelingTones = [
   { id: 2, slug: "foggy", label: "Foggy", icon: "cloud" },
   { id: 3, slug: "tired", label: "Tired", icon: "moon" },
   { id: 4, slug: "anxious", label: "Anxious", icon: "exclamationmark.circle" },
-  { id: 5, slug: "irritable", label: "Irritable", icon: "face.dashed" },
+  { id: 5, slug: "irritable", label: "Irritable", icon: "sparkles" },
   { id: 6, slug: "energized", label: "Energized", icon: "bolt" },
 ] as const
 
