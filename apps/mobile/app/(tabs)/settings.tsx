@@ -285,17 +285,13 @@ export default function SettingsScreen() {
                       It&apos;s a ritual of choosing presence to create a deeper relationship with spirit.
                     </ThemedText>
                     <ThemedText type="muted" style={styles.aboutText}>
-                      It&apos;s an invitation to pause, to breathe, and to reset.
+                      It&apos;s an invitation to pause, breathe, and reset.
                     </ThemedText>
                     <ThemedText type="muted" style={styles.aboutText}>
-                      Here, we bring truth and harmony back to our lives.
+                      Here, truth and harmony returns.
                     </ThemedText>
                     <ThemedText type="muted" style={styles.aboutText}>
-                      May our connection with Source be remembered.
-                    </ThemedText>
-                    <ThemedText type="muted" style={styles.aboutText}>
-                      Created by Gabriel, a wellness guide who teaches simple ways to tune in and restore
-                      energy.
+                      Created by Gabriel, a wellness guide who encourages simple ways to realign energy.
                     </ThemedText>
                   </View>
                 </View>
