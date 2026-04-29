@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { requireAdmin } from "@/lib/admin/requireAdmin"
+import { sendCircleActivityNotification } from "@/lib/server/notifications/circles"
 
 export async function POST(req: Request) {
   const admin = await requireAdmin()
@@ -42,6 +43,16 @@ export async function POST(req: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    try {
+      await sendCircleActivityNotification(supabase, {
+        circleBefore: null,
+        circleAfter: data,
+        changedFields: ["name", "description", "starts_at", "is_published"],
+      })
+    } catch (notifyErr: any) {
+      console.warn("[Circles] create activity notification skipped:", notifyErr?.message ?? notifyErr)
     }
 
     return NextResponse.json({ circle: data }, { status: 200 })

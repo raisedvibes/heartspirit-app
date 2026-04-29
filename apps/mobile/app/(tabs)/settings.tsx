@@ -14,10 +14,6 @@ import {
   loadCircleReminderPrefs,
   updateCircleReminderPrefs,
 } from "@/lib/pushTokenRegistration"
-import {
-  getAmbientSoundsEnabled,
-  setAmbientSoundsEnabled,
-} from "@/lib/ambientSounds"
 
 type SectionKey = "about" | "profile" | "notifications" | "privacy" | "support"
 
@@ -34,14 +30,7 @@ export default function SettingsScreen() {
   })
 
   // Notifications
-  const [dailyCheckIn, setDailyCheckIn] = useState(true)
-  const [weeklyReport, setWeeklyReport] = useState(false)
   const [communityCircles, setCommunityCircles] = useState(false)
-  const [ambientSounds, setAmbientSounds] = useState(true)
-  const [circlesWeekBefore, setCirclesWeekBefore] = useState(false)
-  const [circlesDayBefore, setCirclesDayBefore] = useState(false)
-  const [checkInTime, setCheckInTime] = useState("09:00")
-  const [notifPrefsLoading, setNotifPrefsLoading] = useState(true)
 
   // Auth & profile
   const [authUser, setAuthUser] = useState<{ id: string; email?: string } | null>(null)
@@ -61,16 +50,13 @@ export default function SettingsScreen() {
     const supabase = getSupabaseClient()
     if (!supabase) {
       setProfileLoading(false)
-      setNotifPrefsLoading(false)
       return
     }
 
     const init = async () => {
       setProfileLoading(true)
-      setNotifPrefsLoading(true)
       setProfileError(null)
       setLogoutError(null)
-      setAmbientSounds(await getAmbientSoundsEnabled())
 
       const { data: auth } = await supabase.auth.getUser()
       const user = auth?.user ?? null
@@ -90,9 +76,9 @@ export default function SettingsScreen() {
             full_name: prof.full_name ?? "",
             email: prof.email ?? user.email ?? "",
           })
-          setDailyCheckIn(prof.notif_rituals_enabled ?? false)
-          setCirclesWeekBefore(prof.notif_circles_week_before ?? false)
-          setCirclesDayBefore(prof.notif_circles_day_before ?? false)
+          const weekBefore = prof.notif_circles_week_before ?? false
+          const dayBefore = prof.notif_circles_day_before ?? false
+          setCommunityCircles(weekBefore || dayBefore)
         } else {
           const metadataDisplayName =
             (user.user_metadata?.display_name as string | undefined)?.trim() || ""
@@ -106,9 +92,7 @@ export default function SettingsScreen() {
             full_name: metadataFullName,
             email: user.email ?? "",
           })
-          setDailyCheckIn(false)
-          setCirclesWeekBefore(false)
-          setCirclesDayBefore(false)
+          setCommunityCircles(false)
 
           const { error: upsertErr } = await supabase.from("profiles").upsert({
             id: user.id,
@@ -125,12 +109,10 @@ export default function SettingsScreen() {
         setEditingProfile(false)
 
         const prefs = await loadCircleReminderPrefs()
-        setCirclesWeekBefore(prefs.weekBefore)
-        setCirclesDayBefore(prefs.dayBefore)
+        setCommunityCircles(prefs.weekBefore || prefs.dayBefore)
       }
 
       setProfileLoading(false)
-      setNotifPrefsLoading(false)
     }
 
     init()
@@ -211,17 +193,6 @@ export default function SettingsScreen() {
     } finally {
       setSaveProfileLoading(false)
     }
-  }
-
-  const updateNotifRitualsEnabled = async (enabled: boolean) => {
-    setDailyCheckIn(enabled)
-    const supabase = getSupabaseClient()
-    if (!supabase || !authUser) return
-
-    await supabase
-      .from("profiles")
-      .update({ notif_rituals_enabled: enabled })
-      .eq("id", authUser.id)
   }
 
   const handleExportData = () => {
@@ -475,110 +446,17 @@ export default function SettingsScreen() {
                   <View style={styles.toggleRow}>
                     <View style={styles.toggleLabel}>
                       <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
-                        Daily Check-In
-                      </ThemedText>
-                      <ThemedText type="muted" style={styles.toggleSubtitle}>
-                        Remind me to check in daily
-                      </ThemedText>
-                    </View>
-                    <Switch
-                      value={dailyCheckIn}
-                      onValueChange={(v: boolean) => updateNotifRitualsEnabled(v)}
-                    />
-                  </View>
-
-                  {dailyCheckIn && (
-                    <View style={styles.timeRow}>
-                      <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
-                        Reminder Time
-                      </ThemedText>
-                      <TextInput
-                        style={[styles.input, styles.timeInput]}
-                        value={checkInTime}
-                        onChangeText={setCheckInTime}
-                        placeholder="09:00"
-                        placeholderTextColor="rgba(255,255,255,0.5)"
-                      />
-                      <ThemedText type="muted" style={styles.toggleSubtitle}>
-                        Reminders depend on device support.
-                      </ThemedText>
-                    </View>
-                  )}
-
-                  <View style={styles.toggleRow}>
-                    <View style={styles.toggleLabel}>
-                      <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
-                        Weekly Reflection
-                      </ThemedText>
-                      <ThemedText type="muted" style={styles.toggleSubtitle}>
-                        A gentle weekly recap (generated on your device)
-                      </ThemedText>
-                    </View>
-                    <Switch value={weeklyReport} onValueChange={setWeeklyReport} />
-                  </View>
-
-                  <View style={styles.toggleRow}>
-                    <View style={styles.toggleLabel}>
-                      <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
-                        Ambient Sounds
-                      </ThemedText>
-                      <ThemedText type="muted" style={styles.toggleSubtitle}>
-                        Play a brief forest opener once per day at app launch
-                      </ThemedText>
-                    </View>
-                    <Switch
-                      value={ambientSounds}
-                      onValueChange={async (v: boolean) => {
-                        setAmbientSounds(v)
-                        await setAmbientSoundsEnabled(v)
-                      }}
-                    />
-                  </View>
-
-                  <View style={styles.toggleRow}>
-                    <View style={styles.toggleLabel}>
-                      <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
                         Community Circles
                       </ThemedText>
                       <ThemedText type="muted" style={styles.toggleSubtitle}>
-                        Circle activity notifications
-                      </ThemedText>
-                    </View>
-                    <Switch value={communityCircles} onValueChange={setCommunityCircles} />
-                  </View>
-
-                  <View style={styles.toggleRow}>
-                    <View style={styles.toggleLabel}>
-                      <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
-                        Circle reminders: 7 days before
-                      </ThemedText>
-                      <ThemedText type="muted" style={styles.toggleSubtitle}>
-                        Get notified a week before a circle starts
+                        Circle activity and upcoming circle reminders
                       </ThemedText>
                     </View>
                     <Switch
-                      value={circlesWeekBefore}
+                      value={communityCircles}
                       onValueChange={async (v: boolean) => {
-                        setCirclesWeekBefore(v)
-                        await updateCircleReminderPrefs(v, circlesDayBefore)
-                      }}
-                    />
-                  </View>
-
-                  <View style={styles.toggleRow}>
-                    <View style={styles.toggleLabel}>
-                      <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
-                        Circle reminders: 1 day before
-                      </ThemedText>
-                      <ThemedText type="muted" style={styles.toggleSubtitle}>
-                        Get notified the day before a circle starts
-                      </ThemedText>
-                    </View>
-                    <Switch
-                      value={circlesDayBefore}
-                      onValueChange={async (v: boolean) => {
-                        setCirclesDayBefore(v)
-                        await updateCircleReminderPrefs(circlesWeekBefore, v)
+                        setCommunityCircles(v)
+                        await updateCircleReminderPrefs(v, v)
                       }}
                     />
                   </View>
@@ -743,7 +621,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "white",
   },
-  timeInput: { width: 100 },
   modalButtons: { flexDirection: "row", gap: 12, marginTop: 12 },
   cancelButton: {
     flex: 1,
@@ -770,7 +647,6 @@ const styles = StyleSheet.create({
   toggleLabel: { flex: 1, marginRight: 12 },
   toggleTitle: { fontSize: 14 },
   toggleSubtitle: { fontSize: 12, marginTop: 2 },
-  timeRow: { marginBottom: 16 },
   bulletList: { marginTop: 4 },
   bullet: { fontSize: 12, marginBottom: 4 },
   linkButton: {
