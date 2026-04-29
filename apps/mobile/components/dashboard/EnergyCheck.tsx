@@ -13,6 +13,7 @@ import { ThemedText } from "@/components/themed-text"
 import { IconSymbol } from "@/components/ui/icon-symbol"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import { useAuth } from "@/lib/auth"
+import { getOfflineCacheData, OfflineCacheKeys, setOfflineCache } from "@/lib/offlineCache"
 
 type Step = "feeling" | "supportMode"
 
@@ -46,6 +47,7 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
   const [availableSupportModes, setAvailableSupportModes] = useState<
     Array<{ slug: string; label: string }>
   >([])
+  const [usingCachedGuidance, setUsingCachedGuidance] = useState(false)
 
   const { user } = useAuth()
   const [resolvedUserName, setResolvedUserName] = useState<string | undefined>(userName)
@@ -69,6 +71,13 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
 
       const supabase = getSupabaseClient()
       if (!supabase) {
+        const cachedName = await getOfflineCacheData<string>(
+          OfflineCacheKeys.energy.profileDisplayName(user.id)
+        )
+        if (cachedName?.trim()) {
+          setResolvedUserName(cachedName.trim())
+          return
+        }
         setResolvedUserName(undefined)
         return
       }
@@ -82,6 +91,7 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
       if (!cancelled) {
         const fromProfile = data?.display_name?.trim()
         if (fromProfile) {
+          void setOfflineCache(OfflineCacheKeys.energy.profileDisplayName(user.id), fromProfile)
           setResolvedUserName(fromProfile)
           return
         }
@@ -117,12 +127,17 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
     async function loadSupportModes() {
       if (!feelingSlug) {
         setAvailableSupportModes([])
+        setUsingCachedGuidance(false)
         return
       }
 
+      const supportModesCacheKey = OfflineCacheKeys.energy.supportModes(feelingSlug)
       const supabase = getSupabaseClient()
       if (!supabase) {
-        setAvailableSupportModes([])
+        const cachedModes =
+          await getOfflineCacheData<Array<{ slug: string; label: string }>>(supportModesCacheKey)
+        setAvailableSupportModes(cachedModes ?? [])
+        setUsingCachedGuidance(Boolean(cachedModes?.length))
         return
       }
 
@@ -136,9 +151,19 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
       if (!cancelled) {
         if (error) {
           console.log("[EnergyCheck] failed loading support modes", error.message)
-          setAvailableSupportModes([])
+          const cachedModes =
+            await getOfflineCacheData<Array<{ slug: string; label: string }>>(supportModesCacheKey)
+          setAvailableSupportModes(cachedModes ?? [])
+          setUsingCachedGuidance(Boolean(cachedModes?.length))
         } else {
-          setAvailableSupportModes(
+          const mappedModes = (data ?? []).map((item) => ({
+            slug: item.support_mode_slug,
+            label: item.support_mode_label,
+          }))
+          setAvailableSupportModes(mappedModes)
+          setUsingCachedGuidance(false)
+          void setOfflineCache(
+            supportModesCacheKey,
             (data ?? []).map((item) => ({
               slug: item.support_mode_slug,
               label: item.support_mode_label,
@@ -217,9 +242,21 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
       setLoading(true)
       setRecommendedPractice(null)
 
+      const recommendationCacheKey = OfflineCacheKeys.energy.recommendation(
+        feelingSlug,
+        selectedSupportMode
+      )
       const supabase = getSupabaseClient()
       if (!supabase) {
-        if (!cancelled) setLoading(false)
+        const cachedPractice = await getOfflineCacheData<PracticeResult>(recommendationCacheKey)
+        if (!cancelled) {
+          setRecommendedPractice(cachedPractice)
+          setUsingCachedGuidance(Boolean(cachedPractice))
+          setLoading(false)
+        }
+        if (cachedPractice) {
+          router.push(`/practice/${cachedPractice.id}`)
+        }
         return
       }
 
@@ -240,8 +277,13 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
       if (cancelled) return
 
       if (error || !data?.length) {
-        setRecommendedPractice(null)
+        const cachedPractice = await getOfflineCacheData<PracticeResult>(recommendationCacheKey)
+        setRecommendedPractice(cachedPractice)
+        setUsingCachedGuidance(Boolean(cachedPractice))
         setLoading(false)
+        if (cachedPractice) {
+          router.push(`/practice/${cachedPractice.id}`)
+        }
         return
       }
 
@@ -277,7 +319,11 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
       })
 
       setRecommendedPractice(nextPractice)
+      setUsingCachedGuidance(false)
       setLoading(false)
+      if (nextPractice) {
+        void setOfflineCache(recommendationCacheKey, nextPractice)
+      }
 
       if (nextPractice) {
         router.push(`/practice/${nextPractice.id}`)
@@ -351,6 +397,11 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
           <ThemedText type="defaultSemiBold" style={styles.question}>
             Choose the kind of support you need most
           </ThemedText>
+          {usingCachedGuidance ? (
+            <ThemedText type="muted" style={styles.cachedNotice}>
+              Offline mode - showing saved guidance.
+            </ThemedText>
+          ) : null}
 
           {loading ? (
             <View style={styles.loadingBlock}>
@@ -417,6 +468,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     opacity: 0.85,
+  },
+  cachedNotice: {
+    marginTop: 8,
+    fontSize: 11,
+    textAlign: "center",
+    opacity: 0.72,
   },
 
   grid: {

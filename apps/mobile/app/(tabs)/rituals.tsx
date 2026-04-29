@@ -9,6 +9,8 @@ import {
   ScrollView,
   Switch,
   Platform,
+  KeyboardAvoidingView,
+  Keyboard,
   type FlatList as RNFlatList,
 } from "react-native"
 import { BlurView } from "expo-blur"
@@ -82,6 +84,7 @@ export default function RitualsScreen() {
   const insets = useSafeAreaInsets()
   const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("rituals")
   const rituals = useRitualsStore((s) => s.rituals)
+  const hasHydrated = useRitualsStore((s) => s.hasHydrated)
   const upsert = useRitualsStore((s) => s.upsert)
   const remove = useRitualsStore((s) => s.remove)
   const setMark = useRitualsStore((s) => s.setMark)
@@ -108,7 +111,7 @@ export default function RitualsScreen() {
   const headerWeekItem = { _type: "headerWeek" as const, id: "__header_week__" }
   const emptyItem = { _type: "empty" as const, id: "__empty__" }
   const listData =
-    rituals.length === 0
+    hasHydrated && rituals.length === 0
       ? [headerTitleItem, headerWeekItem, emptyItem]
       : [headerTitleItem, headerWeekItem, ...ritualsSorted]
   const flatListRef = useRef<RNFlatList<RitualsListRow>>(null)
@@ -405,14 +408,13 @@ export default function RitualsScreen() {
                         const isFuture = isoDay > todayISOStr
                         const status = r.history[isoDay] as Mark | undefined
                         const baseBox = {
-                          width: 40,
-                          height: 40,
+                          width: 38,
+                          height: 38,
                           borderRadius: 10,
                           borderWidth: 1,
                           alignItems: "center" as const,
                           justifyContent: "center" as const,
                           paddingTop: 2,
-                          marginRight: 8,
                         }
                         const boxStyle =
                           status === "yes"
@@ -478,15 +480,22 @@ export default function RitualsScreen() {
               setReminderTime(new Date())
             }}
           />
-          <View style={styles.ritualFormModalCenter} pointerEvents="box-none">
-            <Pressable onPress={(e) => e.stopPropagation()} style={styles.modalShell}>
-              <View style={styles.ritualFormCardElevated}>
-                <TranslucentCard opacity={1.06} style={styles.ritualFormCardInner}>
-                <ScrollView
-                  keyboardShouldPersistTaps="handled"
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={styles.ritualFormScrollContent}
-                >
+          <KeyboardAvoidingView
+            style={styles.ritualFormKeyboardAvoid}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+          >
+            <View style={styles.ritualFormModalCenter} pointerEvents="box-none">
+              <Pressable onPress={(e) => e.stopPropagation()} style={styles.modalShell}>
+                <View style={styles.ritualFormCardElevated}>
+                  <TranslucentCard opacity={1.06} style={styles.ritualFormCardInner}>
+                  <ScrollView
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+                    onScrollBeginDrag={Keyboard.dismiss}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.ritualFormScrollContent}
+                  >
                   <ThemedText type="defaultSemiBold" style={styles.ritualFormTitle}>
                     {editRitualId ? "Edit ritual" : "Add ritual"}
                   </ThemedText>
@@ -572,11 +581,12 @@ export default function RitualsScreen() {
                       </ThemedText>
                     </Pressable>
                   </View>
-                </ScrollView>
-              </TranslucentCard>
-              </View>
-            </Pressable>
-          </View>
+                  </ScrollView>
+                </TranslucentCard>
+                </View>
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -831,7 +841,9 @@ const styles = StyleSheet.create({
   },
   dayRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    flexWrap: "nowrap",
+    justifyContent: "space-between",
+    width: "100%",
   },
   dayBoxToday: {
     borderColor: "rgba(255,255,255,0.4)",
@@ -879,6 +891,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 22,
     paddingVertical: 28,
+  },
+  ritualFormKeyboardAvoid: {
+    flex: 1,
   },
   ritualFormCardElevated: {
     width: "100%",

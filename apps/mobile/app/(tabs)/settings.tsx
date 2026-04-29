@@ -14,6 +14,10 @@ import {
   loadCircleReminderPrefs,
   updateCircleReminderPrefs,
 } from "@/lib/pushTokenRegistration"
+import {
+  getAmbientSoundsEnabled,
+  setAmbientSoundsEnabled,
+} from "@/lib/ambientSounds"
 
 type SectionKey = "about" | "profile" | "notifications" | "privacy" | "support"
 
@@ -33,6 +37,7 @@ export default function SettingsScreen() {
   const [dailyCheckIn, setDailyCheckIn] = useState(true)
   const [weeklyReport, setWeeklyReport] = useState(false)
   const [communityCircles, setCommunityCircles] = useState(false)
+  const [ambientSounds, setAmbientSounds] = useState(true)
   const [circlesWeekBefore, setCirclesWeekBefore] = useState(false)
   const [circlesDayBefore, setCirclesDayBefore] = useState(false)
   const [checkInTime, setCheckInTime] = useState("09:00")
@@ -65,6 +70,7 @@ export default function SettingsScreen() {
       setNotifPrefsLoading(true)
       setProfileError(null)
       setLogoutError(null)
+      setAmbientSounds(await getAmbientSoundsEnabled())
 
       const { data: auth } = await supabase.auth.getUser()
       const user = auth?.user ?? null
@@ -509,6 +515,24 @@ export default function SettingsScreen() {
                       </ThemedText>
                     </View>
                     <Switch value={weeklyReport} onValueChange={setWeeklyReport} />
+                  </View>
+
+                  <View style={styles.toggleRow}>
+                    <View style={styles.toggleLabel}>
+                      <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
+                        Ambient Sounds
+                      </ThemedText>
+                      <ThemedText type="muted" style={styles.toggleSubtitle}>
+                        Play a brief forest opener once per day at app launch
+                      </ThemedText>
+                    </View>
+                    <Switch
+                      value={ambientSounds}
+                      onValueChange={async (v: boolean) => {
+                        setAmbientSounds(v)
+                        await setAmbientSoundsEnabled(v)
+                      }}
+                    />
                   </View>
 
                   <View style={styles.toggleRow}>

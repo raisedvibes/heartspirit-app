@@ -17,6 +17,7 @@ import { ThemedText } from "@/components/themed-text"
 import BottomFade from "@/components/ui/BottomFade"
 import { GLASS } from "@/components/ui/glass"
 import { getSupabaseClient } from "@/lib/supabaseClient"
+import { getOfflineCacheData, OfflineCacheKeys, setOfflineCache } from "@/lib/offlineCache"
 
 type SeasonKey = "spring" | "summer" | "autumn" | "winter"
 
@@ -58,6 +59,8 @@ const INNER_WIDTH = RAIL_CARD_WIDTH - SHELL_PADDING * 2
 const INNER_HEIGHT = RAIL_CARD_HEIGHT - SHELL_PADDING * 2
 
 const PEEK_PADDING = 20
+const RAIL_CARD_GAP = 14
+const RAIL_CARD_SNAP_INTERVAL = RAIL_CARD_WIDTH + RAIL_CARD_GAP
 
 const TODAY_SLOT_LABELS: Record<TodaySlotSlug, string> = {
   open_the_portal: "Open the Portal",
@@ -281,6 +284,7 @@ export default function EnergyCheckScreen() {
   const [todayPlacements, setTodayPlacements] = useState<PlacementRow[]>([])
   const [seasonalPlacements, setSeasonalPlacements] = useState<PlacementRow[]>([])
   const [loadingPlacements, setLoadingPlacements] = useState(true)
+  const [usingCachedPlacements, setUsingCachedPlacements] = useState(false)
 
   const season = useMemo(() => {
     const now = new Date()
@@ -309,8 +313,17 @@ export default function EnergyCheckScreen() {
     let isMounted = true
 
     async function loadPlacements() {
+      const todayCacheKey = OfflineCacheKeys.energy.todayPlacements
+      const seasonalCacheKey = OfflineCacheKeys.energy.seasonalPlacements(season)
       const supabase = getSupabaseClient()
       if (!supabase) {
+        const [cachedToday, cachedSeasonal] = await Promise.all([
+          getOfflineCacheData<PlacementRow[]>(todayCacheKey),
+          getOfflineCacheData<PlacementRow[]>(seasonalCacheKey),
+        ])
+        setTodayPlacements(cachedToday ?? [])
+        setSeasonalPlacements(cachedSeasonal ?? [])
+        setUsingCachedPlacements(Boolean(cachedToday || cachedSeasonal))
         if (isMounted) setLoadingPlacements(false)
         return
       }
@@ -367,25 +380,55 @@ export default function EnergyCheckScreen() {
         console.log("[energy] failed to load seasonal placements:", seasonalError.message)
       }
 
-      const normalizedToday = ((todayData as PlacementRow[] | null) ?? [])
-        .filter((row) => row.practice?.id)
-        .sort((a, b) => {
-          const aOrder = TODAY_SLOT_ORDER[a.slot_slug as TodaySlotSlug] ?? 999
-          const bOrder = TODAY_SLOT_ORDER[b.slot_slug as TodaySlotSlug] ?? 999
-          return aOrder - bOrder
-        })
+      const normalizeTodayRows = (rows: PlacementRow[]) =>
+        rows
+          .filter((row) => row.practice?.id)
+          .sort((a, b) => {
+            const aOrder = TODAY_SLOT_ORDER[a.slot_slug as TodaySlotSlug] ?? 999
+            const bOrder = TODAY_SLOT_ORDER[b.slot_slug as TodaySlotSlug] ?? 999
+            return aOrder - bOrder
+          })
 
-      const normalizedSeasonal = ((seasonalData as PlacementRow[] | null) ?? [])
-        .filter((row) => row.practice?.id)
-        .sort((a, b) => {
-          const aOrder = SEASONAL_SLOT_ORDER[a.slot_slug as SeasonalSlotSlug] ?? 999
-          const bOrder = SEASONAL_SLOT_ORDER[b.slot_slug as SeasonalSlotSlug] ?? 999
-          return aOrder - bOrder
-        })
+      const normalizeSeasonalRows = (rows: PlacementRow[]) =>
+        rows
+          .filter((row) => row.practice?.id)
+          .sort((a, b) => {
+            const aOrder = SEASONAL_SLOT_ORDER[a.slot_slug as SeasonalSlotSlug] ?? 999
+            const bOrder = SEASONAL_SLOT_ORDER[b.slot_slug as SeasonalSlotSlug] ?? 999
+            return aOrder - bOrder
+          })
+
+      let usedCache = false
+      let normalizedToday = normalizeTodayRows((todayData as PlacementRow[] | null) ?? [])
+      let normalizedSeasonal = normalizeSeasonalRows((seasonalData as PlacementRow[] | null) ?? [])
+
+      if (todayError) {
+        const cachedToday = await getOfflineCacheData<PlacementRow[]>(todayCacheKey)
+        if (cachedToday) {
+          normalizedToday = normalizeTodayRows(cachedToday)
+          usedCache = true
+        }
+      }
+
+      if (seasonalError) {
+        const cachedSeasonal = await getOfflineCacheData<PlacementRow[]>(seasonalCacheKey)
+        if (cachedSeasonal) {
+          normalizedSeasonal = normalizeSeasonalRows(cachedSeasonal)
+          usedCache = true
+        }
+      }
 
       setTodayPlacements(normalizedToday)
       setSeasonalPlacements(normalizedSeasonal)
+      setUsingCachedPlacements(usedCache)
       setLoadingPlacements(false)
+
+      if (!todayError) {
+        void setOfflineCache(todayCacheKey, normalizedToday)
+      }
+      if (!seasonalError) {
+        void setOfflineCache(seasonalCacheKey, normalizedSeasonal)
+      }
     }
 
     loadPlacements()
@@ -415,14 +458,23 @@ export default function EnergyCheckScreen() {
             <ThemedText type="muted" style={styles.subtitle}>
               check in with yourself
             </ThemedText>
+            {usingCachedPlacements ? (
+              <ThemedText type="muted" style={styles.cachedNotice}>
+                Offline mode - showing saved energy practices.
+              </ThemedText>
+            ) : null}
           </View>
 
           <EnergyCheck userName={userName} />
 
-          <View style={styles.sectionBlock}>
+          <View style={[styles.sectionBlock, styles.todaySectionBlock]}>
             <ThemedText style={styles.sectionTitle}>Today</ThemedText>
             <ScrollView
               horizontal
+              snapToInterval={RAIL_CARD_SNAP_INTERVAL}
+              snapToAlignment="start"
+              decelerationRate="fast"
+              disableIntervalMomentum
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.horizontalRail}
               style={styles.railScroll}
@@ -456,6 +508,10 @@ export default function EnergyCheckScreen() {
             </ThemedText>
             <ScrollView
               horizontal
+              snapToInterval={RAIL_CARD_SNAP_INTERVAL}
+              snapToAlignment="start"
+              decelerationRate="fast"
+              disableIntervalMomentum
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.horizontalRail}
               style={styles.railScroll}
@@ -510,9 +566,17 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 6,
   },
+  cachedNotice: {
+    marginTop: 6,
+    fontSize: 11,
+    opacity: 0.72,
+  },
 
   sectionBlock: {
     gap: 12,
+  },
+  todaySectionBlock: {
+    marginTop: 24,
   },
 
   sectionTitle: {
@@ -537,7 +601,7 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 16 + PEEK_PADDING,
     paddingVertical: 8,
-    gap: 14,
+    gap: RAIL_CARD_GAP,
     alignItems: "flex-start",
   },
 

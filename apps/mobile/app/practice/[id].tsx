@@ -8,6 +8,7 @@ import {
   Pressable,
   ActivityIndicator,
   useWindowDimensions,
+  AppState,
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
@@ -19,6 +20,11 @@ import BottomFade from "@/components/ui/BottomFade"
 import { GLASS } from "@/components/ui/glass"
 import { ThemedText } from "@/components/themed-text"
 import { getSupabaseClient } from "@/lib/supabaseClient"
+import {
+  cancelScheduledNotification,
+  schedulePracticeTimerCompletion,
+} from "@/lib/ritualNotifications"
+import { getOfflineCacheData, OfflineCacheKeys, setOfflineCache } from "@/lib/offlineCache"
 
 const CHIME_URL =
   "https://tajqnuta9fwavw6h.public.blob.vercel-storage.com/triangle-percussion-ding-smartsound-fx-3-3-00-03.mp3"
@@ -75,10 +81,13 @@ export default function PracticeDetailScreen() {
   const [timeLeft, setTimeLeft] = useState(0)
   const [isTimerRunning, setIsTimerRunning] = useState(false)
   const [hasTimerStarted, setHasTimerStarted] = useState(false)
+  const [timerEndAt, setTimerEndAt] = useState<number | null>(null)
+  const [usingCachedPractice, setUsingCachedPractice] = useState(false)
 
   const practiceSoundRef = useRef<Audio.Sound | null>(null)
   const chimeSoundRef = useRef<Audio.Sound | null>(null)
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const timerNotificationIdRef = useRef<string | null>(null)
 
   const contentMinHeight = Math.max(420, windowHeight - insets.top - 96)
 
@@ -133,6 +142,16 @@ export default function PracticeDetailScreen() {
       clearInterval(timerIntervalRef.current)
       timerIntervalRef.current = null
     }
+  }, [])
+
+  const getRemainingFromEndAt = useCallback((endAt: number | null) => {
+    if (!endAt) return 0
+    return Math.max(0, Math.ceil((endAt - Date.now()) / 1000))
+  }, [])
+
+  const cancelTimerNotification = useCallback(async () => {
+    await cancelScheduledNotification(timerNotificationIdRef.current)
+    timerNotificationIdRef.current = null
   }, [])
 
   const ensureAudioMode = useCallback(async () => {
@@ -279,24 +298,38 @@ export default function PracticeDetailScreen() {
   const startTimer = useCallback(async () => {
     if (!timerMinutes) return
 
-    if (timeLeft <= 0) {
-      setTimeLeft(timerMinutes * 60)
-    }
+    const baseSeconds = timeLeft > 0 ? timeLeft : timerMinutes * 60
+    const endAt = Date.now() + baseSeconds * 1000
+    setTimeLeft(baseSeconds)
+    setTimerEndAt(endAt)
 
     setHasTimerStarted(true)
     setIsTimerRunning(true)
+
+    await cancelTimerNotification()
+    timerNotificationIdRef.current = await schedulePracticeTimerCompletion(
+      "Practice complete",
+      practice?.title ? `${practice.title} is complete.` : "Your practice is complete.",
+      baseSeconds
+    )
     await playChime()
-  }, [playChime, timeLeft, timerMinutes])
+  }, [cancelTimerNotification, playChime, practice?.title, timeLeft, timerMinutes])
 
-  const pauseTimer = useCallback(() => {
+  const pauseTimer = useCallback(async () => {
+    const remaining = getRemainingFromEndAt(timerEndAt)
+    setTimeLeft(remaining)
+    setTimerEndAt(null)
     setIsTimerRunning(false)
-  }, [])
+    await cancelTimerNotification()
+  }, [cancelTimerNotification, getRemainingFromEndAt, timerEndAt])
 
-  const resetTimer = useCallback(() => {
+  const resetTimer = useCallback(async () => {
     setIsTimerRunning(false)
     setHasTimerStarted(false)
+    setTimerEndAt(null)
     setTimeLeft(timerMinutes ? timerMinutes * 60 : 0)
-  }, [timerMinutes])
+    await cancelTimerNotification()
+  }, [cancelTimerNotification, timerMinutes])
 
   useEffect(() => {
     let cancelled = false
@@ -307,8 +340,12 @@ export default function PracticeDetailScreen() {
         return
       }
 
+      const cacheKey = OfflineCacheKeys.practice.detail(id)
       const supabase = getSupabaseClient()
       if (!supabase) {
+        const cachedPractice = await getOfflineCacheData<PracticeRecord>(cacheKey)
+        setPractice(cachedPractice)
+        setUsingCachedPractice(Boolean(cachedPractice))
         setLoading(false)
         return
       }
@@ -325,7 +362,9 @@ export default function PracticeDetailScreen() {
 
       if (error) {
         console.log("[practice] failed loading practice", error.message)
-        setPractice(null)
+        const cachedPractice = await getOfflineCacheData<PracticeRecord>(cacheKey)
+        setPractice(cachedPractice)
+        setUsingCachedPractice(Boolean(cachedPractice))
       } else {
         console.log("[practice media]", {
           id: data?.id,
@@ -340,6 +379,8 @@ export default function PracticeDetailScreen() {
         })
         setShowVideo(false)
         setPractice(data)
+        setUsingCachedPractice(false)
+        void setOfflineCache(cacheKey, data as PracticeRecord)
       }
 
       setLoading(false)
@@ -359,8 +400,10 @@ export default function PracticeDetailScreen() {
   useEffect(() => {
     setIsTimerRunning(false)
     setHasTimerStarted(false)
+    setTimerEndAt(null)
     setTimeLeft(timerMinutes ? timerMinutes * 60 : 0)
-  }, [timerMinutes])
+    void cancelTimerNotification()
+  }, [cancelTimerNotification, timerMinutes])
 
   useEffect(() => {
     let cancelled = false
@@ -390,30 +433,55 @@ export default function PracticeDetailScreen() {
       return
     }
 
-    timerIntervalRef.current = setInterval(() => {
-      setTimeLeft((current) => {
-        if (current <= 1) {
-          stopTimerInterval()
-          setIsTimerRunning(false)
-          void playChime()
-          return 0
-        }
-        return current - 1
-      })
-    }, 1000)
+    if (!timerEndAt) {
+      setIsTimerRunning(false)
+      return
+    }
+
+    const syncTimerFromClock = () => {
+      const remaining = getRemainingFromEndAt(timerEndAt)
+      setTimeLeft(remaining)
+      if (remaining <= 0) {
+        stopTimerInterval()
+        setTimerEndAt(null)
+        setIsTimerRunning(false)
+        void cancelTimerNotification()
+        void playChime()
+      }
+    }
+
+    syncTimerFromClock()
+    timerIntervalRef.current = setInterval(syncTimerFromClock, 1000)
 
     return () => {
       stopTimerInterval()
     }
-  }, [isTimerRunning, playChime, stopTimerInterval])
+  }, [
+    cancelTimerNotification,
+    getRemainingFromEndAt,
+    isTimerRunning,
+    playChime,
+    stopTimerInterval,
+    timerEndAt,
+  ])
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active" && isTimerRunning && timerEndAt) {
+        setTimeLeft(getRemainingFromEndAt(timerEndAt))
+      }
+    })
+    return () => sub.remove()
+  }, [getRemainingFromEndAt, isTimerRunning, timerEndAt])
 
   useEffect(() => {
     return () => {
       stopTimerInterval()
+      void cancelTimerNotification()
       void unloadPracticeSound()
       void unloadChimeSound()
     }
-  }, [stopTimerInterval, unloadPracticeSound, unloadChimeSound])
+  }, [cancelTimerNotification, stopTimerInterval, unloadPracticeSound, unloadChimeSound])
 
   return (
     <View style={styles.root}>
@@ -488,6 +556,11 @@ export default function PracticeDetailScreen() {
                     <ThemedText type="muted" style={styles.practiceGuideText}>
                       Start with guidance here, then continue with the practice timer below.
                     </ThemedText>
+                    {usingCachedPractice ? (
+                      <ThemedText type="muted" style={styles.cachedNotice}>
+                        Offline mode - showing saved practice from this device.
+                      </ThemedText>
+                    ) : null}
 
                     {videoUrl && (
                       <View style={styles.mediaBlock}>
@@ -812,6 +885,11 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     opacity: 0.9,
     marginBottom: 6,
+  },
+  cachedNotice: {
+    marginBottom: 8,
+    fontSize: 11,
+    opacity: 0.72,
   },
 
   mediaBlock: {

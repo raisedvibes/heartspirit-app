@@ -12,6 +12,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme"
 import { AuthProvider, useAuth } from "@/lib/auth"
 import { registerPushToken } from "@/lib/pushTokenRegistration"
 import { getSupabaseClient } from "@/lib/supabaseClient"
+import { playStartupAmbienceIfNeeded } from "@/lib/ambientSounds"
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -51,6 +52,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     registerPushToken().catch(() => {})
+    playStartupAmbienceIfNeeded().catch(() => {})
 
     const supabase = getSupabaseClient()
     if (!supabase) return

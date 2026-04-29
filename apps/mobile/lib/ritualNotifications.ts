@@ -52,6 +52,16 @@ export async function scheduleDailyReminder(
   return id
 }
 
+async function ensureRitualChannel() {
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync(RITUAL_CHANNEL_ID, {
+      name: "Ritual reminders",
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: "default",
+    })
+  }
+}
+
 /**
  * Schedule a repeating daily notification for a ritual at the given time.
  * @returns Notification identifier, or null if permissions were denied.
@@ -79,4 +89,44 @@ export async function scheduleRitualReminder(
   )
 
   return id
+}
+
+export async function schedulePracticeTimerCompletion(
+  title: string,
+  body: string,
+  secondsUntilEnd: number
+): Promise<string | null> {
+  if (!(await ensureNotifPermissions())) {
+    return null
+  }
+
+  await ensureRitualChannel()
+
+  const safeSeconds = Math.max(1, Math.ceil(secondsUntilEnd))
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+      ...(Platform.OS === "android" ? { channelId: RITUAL_CHANNEL_ID } : {}),
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: safeSeconds,
+      repeats: false,
+      ...(Platform.OS === "android" ? { channelId: RITUAL_CHANNEL_ID } : {}),
+    },
+  })
+
+  return id
+}
+
+export async function cancelScheduledNotification(
+  notificationId: string | null | undefined
+) {
+  if (!notificationId) return
+  try {
+    await Notifications.cancelScheduledNotificationAsync(notificationId)
+  } catch (error) {
+    console.log("[notifications] failed to cancel scheduled notification", error)
+  }
 }

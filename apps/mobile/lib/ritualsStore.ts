@@ -41,6 +41,8 @@ function nextMark(current: Mark): Mark {
 
 type RitualsState = {
   rituals: Ritual[]
+  hasHydrated: boolean
+  setHasHydrated: (v: boolean) => void
   upsert: (r: Ritual) => void
   remove: (id: string) => void
   setMark: (id: string, isoDate: string, mark: Mark) => void
@@ -50,6 +52,8 @@ export const useRitualsStore = create<RitualsState>()(
   persist(
     (set) => ({
       rituals: [],
+      hasHydrated: false,
+      setHasHydrated: (v) => set({ hasHydrated: v }),
 
       upsert: (r) =>
         set((s) => {
@@ -92,6 +96,9 @@ export const useRitualsStore = create<RitualsState>()(
       name: "heartspirit.rituals.v1",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => ({ rituals: s.rituals }),
+      onRehydrateStorage: () => (state, _error) => {
+        state?.setHasHydrated(true)
+      },
     }
   )
 )
