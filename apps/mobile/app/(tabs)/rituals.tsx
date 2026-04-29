@@ -516,7 +516,7 @@ export default function RitualsScreen() {
 
                   <View style={styles.ritualFormSection}>
                     <ThemedText type="muted" style={styles.ritualFormLabel}>
-                      MY INTENTION
+                      INTENTION
                     </ThemedText>
                     <TextInput
                       style={styles.ritualFormInput}
