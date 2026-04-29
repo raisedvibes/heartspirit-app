@@ -1,6 +1,7 @@
 import { router } from "expo-router"
-import { View, StyleSheet, Pressable } from "react-native"
+import { View, StyleSheet, Pressable, Platform } from "react-native"
 import TranslucentCard from "@/components/ui/TranslucentCard"
+import { GLASS } from "@/components/ui/glass"
 import { ThemedText } from "@/components/themed-text"
 import {
   useRitualsStore,
@@ -40,7 +41,12 @@ function TodayToggle({
   )
 }
 
-export function RitualsWidget() {
+type RitualsWidgetProps = {
+  /** Home card CTA; default matches previous copy for any other use. */
+  ctaLabel?: string
+}
+
+export function RitualsWidget({ ctaLabel = "Add ritual" }: RitualsWidgetProps) {
   const rituals = useRitualsStore((s) => s.rituals)
   const today = todayISO()
 
@@ -60,7 +66,7 @@ export function RitualsWidget() {
           style={styles.addButton}
         >
           <ThemedText type="defaultSemiBold" style={styles.addButtonText}>
-            Add ritual
+            {ctaLabel}
           </ThemedText>
         </Pressable>
       </View>
@@ -141,13 +147,31 @@ const styles = StyleSheet.create({
   ritualName: { fontSize: 14 },
   tags: { fontSize: 11, marginTop: 2, opacity: 0.8 },
   toggle: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 11,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: GLASS.borderDark,
+    backgroundColor: GLASS.bgDark,
     alignItems: "center",
     justifyContent: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.22,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 3,
+      },
+      default: {},
+    }),
   },
-  toggleLabel: { fontSize: 16 },
+  toggleLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.86)",
+    letterSpacing: 0.3,
+  },
 })

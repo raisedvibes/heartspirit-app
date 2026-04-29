@@ -16,6 +16,7 @@ import { Audio, AVPlaybackStatus, ResizeMode, Video } from "expo-av"
 import ScreenContent from "@/components/layout/ScreenContent"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
+import { GLASS } from "@/components/ui/glass"
 import { ThemedText } from "@/components/themed-text"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 
@@ -858,9 +859,9 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     padding: 14,
     borderRadius: 16,
-    backgroundColor: "rgba(18, 24, 20, 0.52)",
+    backgroundColor: GLASS.bgDark,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
+    borderColor: GLASS.borderDark,
     gap: 12,
   },
 
@@ -961,9 +962,9 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     padding: 12,
     borderRadius: 14,
-    backgroundColor: "rgba(18, 24, 20, 0.52)",
+    backgroundColor: GLASS.bgDark,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
+    borderColor: GLASS.borderDark,
   },
 
   stepNumber: {
@@ -992,9 +993,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 14,
     borderRadius: 14,
-    backgroundColor: "rgba(18, 24, 20, 0.52)",
+    backgroundColor: GLASS.bgDark,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
+    borderColor: GLASS.borderDark,
   },
 
   mantraLabel: {
@@ -1011,9 +1012,9 @@ const styles = StyleSheet.create({
     marginTop: 18,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: "rgba(18, 24, 20, 0.52)",
+    backgroundColor: GLASS.bgDark,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
+    borderColor: GLASS.borderDark,
     gap: 12,
   },
 

@@ -73,7 +73,7 @@ export default function HomeScreen() {
             />
           ) : null}
 
-          <RitualsWidget />
+          <RitualsWidget ctaLabel="Manage" />
 
           <View style={styles.grid}>
             <CirclesWidget />

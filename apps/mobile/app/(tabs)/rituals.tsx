@@ -20,6 +20,7 @@ import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/Scree
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import BottomFade from "@/components/ui/BottomFade"
 import TranslucentCard from "../../components/ui/TranslucentCard"
+import { GLASS } from "@/components/ui/glass"
 import { ThemedText } from "@/components/themed-text"
 import {
   useRitualsStore,
@@ -498,9 +499,9 @@ export default function RitualsScreen() {
                       style={styles.ritualFormInput}
                       value={name}
                       onChangeText={setName}
-                      placeholder="i.e. Morning breathwork"
+                      placeholder="ex. Morning breathwork"
                       placeholderTextColor="rgba(255,255,255,0.48)"
-                      autoCapitalize="words"
+                      autoCapitalize="sentences"
                     />
                   </View>
 
@@ -512,7 +513,7 @@ export default function RitualsScreen() {
                       style={styles.ritualFormInput}
                       value={intention}
                       onChangeText={setIntention}
-                      placeholder="i.e. I tune in to my life force"
+                      placeholder="ex. I tune in to my life force"
                       placeholderTextColor="rgba(255,255,255,0.48)"
                     />
                   </View>
@@ -585,32 +586,80 @@ export default function RitualsScreen() {
         animationType="fade"
         onRequestClose={() => setMarkOpen(false)}
       >
-        <Pressable style={styles.modalBackdrop} onPress={() => setMarkOpen(false)}>
-          <Pressable style={styles.markPopover} onPress={(e) => e.stopPropagation()}>
-            <TranslucentCard style={styles.markCard}>
-              <View style={styles.markGrid}>
-                {[
-                  { label: "Yes", value: "yes" as const },
-                  { label: "No", value: "no" as const },
-                  { label: "Erase", value: undefined },
-                  { label: "Skip", value: "skip" as const },
-                ].map((btn) => (
-                  <Pressable
-                    key={btn.label}
-                    style={styles.markBtn}
-                    onPress={() => {
-                      if (activeRitualId && activeISO)
-                        setMark(activeRitualId, activeISO, btn.value ?? "empty")
-                      setMarkOpen(false)
-                    }}
-                  >
-                    <ThemedText type="defaultSemiBold">{btn.label}</ThemedText>
-                  </Pressable>
-                ))}
+        <View style={styles.ritualFormModalRoot}>
+          <BlurView
+            intensity={Platform.OS === "ios" ? 62 : 50}
+            tint="dark"
+            style={StyleSheet.absoluteFill}
+          />
+          <Pressable
+            accessibilityRole="button"
+            style={styles.ritualFormModalDim}
+            onPress={() => setMarkOpen(false)}
+          />
+          <View style={styles.ritualFormModalCenter} pointerEvents="box-none">
+            <Pressable onPress={(e) => e.stopPropagation()} style={styles.markTrackerShell}>
+              <View style={styles.ritualFormCardElevated}>
+                <TranslucentCard opacity={1.06} style={styles.markTrackerCardInner}>
+                  <View style={styles.markGrid}>
+                    <View style={styles.markRow}>
+                      <Pressable
+                        style={styles.markBtn}
+                        onPress={() => {
+                          if (activeRitualId && activeISO)
+                            setMark(activeRitualId, activeISO, "yes")
+                          setMarkOpen(false)
+                        }}
+                      >
+                        <ThemedText type="defaultSemiBold" style={styles.markBtnLabel}>
+                          Yes
+                        </ThemedText>
+                      </Pressable>
+                      <Pressable
+                        style={styles.markBtn}
+                        onPress={() => {
+                          if (activeRitualId && activeISO)
+                            setMark(activeRitualId, activeISO, "no")
+                          setMarkOpen(false)
+                        }}
+                      >
+                        <ThemedText type="defaultSemiBold" style={styles.markBtnLabel}>
+                          No
+                        </ThemedText>
+                      </Pressable>
+                    </View>
+                    <View style={styles.markRow}>
+                      <Pressable
+                        style={styles.markBtn}
+                        onPress={() => {
+                          if (activeRitualId && activeISO)
+                            setMark(activeRitualId, activeISO, "empty")
+                          setMarkOpen(false)
+                        }}
+                      >
+                        <ThemedText type="defaultSemiBold" style={styles.markBtnLabel}>
+                          Erase
+                        </ThemedText>
+                      </Pressable>
+                      <Pressable
+                        style={styles.markBtn}
+                        onPress={() => {
+                          if (activeRitualId && activeISO)
+                            setMark(activeRitualId, activeISO, "skip")
+                          setMarkOpen(false)
+                        }}
+                      >
+                        <ThemedText type="defaultSemiBold" style={styles.markBtnLabel}>
+                          Skip
+                        </ThemedText>
+                      </Pressable>
+                    </View>
+                  </View>
+                </TranslucentCard>
               </View>
-            </TranslucentCard>
-          </Pressable>
-        </Pressable>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <Modal
@@ -692,9 +741,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.25)",
+    backgroundColor: GLASS.bgDark,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: GLASS.borderDark,
   },
   addRitualText: { opacity: 0.9 },
   weekNavRow: {
@@ -1051,21 +1100,49 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   addSubmitButtonText: { color: "white" },
-  markPopover: { width: "100%", maxWidth: 360 },
-  markCard: { padding: 12 },
+  /** Tracker popup: narrower shell than full Add Ritual form — keeps 2×2 compact */
+  markTrackerShell: {
+    width: "100%",
+    maxWidth: 300,
+  },
+  /** Matches Add Ritual inner card border/radius; slightly tighter than full form for compact 2×2 */
+  markTrackerCardInner: {
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+    overflow: "hidden",
+  },
+  /** Two rows × two columns; explicit rows avoid RN % width + gap flexWrap issues. */
   markGrid: {
+    width: "100%",
+    flexDirection: "column",
+    gap: 12,
+    alignItems: "stretch",
+  },
+  markRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    justifyContent: "space-between",
+    gap: 12,
+    width: "100%",
+    alignItems: "stretch",
   },
   markBtn: {
-    width: "48%",
-    paddingVertical: 14,
-    borderRadius: 12,
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 16,
+    minHeight: 52,
+    borderRadius: 14,
     alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    backgroundColor: "rgba(0,0,0,0.10)",
+    borderColor: "rgba(255,255,255,0.22)",
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  markBtnLabel: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
 })
