@@ -2,6 +2,8 @@ import * as Notifications from "expo-notifications"
 import { Platform } from "react-native"
 
 const RITUAL_CHANNEL_ID = "ritual-reminders"
+const PRACTICE_TIMER_CHANNEL_ID = "practice-timer"
+const PRACTICE_TIMER_SOUND = "heartspirit-chime.mp3"
 
 export async function ensureNotifPermissions(): Promise<boolean> {
   const settings = await Notifications.getPermissionsAsync()
@@ -62,6 +64,16 @@ async function ensureRitualChannel() {
   }
 }
 
+async function ensurePracticeTimerChannel() {
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync(PRACTICE_TIMER_CHANNEL_ID, {
+      name: "Practice timer",
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: PRACTICE_TIMER_SOUND,
+    })
+  }
+}
+
 /**
  * Schedule a repeating daily notification for a ritual at the given time.
  * @returns Notification identifier, or null if permissions were denied.
@@ -100,20 +112,21 @@ export async function schedulePracticeTimerCompletion(
     return null
   }
 
-  await ensureRitualChannel()
+  await ensurePracticeTimerChannel()
 
   const safeSeconds = Math.max(1, Math.ceil(secondsUntilEnd))
   const id = await Notifications.scheduleNotificationAsync({
     content: {
       title,
       body,
-      ...(Platform.OS === "android" ? { channelId: RITUAL_CHANNEL_ID } : {}),
+      sound: PRACTICE_TIMER_SOUND,
+      ...(Platform.OS === "android" ? { channelId: PRACTICE_TIMER_CHANNEL_ID } : {}),
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: safeSeconds,
       repeats: false,
-      ...(Platform.OS === "android" ? { channelId: RITUAL_CHANNEL_ID } : {}),
+      ...(Platform.OS === "android" ? { channelId: PRACTICE_TIMER_CHANNEL_ID } : {}),
     },
   })
 

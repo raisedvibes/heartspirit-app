@@ -2,23 +2,14 @@ import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
 const AMBIENT_SOUNDS_ENABLED_KEY = "heartspirit.ambient_sounds.enabled"
-const AMBIENT_LAST_PLAYED_DAY_KEY = "heartspirit.ambient_sounds.last_played_day"
 
 const STARTUP_AMBIENCE = require("../assets/audio/Forest-creek-noise-and-singing-birds-relaxing-nature-sounds.mp3")
-const TARGET_VOLUME = 0.16
+const TARGET_VOLUME = 0.32
 const FADE_IN_MS = 500
 const FADE_OUT_AFTER_MS = 4000
 const FADE_OUT_MS = 900
 
 let startupPlayInFlight = false
-
-function todayLocalISO() {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, "0")
-  const d = String(now.getDate()).padStart(2, "0")
-  return `${y}-${m}-${d}`
-}
 
 async function fadeVolume(
   sound: Audio.Sound,
@@ -60,10 +51,6 @@ export async function playStartupAmbienceIfNeeded(): Promise<void> {
   const enabled = await getAmbientSoundsEnabled()
   if (!enabled) return
 
-  const today = todayLocalISO()
-  const alreadyPlayedToday = await AsyncStorage.getItem(AMBIENT_LAST_PLAYED_DAY_KEY)
-  if (alreadyPlayedToday === today) return
-
   startupPlayInFlight = true
   let sound: Audio.Sound | null = null
 
@@ -90,8 +77,6 @@ export async function playStartupAmbienceIfNeeded(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, FADE_OUT_AFTER_MS))
     await fadeVolume(sound, TARGET_VOLUME, 0, FADE_OUT_MS)
     await sound.stopAsync()
-
-    await AsyncStorage.setItem(AMBIENT_LAST_PLAYED_DAY_KEY, today)
   } catch (error) {
     console.log("[ambient] startup ambience failed", error)
   } finally {
