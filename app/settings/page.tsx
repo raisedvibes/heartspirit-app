@@ -214,7 +214,7 @@ export default function SettingsPage() {
           </div>
 
           <TranslucentCard>
-            <SectionHeader section="profile" icon={User} title="Profile & Contact" />
+            <SectionHeader section="profile" icon={User} title="Profile" />
             <div
               className={`overflow-hidden transition-all duration-300 ${
                 openSections.profile ? "max-h-[820px]" : "max-h-0"
