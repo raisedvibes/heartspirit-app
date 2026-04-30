@@ -12,7 +12,14 @@ import {
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
-import { Audio, AVPlaybackStatus, ResizeMode, Video } from "expo-av"
+import {
+  Audio,
+  AVPlaybackStatus,
+  InterruptionModeAndroid,
+  InterruptionModeIOS,
+  ResizeMode,
+  Video,
+} from "expo-av"
 
 import ScreenContent from "@/components/layout/ScreenContent"
 import TranslucentCard from "@/components/ui/TranslucentCard"
@@ -39,6 +46,7 @@ type PracticeRecord = {
   instruction_bullets: string[] | null
   mantra: string | null
   timer_minutes: number | null
+  timer_enabled?: boolean | null
   has_chime: boolean
   media_url: string | null
   audio_url: string | null
@@ -104,6 +112,9 @@ export default function PracticeDetailScreen() {
     return typeof raw === "number" && raw > 0 ? raw : null
   }, [practice])
 
+  const showPracticeTimer =
+    practice != null && practice.timer_enabled !== false && timerMinutes != null
+
   const hasChime = practice?.has_chime ?? true
 
   const unloadPracticeSound = useCallback(async () => {
@@ -159,7 +170,9 @@ export default function PracticeDetailScreen() {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
+        staysActiveInBackground: true,
+        interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
         shouldDuckAndroid: true,
         playThroughEarpieceAndroid: false,
       })
@@ -178,8 +191,9 @@ export default function PracticeDetailScreen() {
     try {
       const { sound } = await Audio.Sound.createAsync(
         { uri: CHIME_URL },
-        { shouldPlay: false, progressUpdateIntervalMillis: 250 }
+        { shouldPlay: false, progressUpdateIntervalMillis: 250, volume: 1 }
       )
+      await sound.setVolumeAsync(1)
       chimeSoundRef.current = sound
       return sound
     } catch (error) {
@@ -195,6 +209,7 @@ export default function PracticeDetailScreen() {
       const sound = await ensureChimeLoaded()
       if (!sound) return
 
+      await sound.setVolumeAsync(1)
       await sound.setPositionAsync(0)
       await sound.playAsync()
     } catch (error) {
@@ -353,7 +368,7 @@ export default function PracticeDetailScreen() {
       const { data, error } = await supabase
         .from("practices")
         .select(
-          "id, title, short_summary, description, duration, category, instruction_bullets, mantra, timer_minutes, has_chime, media_url, audio_url, media_type, cover_image, thumbnail_url"
+          "id, title, short_summary, description, duration, category, instruction_bullets, mantra, timer_minutes, timer_enabled, has_chime, media_url, audio_url, media_type, cover_image, thumbnail_url"
         )
         .eq("id", id)
         .single()
@@ -401,9 +416,12 @@ export default function PracticeDetailScreen() {
     setIsTimerRunning(false)
     setHasTimerStarted(false)
     setTimerEndAt(null)
-    setTimeLeft(timerMinutes ? timerMinutes * 60 : 0)
+    const allowed = practice?.timer_enabled !== false
+    setTimeLeft(
+      allowed && timerMinutes ? timerMinutes * 60 : 0
+    )
     void cancelTimerNotification()
-  }, [cancelTimerNotification, timerMinutes])
+  }, [cancelTimerNotification, timerMinutes, practice?.timer_enabled])
 
   useEffect(() => {
     let cancelled = false
@@ -554,7 +572,9 @@ export default function PracticeDetailScreen() {
                     </ThemedText>
 
                     <ThemedText type="muted" style={styles.practiceGuideText}>
-                      Start with guidance here, then continue with the practice timer below.
+                      {showPracticeTimer
+                        ? "Start with guidance here, then continue with the practice timer below."
+                        : "Start with guidance here."}
                     </ThemedText>
                     {usingCachedPractice ? (
                       <ThemedText type="muted" style={styles.cachedNotice}>
@@ -587,6 +607,8 @@ export default function PracticeDetailScreen() {
                             style={styles.video}
                             isLooping={false}
                             shouldPlay={showVideo}
+                            isMuted={false}
+                            volume={1}
                           />
                         )}
                       </View>
@@ -726,7 +748,7 @@ export default function PracticeDetailScreen() {
                       </View>
                     )}
 
-                    {timerMinutes ? (
+                    {showPracticeTimer ? (
                       <View style={styles.timerCard}>
                         <View style={styles.timerHeaderRow}>
                           <ThemedText type="defaultSemiBold" style={styles.timerLabel}>

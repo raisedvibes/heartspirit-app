@@ -13,7 +13,8 @@
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.raised-vibes.heartspirit",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["audio"]
       }
     },
     "android": {
