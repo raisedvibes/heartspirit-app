@@ -35,6 +35,7 @@ export async function GET() {
         instruction_bullets,
         mantra,
         timer_minutes,
+        timer_enabled,
         has_chime,
         practice_recommendations!practice_id(
           feeling_slug,

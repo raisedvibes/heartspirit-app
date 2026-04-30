@@ -120,6 +120,10 @@ export async function POST(req: Request) {
       updates.has_chime = typeof body.has_chime === "boolean" ? body.has_chime : true
     }
 
+    if ("timer_enabled" in body) {
+      updates.timer_enabled = typeof body.timer_enabled === "boolean" ? body.timer_enabled : true
+    }
+
     const recommendationAssignments =
       "recommendation_assignments" in body
         ? normalizeRecommendationAssignments(body.recommendation_assignments)
@@ -137,7 +141,7 @@ export async function POST(req: Request) {
       .update(updates)
       .eq("id", id)
       .select(
-        "id,title,description,category,duration,media_url,slug,tags,short_summary,audio_url,cover_image,updated_at,created_at,media_type,thumbnail_url,instruction_bullets,mantra,timer_minutes,has_chime"
+        "id,title,description,category,duration,media_url,slug,tags,short_summary,audio_url,cover_image,updated_at,created_at,media_type,thumbnail_url,instruction_bullets,mantra,timer_minutes,timer_enabled,has_chime"
       )
       .single()
 

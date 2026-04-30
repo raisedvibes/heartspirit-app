@@ -104,6 +104,7 @@ export async function POST(req: Request) {
       instruction_bullets: normalizeInstructionBullets(body?.instruction_bullets),
       mantra: normalizeString(body?.mantra),
       timer_minutes: timerMinutes,
+      timer_enabled: typeof body?.timer_enabled === "boolean" ? body.timer_enabled : true,
       has_chime: typeof body?.has_chime === "boolean" ? body.has_chime : true,
     }
 
@@ -111,7 +112,7 @@ export async function POST(req: Request) {
       .from("practices")
       .insert([payload])
       .select(
-        "id,title,description,category,duration,media_url,slug,tags,short_summary,audio_url,cover_image,updated_at,created_at,media_type,thumbnail_url,instruction_bullets,mantra,timer_minutes,has_chime"
+        "id,title,description,category,duration,media_url,slug,tags,short_summary,audio_url,cover_image,updated_at,created_at,media_type,thumbnail_url,instruction_bullets,mantra,timer_minutes,timer_enabled,has_chime"
       )
       .single()
 

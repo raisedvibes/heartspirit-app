@@ -36,6 +36,7 @@ interface Practice {
   instruction_bullets: string[] | null
   mantra: string | null
   timer_minutes: number | null
+  timer_enabled?: boolean
   has_chime: boolean
   practice_recommendations?: {
     feeling_slug: string
@@ -66,6 +67,7 @@ type Draft = {
   instruction_bullets: string
   mantra: string
   timer_minutes: string
+  timer_enabled: boolean
   has_chime: boolean
   recommendation_assignments: RecommendationAssignment[]
 }
@@ -86,6 +88,7 @@ const emptyDraft: Draft = {
   instruction_bullets: "",
   mantra: "",
   timer_minutes: "",
+  timer_enabled: true,
   has_chime: true,
   recommendation_assignments: [],
 }
@@ -129,6 +132,7 @@ function draftFromPractice(practice: Practice): Draft {
     instruction_bullets: (practice.instruction_bullets ?? []).join("\n"),
     mantra: practice.mantra ?? "",
     timer_minutes: practice.timer_minutes?.toString() ?? "",
+    timer_enabled: practice.timer_enabled !== false,
     has_chime: practice.has_chime ?? true,
     recommendation_assignments: (practice.practice_recommendations ?? []).map((item) => ({
       feeling_slug: item.feeling_slug ?? "",
@@ -240,6 +244,7 @@ export default function AdminPracticesPage() {
           instruction_bullets: parseBullets(createDraft.instruction_bullets),
           mantra: createDraft.mantra.trim() || null,
           timer_minutes: toNumberOrNull(createDraft.timer_minutes),
+          timer_enabled: createDraft.timer_enabled,
           has_chime: createDraft.has_chime,
           recommendation_assignments: createDraft.recommendation_assignments
             .map((item) => ({
@@ -300,6 +305,7 @@ export default function AdminPracticesPage() {
           instruction_bullets: parseBullets(editDraft.instruction_bullets),
           mantra: editDraft.mantra.trim() || null,
           timer_minutes: toNumberOrNull(editDraft.timer_minutes),
+          timer_enabled: editDraft.timer_enabled,
           has_chime: editDraft.has_chime,
           recommendation_assignments: editDraft.recommendation_assignments
             .map((item) => ({
@@ -662,6 +668,18 @@ function PracticeForm({
           className="mt-1 w-full rounded-xl border border-white/20 bg-black/20 px-4 py-2 text-white outline-none focus:border-white/35"
           placeholder="10"
         />
+      </div>
+
+      <div className="md:col-span-2 flex items-center gap-2 pt-1">
+        <input
+          id="timer_enabled"
+          type="checkbox"
+          checked={draft.timer_enabled}
+          onChange={(e) => setDraft((d) => ({ ...d, timer_enabled: e.target.checked }))}
+        />
+        <label htmlFor="timer_enabled" className="text-sm text-white/80">
+          Show timer on practice page
+        </label>
       </div>
 
       <div className="md:col-span-2">

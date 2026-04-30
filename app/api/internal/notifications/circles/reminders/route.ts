@@ -2,19 +2,28 @@ import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { sendCircleRemindersNow } from "@/lib/server/notifications/circles"
 
-function isAuthorized(req: Request): boolean {
-  const secret = process.env.INTERNAL_CRON_SECRET
-  if (!secret) return false
-
+function isAuthorized(req: Request, method: string): boolean {
   const auth = req.headers.get("authorization") || ""
   const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : ""
   const headerSecret = req.headers.get("x-internal-secret") || ""
 
-  return bearer === secret || headerSecret === secret
+  const internal = process.env.INTERNAL_CRON_SECRET
+  if (internal && (bearer === internal || headerSecret === internal)) {
+    return true
+  }
+
+  if (method === "GET") {
+    const cronSecret = process.env.CRON_SECRET
+    if (cronSecret && bearer === cronSecret) {
+      return true
+    }
+  }
+
+  return false
 }
 
-export async function POST(req: Request) {
-  if (!isAuthorized(req)) {
+async function runReminders(req: Request, method: string) {
+  if (!isAuthorized(req, method)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -31,4 +40,12 @@ export async function POST(req: Request) {
       { status: 500 }
     )
   }
+}
+
+export async function GET(req: Request) {
+  return runReminders(req, "GET")
+}
+
+export async function POST(req: Request) {
+  return runReminders(req, "POST")
 }
