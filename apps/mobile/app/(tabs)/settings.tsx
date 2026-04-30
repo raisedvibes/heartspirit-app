@@ -248,27 +248,27 @@ export default function SettingsScreen() {
           </View>
 
             <TranslucentCard style={styles.card}>
-              <SectionHeader section="about" iconName="spa" title="About Heartspirit" />
+              <SectionHeader section="about" iconName="favorite" title="About Heartspirit" />
               {openSections.about && (
                 <View style={styles.sectionBody}>
                   <View style={styles.aboutBody}>
                     <ThemedText type="muted" style={styles.aboutText}>
-                      Heartspirit is a verb, a living action of connecting with heart through spirit.
+                      Heartspirit (verb): to integrate the heart and spirit. 
                     </ThemedText>
                     <ThemedText type="muted" style={styles.aboutText}>
                       Your portal reconnects you with the rhythm and wisdom within.
                     </ThemedText>
                     <ThemedText type="muted" style={styles.aboutText}>
-                      It&apos;s a ritual of choosing presence to create a deeper relationship with spirit.
+                      It becomes a ritual of choosing presence, deepening your relationship with spirit.
                     </ThemedText>
                     <ThemedText type="muted" style={styles.aboutText}>
-                      It&apos;s an invitation to pause, breathe, and reset.
+                      An invitation to pause, breathe, and reset.
                     </ThemedText>
                     <ThemedText type="muted" style={styles.aboutText}>
-                      Here, truth and harmony returns.
+                      Here, power returns.
                     </ThemedText>
                     <ThemedText type="muted" style={styles.aboutText}>
-                      Created by Gabriel, a wellness guide who encourages simple ways to realign energy.
+                      Created by Gabriel, a wellness guide.
                     </ThemedText>
                   </View>
                 </View>
@@ -276,7 +276,7 @@ export default function SettingsScreen() {
             </TranslucentCard>
 
             <TranslucentCard style={styles.card}>
-              <SectionHeader section="profile" iconName="person" title="Profile & Contact" />
+              <SectionHeader section="profile" iconName="person" title="Profile" />
               {openSections.profile && (
                 <View style={styles.sectionBody}>
                   {profileLoading ? (
@@ -432,7 +432,7 @@ export default function SettingsScreen() {
                   )}
 
                   <ThemedText type="muted" style={styles.footnote}>
-                    We only use your contact info for account access and support. Your ritual history and
+                    We only use your contact info for account access. Your ritual history and
                     check-ins stay on your device.
                   </ThemedText>
                 </View>
@@ -449,7 +449,7 @@ export default function SettingsScreen() {
                         Community Circles
                       </ThemedText>
                       <ThemedText type="muted" style={styles.toggleSubtitle}>
-                        Circle activity and upcoming circle reminders
+                        New circles and upcoming circle reminders
                       </ThemedText>
                     </View>
                     <Switch
@@ -473,7 +473,7 @@ export default function SettingsScreen() {
                   </ThemedText>
                   <View style={styles.bulletList}>
                     <ThemedText type="muted" style={styles.bullet}>
-                      • Your email/contact info (for account access + support)
+                      • Your email/ contact info (for account access + support)
                     </ThemedText>
                     <ThemedText type="muted" style={styles.bullet}>
                       • App content you stream is delivered from our servers
@@ -488,7 +488,7 @@ export default function SettingsScreen() {
                   </ThemedText>
                   <View style={styles.bulletList}>
                     <ThemedText type="muted" style={styles.bullet}>
-                      • Your ritual history and check-ins are not stored on our servers
+                      • Your ritual history are not stored on our servers
                     </ThemedText>
                     <ThemedText type="muted" style={styles.bullet}>
                       • We don't sell your personal data
@@ -501,7 +501,7 @@ export default function SettingsScreen() {
                         Save my history on this device
                       </ThemedText>
                       <ThemedText type="muted" style={styles.toggleSubtitle}>
-                        Keeps your check-ins and ritual history stored locally.
+                        Keeps your ritual history stored locally.
                       </ThemedText>
                     </View>
                     <Switch value={saveHistoryOnDevice} onValueChange={setSaveHistoryOnDevice} />
