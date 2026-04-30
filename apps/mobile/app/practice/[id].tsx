@@ -35,6 +35,7 @@ import { getOfflineCacheData, OfflineCacheKeys, setOfflineCache } from "@/lib/of
 
 const CHIME_URL =
   "https://tajqnuta9fwavw6h.public.blob.vercel-storage.com/triangle-percussion-ding-smartsound-fx-3-3-00-03.mp3"
+const SILENT_LOOP_SOURCE = require("@/assets/audio/silence.mp3")
 
 type PracticeRecord = {
   id: string
@@ -83,6 +84,7 @@ export default function PracticeDetailScreen() {
   const [audioLoading, setAudioLoading] = useState(false)
   const [audioError, setAudioError] = useState<string | null>(null)
   const [isAudioPlaying, setIsAudioPlaying] = useState(false)
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const [audioPositionMillis, setAudioPositionMillis] = useState(0)
   const [audioDurationMillis, setAudioDurationMillis] = useState(0)
 
@@ -94,6 +96,8 @@ export default function PracticeDetailScreen() {
 
   const practiceSoundRef = useRef<Audio.Sound | null>(null)
   const chimeSoundRef = useRef<Audio.Sound | null>(null)
+  const silentSoundRef = useRef<Audio.Sound | null>(null)
+  const silentLoopStartedByTimerRef = useRef(false)
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerNotificationIdRef = useRef<string | null>(null)
 
@@ -147,6 +151,51 @@ export default function PracticeDetailScreen() {
       chimeSoundRef.current = null
     }
   }, [])
+
+  const stopSilentLoopForTimer = useCallback(async () => {
+    const currentSound = silentSoundRef.current
+    if (!currentSound) {
+      silentLoopStartedByTimerRef.current = false
+      return
+    }
+
+    try {
+      await currentSound.stopAsync()
+      await currentSound.unloadAsync()
+    } catch (error) {
+      console.log("[practice silence] stop failed", error)
+    } finally {
+      silentSoundRef.current = null
+      silentLoopStartedByTimerRef.current = false
+    }
+  }, [])
+
+  const ensureSilentLoopForTimer = useCallback(async () => {
+    if (isAudioPlaying || isVideoPlaying) return
+    if (silentSoundRef.current) return
+
+    try {
+      const { sound } = await Audio.Sound.createAsync(SILENT_LOOP_SOURCE, {
+        shouldPlay: true,
+        isLooping: true,
+        volume: 0,
+        progressUpdateIntervalMillis: 1000,
+      })
+      await sound.setIsLoopingAsync(true)
+      await sound.setVolumeAsync(0)
+      await sound.playAsync()
+      silentSoundRef.current = sound
+      silentLoopStartedByTimerRef.current = true
+    } catch (error) {
+      console.log("[practice silence] failed to start", error)
+    }
+  }, [isAudioPlaying, isVideoPlaying])
+
+  useEffect(() => {
+    if ((isAudioPlaying || isVideoPlaying) && silentSoundRef.current) {
+      void stopSilentLoopForTimer()
+    }
+  }, [isAudioPlaying, isVideoPlaying, stopSilentLoopForTimer])
 
   const stopTimerInterval = useCallback(() => {
     if (timerIntervalRef.current) {
@@ -321,6 +370,7 @@ export default function PracticeDetailScreen() {
     setHasTimerStarted(true)
     setIsTimerRunning(true)
 
+    await ensureSilentLoopForTimer()
     await cancelTimerNotification()
     timerNotificationIdRef.current = await schedulePracticeTimerCompletion(
       "Practice complete",
@@ -328,23 +378,32 @@ export default function PracticeDetailScreen() {
       baseSeconds
     )
     await playChime()
-  }, [cancelTimerNotification, playChime, practice?.title, timeLeft, timerMinutes])
+  }, [
+    cancelTimerNotification,
+    ensureSilentLoopForTimer,
+    playChime,
+    practice?.title,
+    timeLeft,
+    timerMinutes,
+  ])
 
   const pauseTimer = useCallback(async () => {
     const remaining = getRemainingFromEndAt(timerEndAt)
     setTimeLeft(remaining)
     setTimerEndAt(null)
     setIsTimerRunning(false)
+    await stopSilentLoopForTimer()
     await cancelTimerNotification()
-  }, [cancelTimerNotification, getRemainingFromEndAt, timerEndAt])
+  }, [cancelTimerNotification, getRemainingFromEndAt, stopSilentLoopForTimer, timerEndAt])
 
   const resetTimer = useCallback(async () => {
     setIsTimerRunning(false)
     setHasTimerStarted(false)
     setTimerEndAt(null)
     setTimeLeft(timerMinutes ? timerMinutes * 60 : 0)
+    await stopSilentLoopForTimer()
     await cancelTimerNotification()
-  }, [cancelTimerNotification, timerMinutes])
+  }, [cancelTimerNotification, stopSilentLoopForTimer, timerMinutes])
 
   useEffect(() => {
     let cancelled = false
@@ -463,6 +522,7 @@ export default function PracticeDetailScreen() {
         stopTimerInterval()
         setTimerEndAt(null)
         setIsTimerRunning(false)
+        void stopSilentLoopForTimer()
         void cancelTimerNotification()
         void playChime()
       }
@@ -479,6 +539,7 @@ export default function PracticeDetailScreen() {
     getRemainingFromEndAt,
     isTimerRunning,
     playChime,
+    stopSilentLoopForTimer,
     stopTimerInterval,
     timerEndAt,
   ])
@@ -498,8 +559,15 @@ export default function PracticeDetailScreen() {
       void cancelTimerNotification()
       void unloadPracticeSound()
       void unloadChimeSound()
+      void stopSilentLoopForTimer()
     }
-  }, [cancelTimerNotification, stopTimerInterval, unloadPracticeSound, unloadChimeSound])
+  }, [
+    cancelTimerNotification,
+    stopSilentLoopForTimer,
+    stopTimerInterval,
+    unloadPracticeSound,
+    unloadChimeSound,
+  ])
 
   return (
     <View style={styles.root}>
@@ -609,6 +677,13 @@ export default function PracticeDetailScreen() {
                             shouldPlay={showVideo}
                             isMuted={false}
                             volume={1}
+                            onPlaybackStatusUpdate={(status) => {
+                              if (!status.isLoaded) {
+                                setIsVideoPlaying(false)
+                                return
+                              }
+                              setIsVideoPlaying(status.isPlaying)
+                            }}
                           />
                         )}
                       </View>
