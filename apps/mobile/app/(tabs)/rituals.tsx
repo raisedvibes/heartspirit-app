@@ -921,7 +921,7 @@ const styles = StyleSheet.create({
   },
   ritualFormScrollContent: {
     flexGrow: 1,
-    paddingBottom: 4,
+    paddingBottom: 20,
   },
   ritualFormTitle: {
     fontSize: 22,

@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { ActivityIndicator, View } from "react-native"
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native"
 import { Stack } from "expo-router"
@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from "@/lib/auth"
 import { registerPushToken } from "@/lib/pushTokenRegistration"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import { playStartupAmbienceIfNeeded } from "@/lib/ambientSounds"
+import IntroScreen from "@/components/IntroScreen"
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -49,6 +50,7 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme()
+  const [showIntro, setShowIntro] = useState(true)
 
   useEffect(() => {
     registerPushToken().catch(() => {})
@@ -75,8 +77,11 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthProvider>
-        <RootLayoutNav />
-        <StatusBar style="auto" />
+        <View style={{ flex: 1 }}>
+          <RootLayoutNav />
+          <StatusBar style="auto" />
+          {showIntro ? <IntroScreen onFinish={() => setShowIntro(false)} /> : null}
+        </View>
       </AuthProvider>
     </ThemeProvider>
   )

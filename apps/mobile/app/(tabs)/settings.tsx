@@ -252,24 +252,26 @@ export default function SettingsScreen() {
               {openSections.about && (
                 <View style={styles.sectionBody}>
                   <View style={styles.aboutBody}>
-                    <ThemedText type="muted" style={styles.aboutText}>
-                      Heartspirit (verb): to integrate the heart and spirit. 
-                    </ThemedText>
-                    <ThemedText type="muted" style={styles.aboutText}>
-                      Your portal reconnects you with the rhythm and wisdom within.
-                    </ThemedText>
-                    <ThemedText type="muted" style={styles.aboutText}>
-                      It becomes a ritual of choosing presence, deepening your relationship with spirit.
-                    </ThemedText>
-                    <ThemedText type="muted" style={styles.aboutText}>
-                      An invitation to pause, breathe, and reset.
-                    </ThemedText>
-                    <ThemedText type="muted" style={styles.aboutText}>
-                      Here, power returns.
-                    </ThemedText>
-                    <ThemedText type="muted" style={styles.aboutText}>
-                      Created by Gabriel, a wellness guide.
-                    </ThemedText>
+                  <ThemedText type="muted" style={styles.aboutText}>
+  Heartspirit (verb): to integrate the heart and spirit.
+</ThemedText>
+
+<ThemedText type="muted" style={styles.aboutText}>
+  A return to your natural rhythm.{"\n"}
+  A remembering of the wisdom within.
+</ThemedText>
+
+<ThemedText type="muted" style={styles.aboutText}>
+  Ritual, a way of choosing presence, deepening your connection to spirit.
+</ThemedText>
+
+<ThemedText type="muted" style={styles.aboutText}>
+  Here, power returns.
+</ThemedText>
+
+<ThemedText type="muted" style={styles.aboutText}>
+  Created by Gabriel, a wellness guide.
+</ThemedText>
                   </View>
                 </View>
               )}
