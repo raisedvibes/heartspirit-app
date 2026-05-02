@@ -102,6 +102,21 @@ const CUSTOM_SLOT_ORDER: Record<CustomSlotSlug, number> = {
   custom_4: 3,
 }
 
+/** Custom placements only: unwrap PostgREST embed if returned as an array. */
+function unwrapCustomPractice(raw: unknown): PracticeSummary | null {
+  if (raw == null) return null
+  if (Array.isArray(raw)) {
+    const first = raw.find((x) => x && typeof x === "object" && x !== null && "id" in x) as
+      | PracticeSummary
+      | undefined
+    return first ?? null
+  }
+  if (typeof raw === "object" && raw !== null && "id" in raw) {
+    return raw as PracticeSummary
+  }
+  return null
+}
+
 function toLocalStartOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
 }
@@ -414,12 +429,14 @@ export default function EnergyCheckScreen() {
               )
             `)
             .eq("placement_group", "custom")
+            .is("season_key", null)
             .eq("is_active", true),
 
           supabase
             .from("energy_section_settings")
             .select("section_key, title, subtitle, is_active")
             .eq("section_key", "custom")
+            .limit(1)
             .maybeSingle(),
         ])
 
@@ -457,9 +474,17 @@ export default function EnergyCheckScreen() {
             return aOrder - bOrder
           })
 
-      const normalizeCustomRows = (rows: PlacementRow[]) =>
+      const normalizeCustomRows = (rows: unknown[]) =>
         rows
-          .filter((row) => row.practice?.id)
+          .map((raw) => {
+            const row = raw as Record<string, unknown>
+            return {
+              slot_slug: row.slot_slug as CustomSlotSlug,
+              sort_order: Number(row.sort_order ?? 0),
+              practice: unwrapCustomPractice(row.practice),
+            } as PlacementRow
+          })
+          .filter((row) => Boolean(row.practice?.id))
           .sort((a, b) => {
             const aOrder = CUSTOM_SLOT_ORDER[a.slot_slug as CustomSlotSlug] ?? 999
             const bOrder = CUSTOM_SLOT_ORDER[b.slot_slug as CustomSlotSlug] ?? 999
@@ -469,7 +494,7 @@ export default function EnergyCheckScreen() {
       let usedCache = false
       let normalizedToday = normalizeTodayRows((todayData as PlacementRow[] | null) ?? [])
       let normalizedSeasonal = normalizeSeasonalRows((seasonalData as PlacementRow[] | null) ?? [])
-      let normalizedCustom = normalizeCustomRows((customData as PlacementRow[] | null) ?? [])
+      let normalizedCustom = normalizeCustomRows((customData as unknown[] | null) ?? [])
 
       if (todayError) {
         const cachedToday = await getOfflineCacheData<PlacementRow[]>(todayCacheKey)
@@ -497,8 +522,10 @@ export default function EnergyCheckScreen() {
       setTodayPlacements(normalizedToday)
       setSeasonalPlacements(normalizedSeasonal)
       setCustomPlacements(normalizedCustom)
+      const sectionTitle =
+        typeof customSectionData?.title === "string" ? customSectionData.title.trim() : ""
       setCustomSection({
-        title: customSectionData?.title ?? "",
+        title: sectionTitle,
         subtitle: customSectionData?.subtitle ?? null,
         is_active: customSectionData?.is_active === true,
       })
