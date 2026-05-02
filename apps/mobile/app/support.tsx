@@ -20,10 +20,10 @@ export default function SupportScreen() {
         style={styles.bg}
         resizeMode="cover"
       >
-        <ScreenContent noTabPadding>
+        <ScreenContent bottomPaddingOverride={0}>
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.header}>

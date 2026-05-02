@@ -15,7 +15,6 @@ import {
   useTabHeaderScroll,
 } from "@/contexts/TabHeaderScrollContext"
 import { ThemedText } from "@/components/themed-text"
-import { GLASS } from "@/components/ui/glass"
 import { IconSymbol } from "@/components/ui/icon-symbol"
 
 const HOME_LOGO_TRANSLATE_UP = -14
@@ -86,9 +85,9 @@ function TabLayoutContent() {
             tabBarActiveTintColor: "rgba(255,255,255,0.92)",
             tabBarInactiveTintColor: "rgba(255,255,255,0.45)",
             tabBarStyle: {
-              backgroundColor: "rgba(10,20,16,0.78)",
-              borderTopColor: GLASS.borderDark,
+              backgroundColor: "#020806",
               borderTopWidth: 1,
+              borderTopColor: "rgba(255,255,255,0.10)",
               height: 56 + insets.bottom,
               paddingBottom: insets.bottom,
               ...(Platform.OS === "android" && { elevation: 0 }),

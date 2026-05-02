@@ -578,10 +578,13 @@ export default function PracticeDetailScreen() {
         style={styles.bg}
         resizeMode="cover"
       >
-        <ScreenContent bottomPaddingOverride={10}>
+        <ScreenContent bottomPaddingOverride={0}>
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: insets.bottom + 20 },
+            ]}
             showsVerticalScrollIndicator={false}
           >
             <View style={[styles.contentWrap, { minHeight: contentMinHeight }]}>
@@ -890,7 +893,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingTop: 8,
-    paddingBottom: 50,
   },
 
   contentWrap: {

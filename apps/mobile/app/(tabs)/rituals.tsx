@@ -18,7 +18,7 @@ import Animated from "react-native-reanimated"
 import * as Notifications from "expo-notifications"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/ScreenContent"
+import ScreenContent, { TAB_BAR_HEIGHT } from "@/components/layout/ScreenContent"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import BottomFade from "@/components/ui/BottomFade"
 import TranslucentCard from "../../components/ui/TranslucentCard"
@@ -221,7 +221,10 @@ export default function RitualsScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenContent animatedOuterStyle={animatedScreenOuterStyle}>
+      <ScreenContent
+        animatedOuterStyle={animatedScreenOuterStyle}
+        bottomPaddingOverride={0}
+      >
         <View style={styles.inner}>
           <Animated.FlatList<RitualsListRow>
             ref={flatListRef}
@@ -229,7 +232,10 @@ export default function RitualsScreen() {
             keyExtractor={(item) => (item as { id: string }).id}
             style={{ flex: 1 }}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.listContent, { paddingBottom: getTabBarBottomPadding(insets) }]}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 8 },
+            ]}
             stickyHeaderIndices={[1]}
             onScroll={scrollHandler}
             scrollEventThrottle={16}

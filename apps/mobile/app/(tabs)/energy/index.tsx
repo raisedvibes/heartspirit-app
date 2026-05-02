@@ -10,7 +10,7 @@ import { Image } from "expo-image"
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { router } from "expo-router"
-import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/ScreenContent"
+import ScreenContent, { TAB_BAR_HEIGHT } from "@/components/layout/ScreenContent"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import { ThemedText } from "@/components/themed-text"
@@ -300,9 +300,9 @@ export default function EnergyCheckScreen() {
   const [seasonalPlacements, setSeasonalPlacements] = useState<PlacementRow[]>([])
   const [customPlacements, setCustomPlacements] = useState<PlacementRow[]>([])
   const [customSection, setCustomSection] = useState<CustomSection>({
-    title: "Heart Practices",
+    title: "",
     subtitle: null,
-    is_active: true,
+    is_active: false,
   })
   const [loadingPlacements, setLoadingPlacements] = useState(true)
   const [usingCachedPlacements, setUsingCachedPlacements] = useState(false)
@@ -498,9 +498,9 @@ export default function EnergyCheckScreen() {
       setSeasonalPlacements(normalizedSeasonal)
       setCustomPlacements(normalizedCustom)
       setCustomSection({
-        title: customSectionData?.title ?? "Heart Practices",
+        title: customSectionData?.title ?? "",
         subtitle: customSectionData?.subtitle ?? null,
-        is_active: customSectionData?.is_active ?? true,
+        is_active: customSectionData?.is_active === true,
       })
       setUsingCachedPlacements(usedCache)
       setLoadingPlacements(false)
@@ -524,19 +524,25 @@ export default function EnergyCheckScreen() {
   }, [season])
 
   const shouldRenderCustomSection = useMemo(() => {
-    const hasTitle = !!customSection.title?.trim()
-    const hasPractices = customPlacements.length > 0
-    return customSection.is_active && hasTitle && hasPractices
+    const titleOk = (customSection.title?.trim().length ?? 0) > 0
+    return (
+      customSection.is_active === true &&
+      titleOk &&
+      customPlacements.length > 0
+    )
   }, [customPlacements.length, customSection.is_active, customSection.title])
 
   return (
     <View style={styles.root}>
-      <ScreenContent animatedOuterStyle={animatedScreenOuterStyle}>
+      <ScreenContent
+        animatedOuterStyle={animatedScreenOuterStyle}
+        bottomPaddingOverride={0}
+      >
         <Animated.ScrollView
           style={styles.mainScroll}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: getTabBarBottomPadding(insets), flexGrow: 1 },
+            { paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 8, flexGrow: 1 },
           ]}
           showsVerticalScrollIndicator={false}
           onScroll={scrollHandler}

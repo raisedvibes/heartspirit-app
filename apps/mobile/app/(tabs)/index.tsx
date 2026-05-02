@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { View, StyleSheet } from "react-native"
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import ScreenContent, { getTabBarBottomPadding } from "@/components/layout/ScreenContent"
+import ScreenContent, { TAB_BAR_HEIGHT } from "@/components/layout/ScreenContent"
 import { CirclesWidget } from "@/components/dashboard/Circles"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import { RitualsWidget } from "@/components/dashboard/RitualsWidget"
@@ -53,12 +53,18 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenContent animatedOuterStyle={animatedScreenOuterStyle}>
+      <ScreenContent
+        animatedOuterStyle={animatedScreenOuterStyle}
+        bottomPaddingOverride={0}
+      >
         <Animated.ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: getTabBarBottomPadding(insets), flexGrow: 1 },
+            {
+              paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 8,
+              flexGrow: 1,
+            },
           ]}
           showsVerticalScrollIndicator={false}
           onScroll={scrollHandler}
