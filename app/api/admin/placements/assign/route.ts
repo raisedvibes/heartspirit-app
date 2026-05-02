@@ -8,7 +8,7 @@ const supabase = createClient(
 )
 
 type AssignBody = {
-  placement_group: "today" | "season"
+  placement_group: "today" | "season" | "custom"
   slot_slug: string
   season_key?: string | null
   practice_id: string | null
@@ -25,6 +25,13 @@ const SEASONAL_SLOT_ORDER: Record<string, number> = {
   seasonal_2: 1,
   seasonal_3: 2,
   seasonal_4: 3,
+}
+
+const CUSTOM_SLOT_ORDER: Record<string, number> = {
+  custom_1: 0,
+  custom_2: 1,
+  custom_3: 2,
+  custom_4: 3,
 }
 
 export async function POST(req: Request) {
@@ -62,7 +69,9 @@ export async function POST(req: Request) {
     const sortOrder =
       placement_group === "today"
         ? TODAY_SLOT_ORDER[slot_slug] ?? 0
-        : SEASONAL_SLOT_ORDER[slot_slug] ?? 0
+        : placement_group === "season"
+          ? SEASONAL_SLOT_ORDER[slot_slug] ?? 0
+          : CUSTOM_SLOT_ORDER[slot_slug] ?? 0
 
     let deactivateQuery = supabase
       .from("practice_placements")

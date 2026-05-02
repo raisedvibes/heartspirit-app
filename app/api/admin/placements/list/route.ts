@@ -18,7 +18,7 @@ export async function GET() {
   }
 
   try {
-    const [practicesRes, todayRes, seasonalRes] = await Promise.all([
+    const [practicesRes, todayRes, seasonalRes, customRes, customSectionRes] = await Promise.all([
       supabase
         .from("practices")
         .select("id, title, duration, short_summary")
@@ -58,6 +58,29 @@ export async function GET() {
         `)
         .eq("placement_group", "season")
         .eq("is_active", true),
+
+      supabase
+        .from("practice_placements")
+        .select(`
+          id,
+          slot_slug,
+          sort_order,
+          practice_id,
+          practice:practices (
+            id,
+            title,
+            duration,
+            short_summary
+          )
+        `)
+        .eq("placement_group", "custom")
+        .eq("is_active", true),
+
+      supabase
+        .from("energy_section_settings")
+        .select("section_key, title, subtitle, is_active")
+        .eq("section_key", "custom")
+        .maybeSingle(),
     ])
 
     if (practicesRes.error) {
@@ -81,11 +104,33 @@ export async function GET() {
       )
     }
 
+    if (customRes.error) {
+      return NextResponse.json(
+        { error: customRes.error.message },
+        { status: 500 }
+      )
+    }
+
+    if (customSectionRes.error) {
+      return NextResponse.json(
+        { error: customSectionRes.error.message },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json(
       {
         practices: practicesRes.data ?? [],
         todayPlacements: todayRes.data ?? [],
         seasonalPlacements: seasonalRes.data ?? [],
+        customPlacements: customRes.data ?? [],
+        customSection:
+          customSectionRes.data ?? {
+            section_key: "custom",
+            title: "Heart Practices",
+            subtitle: null,
+            is_active: true,
+          },
       },
       { status: 200 }
     )

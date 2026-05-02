@@ -20,6 +20,12 @@ type PlacementRow = {
   season_key?: string | null
 }
 
+type CustomSection = {
+  title: string
+  subtitle: string | null
+  is_active: boolean
+}
+
 const TODAY_SLOTS: { slug: string; label: string; description: string }[] = [
   { slug: "open_the_portal", label: "Open the Portal", description: "Morning" },
   { slug: "hold_the_frequency", label: "Hold the Frequency", description: "Midday" },
@@ -31,6 +37,13 @@ const SEASONAL_SLOTS: { slug: string; label: string }[] = [
   { slug: "seasonal_2", label: "Seasonal 2" },
   { slug: "seasonal_3", label: "Seasonal 3" },
   { slug: "seasonal_4", label: "Seasonal 4" },
+]
+
+const CUSTOM_SLOTS: { slug: string; label: string }[] = [
+  { slug: "custom_1", label: "Custom 1" },
+  { slug: "custom_2", label: "Custom 2" },
+  { slug: "custom_3", label: "Custom 3" },
+  { slug: "custom_4", label: "Custom 4" },
 ]
 
 const SEASONS = [
@@ -142,7 +155,13 @@ export default function AdminPlacementsPage() {
   const [practices, setPractices] = useState<Practice[]>([])
   const [todayPlacements, setTodayPlacements] = useState<PlacementRow[]>([])
   const [seasonalPlacements, setSeasonalPlacements] = useState<PlacementRow[]>([])
+  const [customPlacements, setCustomPlacements] = useState<PlacementRow[]>([])
   const [selectedSeason, setSelectedSeason] = useState("spring")
+  const [customSection, setCustomSection] = useState<CustomSection>({
+    title: "Heart Practices",
+    subtitle: null,
+    is_active: true,
+  })
 
   async function fetchData() {
     setLoading(true)
@@ -162,11 +181,18 @@ export default function AdminPlacementsPage() {
       setPractices(data.practices ?? [])
       setTodayPlacements(data.todayPlacements ?? [])
       setSeasonalPlacements(data.seasonalPlacements ?? [])
+      setCustomPlacements(data.customPlacements ?? [])
+      setCustomSection({
+        title: data.customSection?.title ?? "Heart Practices",
+        subtitle: data.customSection?.subtitle ?? null,
+        is_active: data.customSection?.is_active ?? true,
+      })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred")
       setPractices([])
       setTodayPlacements([])
       setSeasonalPlacements([])
+      setCustomPlacements([])
     } finally {
       setLoading(false)
     }
@@ -177,7 +203,7 @@ export default function AdminPlacementsPage() {
   }, [])
 
   async function assignSlot(
-    placementGroup: "today" | "season",
+    placementGroup: "today" | "season" | "custom",
     slotSlug: string,
     seasonKey: string | null,
     practiceId: string
@@ -221,6 +247,33 @@ export default function AdminPlacementsPage() {
         (row) => row.slot_slug === slotSlug && row.season_key === selectedSeason
       ) ?? null
     )
+  }
+
+  function getCustomPlacement(slotSlug: string): PlacementRow | null {
+    return customPlacements.find((row) => row.slot_slug === slotSlug) ?? null
+  }
+
+  async function saveCustomSection() {
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/admin/placements/custom-section", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: customSection.title,
+          subtitle: customSection.subtitle,
+          is_active: customSection.is_active,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to save custom section")
+      await fetchData()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save custom section")
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -325,6 +378,75 @@ export default function AdminPlacementsPage() {
                     onSave={(practiceId) =>
                       assignSlot("season", slot.slug, selectedSeason, practiceId)
                     }
+                    saving={saving}
+                  />
+                ))}
+              </div>
+            </section>
+
+            <section className="glass-card p-4">
+              <h2 className="mb-2 text-lg font-medium text-white">Custom Section</h2>
+              <p className="mb-4 text-sm text-white/60">
+                Optional configurable section shown after Seasonal on mobile Energy.
+              </p>
+
+              <div className="mb-4 space-y-3 rounded-xl border border-white/10 bg-black/10 p-4">
+                <div>
+                  <div className="mb-1 text-xs uppercase tracking-wide text-white/45">Section Title</div>
+                  <input
+                    value={customSection.title}
+                    onChange={(e) =>
+                      setCustomSection((prev) => ({ ...prev, title: e.target.value }))
+                    }
+                    className="w-full rounded-xl border border-white/20 bg-black/20 px-4 py-2 text-white outline-none focus:border-white/35"
+                    placeholder="Heart Practices"
+                  />
+                </div>
+                <div>
+                  <div className="mb-1 text-xs uppercase tracking-wide text-white/45">Section Subtitle (optional)</div>
+                  <input
+                    value={customSection.subtitle ?? ""}
+                    onChange={(e) =>
+                      setCustomSection((prev) => ({
+                        ...prev,
+                        subtitle: e.target.value || null,
+                      }))
+                    }
+                    className="w-full rounded-xl border border-white/20 bg-black/20 px-4 py-2 text-white outline-none focus:border-white/35"
+                    placeholder="Optional"
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm text-white/80">
+                  <input
+                    type="checkbox"
+                    checked={customSection.is_active}
+                    onChange={(e) =>
+                      setCustomSection((prev) => ({ ...prev, is_active: e.target.checked }))
+                    }
+                  />
+                  Active
+                </label>
+                <div>
+                  <button
+                    type="button"
+                    onClick={saveCustomSection}
+                    disabled={saving}
+                    className="glass-btn flex items-center justify-center gap-2 px-3 py-2 text-sm disabled:opacity-50"
+                  >
+                    <Check className="size-4" />
+                    {saving ? "Saving…" : "Save Section"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {CUSTOM_SLOTS.map((slot) => (
+                  <SlotAssignmentRow
+                    key={slot.slug}
+                    slotLabel={slot.label}
+                    currentPlacement={getCustomPlacement(slot.slug)}
+                    practices={practices}
+                    onSave={(practiceId) => assignSlot("custom", slot.slug, null, practiceId)}
                     saving={saving}
                   />
                 ))}
