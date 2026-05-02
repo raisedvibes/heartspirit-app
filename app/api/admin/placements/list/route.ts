@@ -70,16 +70,21 @@ export async function GET() {
             id,
             title,
             duration,
-            short_summary
+            short_summary,
+            timer_minutes,
+            cover_image,
+            thumbnail_url
           )
         `)
         .eq("placement_group", "custom")
+        .is("season_key", null)
         .eq("is_active", true),
 
       supabase
         .from("energy_section_settings")
         .select("section_key, title, subtitle, is_active")
         .eq("section_key", "custom")
+        .limit(1)
         .maybeSingle(),
     ])
 
