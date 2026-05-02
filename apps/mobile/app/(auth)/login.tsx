@@ -93,9 +93,9 @@ export default function LoginScreen() {
         resizeMode="cover"
         onError={onBackgroundError}
       >
-        <View style={styles.overlay} />
+        <View pointerEvents="none" style={styles.backgroundOverlay} />
 
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -145,7 +145,7 @@ export default function LoginScreen() {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="Enter your email"
-                  placeholderTextColor="rgba(255,255,255,0.48)"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -161,7 +161,7 @@ export default function LoginScreen() {
                     value={password}
                     onChangeText={setPassword}
                     placeholder="Enter your password"
-                    placeholderTextColor="rgba(255,255,255,0.48)"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
                     secureTextEntry={!showPassword}
                     editable={!loading}
                   />
@@ -216,12 +216,12 @@ const styles = StyleSheet.create({
 
   bg: { flex: 1 },
 
-  overlay: {
+  backgroundOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.16)",
+    backgroundColor: "rgba(0,0,0,0.28)",
   },
 
-  safe: { flex: 1 },
+  safeArea: { flex: 1 },
 
   scrollContent: {
     paddingHorizontal: 20,
@@ -241,8 +241,8 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     textAlign: "center",
     letterSpacing: 0.4,
-    textShadowColor: "rgba(0,0,0,0.9)",
-    textShadowOffset: { width: 0, height: 2 },
+    textShadowColor: "rgba(0,0,0,0.85)",
+    textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 12,
   },
 
@@ -253,8 +253,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "rgba(255,255,255,0.88)",
     letterSpacing: 0.3,
-    textShadowColor: "rgba(0,0,0,0.9)",
-    textShadowOffset: { width: 0, height: 2 },
+    textShadowColor: "rgba(0,0,0,0.85)",
+    textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 12,
   },
 
@@ -299,15 +299,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 7,
     marginTop: 10,
+    color: "rgba(255,255,255,0.85)",
   },
 
   input: {
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
     fontSize: 17,
-    color: "white",
+    color: "rgba(255,255,255,0.9)",
   },
 
   passwordRow: {
@@ -315,13 +318,15 @@ const styles = StyleSheet.create({
   },
 
   inputWithToggle: {
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
     paddingRight: 46,
     fontSize: 17,
-    color: "white",
+    color: "rgba(255,255,255,0.9)",
   },
 
   toggleButton: {
@@ -344,10 +349,33 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "rgba(120, 170, 140, 0.65)",
     alignItems: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#050a08",
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.32,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 6,
+      },
+      default: {},
+    }),
   },
 
   submitButtonDisabled: {
     opacity: 0.55,
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        shadowOffset: { width: 0, height: 0 },
+      },
+      android: {
+        elevation: 0,
+      },
+      default: {},
+    }),
   },
 
   submitText: {
@@ -366,7 +394,7 @@ const styles = StyleSheet.create({
 
   signupLinkText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.72)",
+    color: "rgba(255,255,255,0.85)",
   },
 
   signupLinkButton: {

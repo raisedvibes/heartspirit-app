@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ActivityIndicator, View } from "react-native"
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native"
 import { Stack } from "expo-router"
@@ -17,6 +17,31 @@ import IntroScreen from "@/components/IntroScreen"
 
 export const unstable_settings = {
   anchor: "(tabs)",
+}
+
+/**
+ * Play startup ambience only after auth is resolved and a user session exists.
+ * Avoids firing expo-av during the cold start / login screen (often fails or is missed),
+ * so first login matches "open app already signed in".
+ */
+function StartupAmbienceOnAuthenticated() {
+  const { session, loading } = useAuth()
+  const hasPlayedRef = useRef(false)
+
+  useEffect(() => {
+    if (loading) return
+
+    if (!session?.user?.id) {
+      hasPlayedRef.current = false
+      return
+    }
+
+    if (hasPlayedRef.current) return
+    hasPlayedRef.current = true
+    playStartupAmbienceIfNeeded().catch(() => {})
+  }, [loading, session?.user?.id])
+
+  return null
 }
 
 function RootLayoutNav() {
@@ -54,7 +79,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     registerPushToken().catch(() => {})
-    playStartupAmbienceIfNeeded().catch(() => {})
 
     const supabase = getSupabaseClient()
     if (!supabase) return
@@ -77,6 +101,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthProvider>
+        <StartupAmbienceOnAuthenticated />
         <View style={{ flex: 1 }}>
           <RootLayoutNav />
           <StatusBar style="auto" />

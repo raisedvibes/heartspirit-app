@@ -116,9 +116,9 @@ export default function SignupScreen() {
         resizeMode="cover"
         onError={onBackgroundError}
       >
-        <View style={styles.overlay} />
+        <View pointerEvents="none" style={styles.backgroundOverlay} />
 
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -186,7 +186,7 @@ export default function SignupScreen() {
                     value={fullName}
                     onChangeText={setFullName}
                     placeholder="Enter your full name"
-                    placeholderTextColor="rgba(255,255,255,0.48)"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
                     autoCapitalize="words"
                     editable={!loading}
                   />
@@ -199,7 +199,7 @@ export default function SignupScreen() {
                     value={email}
                     onChangeText={setEmail}
                     placeholder="Enter your email"
-                    placeholderTextColor="rgba(255,255,255,0.48)"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -215,7 +215,7 @@ export default function SignupScreen() {
                       value={password}
                       onChangeText={setPassword}
                       placeholder="Create a password"
-                      placeholderTextColor="rgba(255,255,255,0.48)"
+                      placeholderTextColor="rgba(255,255,255,0.5)"
                       secureTextEntry={!showPassword}
                       editable={!loading}
                     />
@@ -289,7 +289,7 @@ export default function SignupScreen() {
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
                       placeholder="Confirm your password"
-                      placeholderTextColor="rgba(255,255,255,0.48)"
+                      placeholderTextColor="rgba(255,255,255,0.5)"
                       secureTextEntry={!showConfirmPassword}
                       editable={!loading}
                     />
@@ -375,26 +375,28 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   bg: { flex: 1 },
-  overlay: {
+  backgroundOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.16)",
+    backgroundColor: "rgba(0,0,0,0.28)",
   },
-  safe: { flex: 1 },
+  safeArea: { flex: 1 },
   scrollContent: {
     paddingHorizontal: 20,
   },
   headerBlock: {
     marginTop: 64,
     marginBottom: 32,
+    alignItems: "center",
   },
+
   pageTitle: {
     fontSize: 34,
     lineHeight: 38,
     color: "#ffffff",
     textAlign: "center",
     letterSpacing: 0.4,
-    textShadowColor: "rgba(0,0,0,0.9)",
-    textShadowOffset: { width: 0, height: 2 },
+    textShadowColor: "rgba(0,0,0,0.85)",
+    textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 12,
   },
   pageSubhead: {
@@ -404,8 +406,8 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: "center",
     color: "rgba(255,255,255,0.92)",
-    textShadowColor: "rgba(0,0,0,0.9)",
-    textShadowOffset: { width: 0, height: 2 },
+    textShadowColor: "rgba(0,0,0,0.85)",
+    textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 12,
   },
   card: {
@@ -413,6 +415,8 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 18,
     marginBottom: 8,
+    backgroundColor: "rgba(6, 14, 11, 0.85)",
+    borderColor: "rgba(255,255,255,0.12)",
     shadowColor: "#000",
     shadowOpacity: 0.25,
     shadowRadius: 18,
@@ -434,26 +438,31 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 7,
     marginTop: 9,
+    color: "rgba(255,255,255,0.85)",
   },
   input: {
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
     fontSize: 17,
-    color: "white",
+    color: "rgba(255,255,255,0.9)",
   },
   passwordRow: {
     position: "relative",
   },
   inputWithToggle: {
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
     paddingRight: 46,
     fontSize: 17,
-    color: "white",
+    color: "rgba(255,255,255,0.9)",
   },
   toggleButton: {
     position: "absolute",
@@ -492,6 +501,7 @@ const styles = StyleSheet.create({
   },
   hintText: {
     fontSize: 12,
+    color: "rgba(255,255,255,0.85)",
   },
   termsRow: {
     flexDirection: "row",
@@ -504,7 +514,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.35)",
+    borderColor: "rgba(255,255,255,0.52)",
     backgroundColor: "rgba(255,255,255,0.08)",
     alignItems: "center",
     justifyContent: "center",
@@ -512,7 +522,7 @@ const styles = StyleSheet.create({
   },
   checkboxChecked: {
     backgroundColor: "rgba(255,255,255,0.20)",
-    borderColor: "rgba(255,255,255,0.55)",
+    borderColor: "rgba(255,255,255,0.68)",
   },
   termsTextWrap: {
     flexDirection: "row",
@@ -522,12 +532,15 @@ const styles = StyleSheet.create({
   termsText: {
     fontSize: 13,
     lineHeight: 20,
+    fontWeight: "400",
+    color: "rgba(255,255,255,0.92)",
   },
   inlineLink: {
     fontSize: 13,
     lineHeight: 20,
-    color: "rgba(255,255,255,0.95)",
-    textDecorationLine: "underline",
+    fontWeight: "600",
+    color: "rgba(255,255,255,1)",
+    textDecorationLine: "none",
   },
   errorText: {
     color: "rgba(255,120,120,0.96)",
@@ -540,9 +553,32 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "rgba(120, 170, 140, 0.65)",
     alignItems: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#050a08",
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.32,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 6,
+      },
+      default: {},
+    }),
   },
   submitButtonDisabled: {
     opacity: 0.55,
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        shadowOffset: { width: 0, height: 0 },
+      },
+      android: {
+        elevation: 0,
+      },
+      default: {},
+    }),
   },
   submitText: {
     color: "white",
@@ -558,7 +594,7 @@ const styles = StyleSheet.create({
   },
   loginLinkText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.72)",
+    color: "rgba(255,255,255,0.85)",
   },
   loginLinkButton: {
     fontSize: 14,
@@ -568,14 +604,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontSize: 14,
     lineHeight: 20,
+    color: "rgba(255,255,255,0.85)",
   },
   confirmEmail: {
     marginBottom: 16,
     fontSize: 12,
+    color: "rgba(255,255,255,0.85)",
   },
   confirmHint: {
     marginTop: 14,
     fontSize: 12,
     textAlign: "center",
+    color: "rgba(255,255,255,0.85)",
   },
 })

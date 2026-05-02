@@ -1,13 +1,18 @@
 import { useEffect } from "react"
-import { View, StyleSheet, ImageBackground, Pressable } from "react-native"
+import type { ImageSourcePropType } from "react-native"
+import { StyleSheet, ImageBackground, Pressable } from "react-native"
 import { router } from "expo-router"
 import { SafeAreaView } from "react-native-safe-area-context"
 
-import { ThemedText } from "@/components/themed-text"
 import { useScreenBackground } from "@/hooks/useScreenBackground"
 
+const INTRO_FALLBACK = require("@/assets/images/heartspirit-intro.png") as ImageSourcePropType
+
 export default function AuthIndex() {
-  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground("(auth)/index")
+  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground(
+    "(auth)/index",
+    INTRO_FALLBACK
+  )
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -28,51 +33,16 @@ export default function AuthIndex() {
         resizeMode="cover"
         onError={onBackgroundError}
       >
-        <View style={styles.overlay} />
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-          <View style={styles.content}>
-            <View style={styles.brandBlock}>
-              <ThemedText style={styles.brand}>heartspirit</ThemedText>
-            </View>
-          </View>
-        </SafeAreaView>
+        <SafeAreaView style={styles.safe} edges={["top", "bottom"]} />
       </ImageBackground>
     </Pressable>
   )
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
   bg: { flex: 1 },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.18)",
-  },
 
   safe: {
     flex: 1,
-  },
-
-  content: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-
-  brandBlock: {
-    alignItems: "center",
-  },
-
-  brand: {
-    fontSize: 48,
-    lineHeight: 58,
-    fontFamily: "AlegreyaSans_500Medium",
-    color: "#ffffff",
-    letterSpacing: 0.4,
-    textAlign: "center",
-    textShadowColor: "rgba(0,0,0,0.9)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 12,
   },
 })
