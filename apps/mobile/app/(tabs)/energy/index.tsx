@@ -32,6 +32,8 @@ type SeasonalSlotSlug =
   | "seasonal_3"
   | "seasonal_4"
 
+type CustomSlotSlug = "custom_1" | "custom_2" | "custom_3" | "custom_4"
+
 type PracticeSummary = {
   id: string
   title: string
@@ -43,9 +45,15 @@ type PracticeSummary = {
 }
 
 type PlacementRow = {
-  slot_slug: TodaySlotSlug | SeasonalSlotSlug
+  slot_slug: TodaySlotSlug | SeasonalSlotSlug | CustomSlotSlug
   sort_order: number
   practice: PracticeSummary | null
+}
+
+type CustomSection = {
+  title: string
+  subtitle: string | null
+  is_active: boolean
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
@@ -85,6 +93,13 @@ const SEASONAL_SLOT_ORDER: Record<SeasonalSlotSlug, number> = {
   seasonal_2: 1,
   seasonal_3: 2,
   seasonal_4: 3,
+}
+
+const CUSTOM_SLOT_ORDER: Record<CustomSlotSlug, number> = {
+  custom_1: 0,
+  custom_2: 1,
+  custom_3: 2,
+  custom_4: 3,
 }
 
 function toLocalStartOfDay(d: Date) {
@@ -283,6 +298,12 @@ export default function EnergyCheckScreen() {
   const [userName] = useState<string | undefined>(undefined)
   const [todayPlacements, setTodayPlacements] = useState<PlacementRow[]>([])
   const [seasonalPlacements, setSeasonalPlacements] = useState<PlacementRow[]>([])
+  const [customPlacements, setCustomPlacements] = useState<PlacementRow[]>([])
+  const [customSection, setCustomSection] = useState<CustomSection>({
+    title: "Heart Practices",
+    subtitle: null,
+    is_active: true,
+  })
   const [loadingPlacements, setLoadingPlacements] = useState(true)
   const [usingCachedPlacements, setUsingCachedPlacements] = useState(false)
 
@@ -315,22 +336,30 @@ export default function EnergyCheckScreen() {
     async function loadPlacements() {
       const todayCacheKey = OfflineCacheKeys.energy.todayPlacements
       const seasonalCacheKey = OfflineCacheKeys.energy.seasonalPlacements(season)
+      const customCacheKey = OfflineCacheKeys.energy.seasonalPlacements("custom")
       const supabase = getSupabaseClient()
       if (!supabase) {
-        const [cachedToday, cachedSeasonal] = await Promise.all([
+        const [cachedToday, cachedSeasonal, cachedCustom] = await Promise.all([
           getOfflineCacheData<PlacementRow[]>(todayCacheKey),
           getOfflineCacheData<PlacementRow[]>(seasonalCacheKey),
+          getOfflineCacheData<PlacementRow[]>(customCacheKey),
         ])
         setTodayPlacements(cachedToday ?? [])
         setSeasonalPlacements(cachedSeasonal ?? [])
-        setUsingCachedPlacements(Boolean(cachedToday || cachedSeasonal))
+        setCustomPlacements(cachedCustom ?? [])
+        setUsingCachedPlacements(Boolean(cachedToday || cachedSeasonal || cachedCustom))
         if (isMounted) setLoadingPlacements(false)
         return
       }
 
       setLoadingPlacements(true)
 
-      const [{ data: todayData, error: todayError }, { data: seasonalData, error: seasonalError }] =
+      const [
+        { data: todayData, error: todayError },
+        { data: seasonalData, error: seasonalError },
+        { data: customData, error: customError },
+        { data: customSectionData, error: customSectionError },
+      ] =
         await Promise.all([
           supabase
             .from("practice_placements")
@@ -368,6 +397,30 @@ export default function EnergyCheckScreen() {
             .eq("placement_group", "season")
             .eq("season_key", season)
             .eq("is_active", true),
+
+          supabase
+            .from("practice_placements")
+            .select(`
+              slot_slug,
+              sort_order,
+              practice:practices (
+                id,
+                title,
+                short_summary,
+                duration,
+                timer_minutes,
+                cover_image,
+                thumbnail_url
+              )
+            `)
+            .eq("placement_group", "custom")
+            .eq("is_active", true),
+
+          supabase
+            .from("energy_section_settings")
+            .select("section_key, title, subtitle, is_active")
+            .eq("section_key", "custom")
+            .maybeSingle(),
         ])
 
       if (!isMounted) return
@@ -378,6 +431,12 @@ export default function EnergyCheckScreen() {
 
       if (seasonalError) {
         console.log("[energy] failed to load seasonal placements:", seasonalError.message)
+      }
+      if (customError) {
+        console.log("[energy] failed to load custom placements:", customError.message)
+      }
+      if (customSectionError) {
+        console.log("[energy] failed to load custom section:", customSectionError.message)
       }
 
       const normalizeTodayRows = (rows: PlacementRow[]) =>
@@ -398,9 +457,19 @@ export default function EnergyCheckScreen() {
             return aOrder - bOrder
           })
 
+      const normalizeCustomRows = (rows: PlacementRow[]) =>
+        rows
+          .filter((row) => row.practice?.id)
+          .sort((a, b) => {
+            const aOrder = CUSTOM_SLOT_ORDER[a.slot_slug as CustomSlotSlug] ?? 999
+            const bOrder = CUSTOM_SLOT_ORDER[b.slot_slug as CustomSlotSlug] ?? 999
+            return aOrder - bOrder
+          })
+
       let usedCache = false
       let normalizedToday = normalizeTodayRows((todayData as PlacementRow[] | null) ?? [])
       let normalizedSeasonal = normalizeSeasonalRows((seasonalData as PlacementRow[] | null) ?? [])
+      let normalizedCustom = normalizeCustomRows((customData as PlacementRow[] | null) ?? [])
 
       if (todayError) {
         const cachedToday = await getOfflineCacheData<PlacementRow[]>(todayCacheKey)
@@ -417,9 +486,22 @@ export default function EnergyCheckScreen() {
           usedCache = true
         }
       }
+      if (customError) {
+        const cachedCustom = await getOfflineCacheData<PlacementRow[]>(customCacheKey)
+        if (cachedCustom) {
+          normalizedCustom = normalizeCustomRows(cachedCustom)
+          usedCache = true
+        }
+      }
 
       setTodayPlacements(normalizedToday)
       setSeasonalPlacements(normalizedSeasonal)
+      setCustomPlacements(normalizedCustom)
+      setCustomSection({
+        title: customSectionData?.title ?? "Heart Practices",
+        subtitle: customSectionData?.subtitle ?? null,
+        is_active: customSectionData?.is_active ?? true,
+      })
       setUsingCachedPlacements(usedCache)
       setLoadingPlacements(false)
 
@@ -429,6 +511,9 @@ export default function EnergyCheckScreen() {
       if (!seasonalError) {
         void setOfflineCache(seasonalCacheKey, normalizedSeasonal)
       }
+      if (!customError) {
+        void setOfflineCache(customCacheKey, normalizedCustom)
+      }
     }
 
     loadPlacements()
@@ -437,6 +522,12 @@ export default function EnergyCheckScreen() {
       isMounted = false
     }
   }, [season])
+
+  const shouldRenderCustomSection = useMemo(() => {
+    const hasTitle = !!customSection.title?.trim()
+    const hasPractices = customPlacements.length > 0
+    return customSection.is_active && hasTitle && hasPractices
+  }, [customPlacements.length, customSection.is_active, customSection.title])
 
   return (
     <View style={styles.root}>
@@ -535,6 +626,39 @@ export default function EnergyCheckScreen() {
               )}
             </ScrollView>
           </View>
+
+          {shouldRenderCustomSection ? (
+            <View style={styles.sectionBlock}>
+              <ThemedText style={styles.sectionTitle}>{customSection.title}</ThemedText>
+              {customSection.subtitle ? (
+                <ThemedText type="muted" style={styles.customSubtitle}>
+                  {customSection.subtitle}
+                </ThemedText>
+              ) : null}
+              <ScrollView
+                horizontal
+                snapToInterval={RAIL_CARD_SNAP_INTERVAL}
+                snapToAlignment="start"
+                decelerationRate="fast"
+                disableIntervalMomentum
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalRail}
+                style={styles.railScroll}
+              >
+                {customPlacements.map((item) => (
+                  <SeasonalPracticeCard
+                    key={item.slot_slug}
+                    title={item.practice?.title ?? "Untitled Practice"}
+                    practice={item.practice}
+                    onPress={() => {
+                      if (!item.practice?.id) return
+                      router.push(`/practice/${item.practice.id}`)
+                    }}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
         </Animated.ScrollView>
       </ScreenContent>
       <BottomFade />
@@ -589,6 +713,12 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.82)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 14,
+  },
+  customSubtitle: {
+    fontSize: 13,
+    opacity: 0.7,
+    marginTop: -4,
+    paddingHorizontal: 16,
   },
 
   railScroll: {

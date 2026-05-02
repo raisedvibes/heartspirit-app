@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { router } from "expo-router"
-import { View, StyleSheet, Pressable, Switch, TextInput } from "react-native"
+import { View, StyleSheet, Pressable, Switch, Linking,TextInput } from "react-native"
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
@@ -253,24 +253,25 @@ export default function SettingsScreen() {
                 <View style={styles.sectionBody}>
                   <View style={styles.aboutBody}>
                   <ThemedText type="muted" style={styles.aboutText}>
-  Heartspirit (verb): to integrate the heart and spirit.
+  Heartspirit (verb): to integrate the heart and spirit— a return to your natural rhythm, a remembering of the wisdom within.
 </ThemedText>
 
 <ThemedText type="muted" style={styles.aboutText}>
-  A return to your natural rhythm.{"\n"}
-  A remembering of the wisdom within.
+  A practice of ritual: choosing presence, deepening connection, and listening inward.
 </ThemedText>
 
 <ThemedText type="muted" style={styles.aboutText}>
-  Ritual, a way of choosing presence, deepening your connection to spirit.
+  A portal—where awareness opens and power returns.
 </ThemedText>
 
 <ThemedText type="muted" style={styles.aboutText}>
-  Here, power returns.
-</ThemedText>
-
-<ThemedText type="muted" style={styles.aboutText}>
-  Created by Gabriel, a wellness guide.
+  — Created by Gabriel{"\n"}
+  <ThemedText
+    onPress={() => Linking.openURL("https://wellnessranger.com")}
+    style={{ fontSize: 15, opacity: 0.9 }}
+  >
+    WellnessRanger.com
+  </ThemedText>
 </ThemedText>
                   </View>
                 </View>

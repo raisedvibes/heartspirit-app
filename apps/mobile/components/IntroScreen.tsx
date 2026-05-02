@@ -12,14 +12,14 @@ export default function IntroScreen({ onFinish }: IntroScreenProps) {
     const animation = Animated.sequence([
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 500,
+        duration: 700,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-      Animated.delay(1000),
+      Animated.delay(1800),
       Animated.timing(opacity, {
         toValue: 0,
-        duration: 400,
+        duration: 600,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
