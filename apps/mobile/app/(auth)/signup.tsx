@@ -3,6 +3,7 @@ import { router } from "expo-router"
 import * as Localization from "expo-localization"
 import {
   View,
+  Text,
   StyleSheet,
   ImageBackground,
   Pressable,
@@ -19,7 +20,7 @@ import TranslucentCard from "@/components/ui/TranslucentCard"
 import { ThemedText } from "@/components/themed-text"
 import { useScreenBackground } from "@/hooks/useScreenBackground"
 import { getSupabaseClient } from "@/lib/supabaseClient"
-import { SIGNUP_COPY, TERMS_URL, PRIVACY_URL } from "@/constants/signup"
+import { SIGNUP_COPY } from "@/constants/signup"
 
 function passwordStrength(password: string) {
   let strength = 0
@@ -317,21 +318,22 @@ export default function SignupScreen() {
                     </View>
 
                     <View style={styles.termsTextWrap}>
-                      <ThemedText type="muted" style={styles.termsText}>
+                      <Text style={styles.termsText}>
                         I agree to the{" "}
-                      </ThemedText>
-
-                      <Pressable onPress={() => Linking.openURL(TERMS_URL)}>
-                        <ThemedText style={styles.inlineLink}>Terms of Use</ThemedText>
-                      </Pressable>
-
-                      <ThemedText type="muted" style={styles.termsText}>
-                        {" "}and{" "}
-                      </ThemedText>
-
-                      <Pressable onPress={() => Linking.openURL(PRIVACY_URL)}>
-                        <ThemedText style={styles.inlineLink}>Privacy Policy</ThemedText>
-                      </Pressable>
+                        <Text
+                          style={styles.inlineLink}
+                          onPress={() => Linking.openURL("https://app.heartspirit.earth/terms")}
+                        >
+                          Terms of Use
+                        </Text>{" "}
+                        and{" "}
+                        <Text
+                          style={styles.inlineLink}
+                          onPress={() => Linking.openURL("https://app.heartspirit.earth/privacy")}
+                        >
+                          Privacy Policy
+                        </Text>
+                      </Text>
                     </View>
                   </Pressable>
 
