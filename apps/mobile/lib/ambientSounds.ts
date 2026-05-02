@@ -45,25 +45,33 @@ export async function setAmbientSoundsEnabled(enabled: boolean): Promise<void> {
   } catch {}
 }
 
+/** Sets mixing-friendly playback mode; call early so the first startup clip can play reliably. */
+export async function ensureAmbientAudioMode(): Promise<void> {
+  await Audio.setAudioModeAsync({
+    allowsRecordingIOS: false,
+    playsInSilentModeIOS: true,
+    staysActiveInBackground: false,
+    shouldDuckAndroid: false,
+    playThroughEarpieceAndroid: false,
+    interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+    interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+  })
+}
+
 export async function playStartupAmbienceIfNeeded(): Promise<void> {
   if (startupPlayInFlight) return
 
   const enabled = await getAmbientSoundsEnabled()
-  if (!enabled) return
+  if (!enabled) {
+    if (__DEV__) console.log("[ambient] startup skipped — ambient sounds disabled in settings")
+    return
+  }
 
   startupPlayInFlight = true
   let sound: Audio.Sound | null = null
 
   try {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      shouldDuckAndroid: false,
-      playThroughEarpieceAndroid: false,
-      interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
-      interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-    })
+    await ensureAmbientAudioMode()
 
     const created = await Audio.Sound.createAsync(
       STARTUP_AMBIENCE,
@@ -77,8 +85,10 @@ export async function playStartupAmbienceIfNeeded(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, FADE_OUT_AFTER_MS))
     await fadeVolume(sound, TARGET_VOLUME, 0, FADE_OUT_MS)
     await sound.stopAsync()
+    if (__DEV__) console.log("[ambient] startup ambience completed")
   } catch (error) {
-    console.log("[ambient] startup ambience failed", error)
+    if (__DEV__) console.warn("[ambient] startup ambience failed", error)
+    else console.log("[ambient] startup ambience failed", error)
   } finally {
     if (sound) {
       try {

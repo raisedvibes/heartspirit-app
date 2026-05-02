@@ -136,6 +136,9 @@ export default function SignupScreen() {
               ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
+              bounces={false}
+              alwaysBounceVertical={false}
+              overScrollMode="never"
             >
               <View style={styles.headerBlock}>
                 <ThemedText style={styles.pageTitle}>Your Portal</ThemedText>
@@ -383,6 +386,7 @@ const styles = StyleSheet.create({
   },
   safeArea: { flex: 1 },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 20,
   },
   headerBlock: {

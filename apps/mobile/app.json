@@ -45,6 +45,7 @@
           "image": "./assets/images/heartspirit-intro.png",
           "resizeMode": "cover",
           "backgroundColor": "#0a1410",
+          "enableFullScreenImage_legacy": true,
           "dark": {
             "backgroundColor": "#0a1410"
           }

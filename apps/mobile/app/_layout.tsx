@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import { ActivityIndicator, View } from "react-native"
-import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native"
+import { ActivityIndicator, StyleSheet, View } from "react-native"
+import { DarkTheme, DefaultTheme, ThemeProvider, type Theme } from "@react-navigation/native"
 import { Stack } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useFonts } from "expo-font"
@@ -12,8 +12,22 @@ import { useColorScheme } from "@/hooks/use-color-scheme"
 import { AuthProvider, useAuth } from "@/lib/auth"
 import { registerPushToken } from "@/lib/pushTokenRegistration"
 import { getSupabaseClient } from "@/lib/supabaseClient"
-import { playStartupAmbienceIfNeeded } from "@/lib/ambientSounds"
+import { ensureAmbientAudioMode, playStartupAmbienceIfNeeded } from "@/lib/ambientSounds"
 import IntroScreen from "@/components/IntroScreen"
+
+const APP_SURFACE = "#0a1410"
+
+function appNavigationTheme(colorScheme: string | null | undefined): Theme {
+  const base = colorScheme === "dark" ? DarkTheme : DefaultTheme
+  return {
+    ...base,
+    colors: {
+      ...base.colors,
+      background: APP_SURFACE,
+      card: APP_SURFACE,
+    },
+  }
+}
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -38,7 +52,9 @@ function StartupAmbienceOnAuthenticated() {
 
     if (hasPlayedRef.current) return
     hasPlayedRef.current = true
-    playStartupAmbienceIfNeeded().catch(() => {})
+    playStartupAmbienceIfNeeded().catch((e) => {
+      if (__DEV__) console.warn("[ambient] startup play failed after auth", e)
+    })
   }, [loading, session?.user?.id])
 
   return null
@@ -49,7 +65,7 @@ function RootLayoutNav() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0a1410" }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: APP_SURFACE }}>
         <ActivityIndicator size="large" color="rgba(255,255,255,0.6)" />
       </View>
     )
@@ -58,7 +74,7 @@ function RootLayoutNav() {
   const isAuthenticated = !!session
 
   return (
-    <Stack>
+    <Stack screenOptions={{ contentStyle: { backgroundColor: APP_SURFACE } }}>
       <Stack.Protected guard={!isAuthenticated}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack.Protected>
@@ -76,6 +92,7 @@ function RootLayoutNav() {
 export default function RootLayout() {
   const colorScheme = useColorScheme()
   const [showIntro, setShowIntro] = useState(true)
+  const navTheme = appNavigationTheme(colorScheme)
 
   useEffect(() => {
     registerPushToken().catch(() => {})
@@ -91,20 +108,38 @@ export default function RootLayout() {
     return () => subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    ensureAmbientAudioMode().catch((e) => {
+      if (__DEV__) console.warn("[ambient] ensureAmbientAudioMode failed", e)
+    })
+  }, [])
+
   const [fontsLoaded] = useFonts({
     AlegreyaSans_400Regular,
     AlegreyaSans_500Medium,
   })
 
-  if (!fontsLoaded) return null
+  if (!fontsLoaded) {
+    return (
+      <ThemeProvider value={navTheme}>
+        <View style={{ flex: 1, backgroundColor: APP_SURFACE }} />
+      </ThemeProvider>
+    )
+  }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navTheme}>
       <AuthProvider>
         <StartupAmbienceOnAuthenticated />
         <View style={{ flex: 1 }}>
           <RootLayoutNav />
           <StatusBar style="auto" />
+          {showIntro ? (
+            <View
+              pointerEvents="none"
+              style={[StyleSheet.absoluteFillObject, { backgroundColor: APP_SURFACE, zIndex: 999 }]}
+            />
+          ) : null}
           {showIntro ? <IntroScreen onFinish={() => setShowIntro(false)} /> : null}
         </View>
       </AuthProvider>
