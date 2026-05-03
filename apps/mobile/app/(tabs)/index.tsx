@@ -5,6 +5,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import ScreenContent, { TAB_BAR_HEIGHT } from "@/components/layout/ScreenContent"
 import { CirclesWidget } from "@/components/dashboard/Circles"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
+import {
+  HomePromoCard,
+  type HomePromoRow,
+} from "@/components/dashboard/HomePromoCard"
 import { RitualsWidget } from "@/components/dashboard/RitualsWidget"
 import { WeeklyReflectionCard } from "@/components/dashboard/WeeklyReflectionCard"
 import BottomFade from "@/components/ui/BottomFade"
@@ -20,6 +24,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets()
   const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("home")
   const [weeklyReflection, setWeeklyReflection] = useState<WeeklyReflectionRow | null>(null)
+  const [homePromo, setHomePromo] = useState<HomePromoRow | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -45,6 +50,37 @@ export default function HomeScreen() {
     }
 
     loadWeeklyReflection()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadHomePromo() {
+      const supabase = getSupabaseClient()
+      if (!supabase) return
+
+      const { data, error } = await supabase
+        .from("home_promo_cards")
+        .select("title, body, button_label, url")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (cancelled) return
+      if (error || !data) {
+        setHomePromo(null)
+        return
+      }
+      setHomePromo(data as HomePromoRow)
+    }
+
+    loadHomePromo()
 
     return () => {
       cancelled = true
@@ -84,6 +120,8 @@ export default function HomeScreen() {
           <View style={styles.grid}>
             <CirclesWidget />
           </View>
+
+          {homePromo ? <HomePromoCard promo={homePromo} /> : null}
         </Animated.ScrollView>
       </ScreenContent>
       <BottomFade />

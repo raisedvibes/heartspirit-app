@@ -37,6 +37,10 @@ export default function AdminHome() {
               Weekly Reflection
             </Button>
 
+            <Button onClick={() => router.push("/admin/home-promo")}>
+              Home promo
+            </Button>
+
             <Button onClick={() => router.push("/admin/settings")}>
               Admin Settings
             </Button>
