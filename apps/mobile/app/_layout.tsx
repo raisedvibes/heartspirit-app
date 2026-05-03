@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { ActivityIndicator, StyleSheet, View } from "react-native"
 import { DarkTheme, DefaultTheme, ThemeProvider, type Theme } from "@react-navigation/native"
 import { Stack } from "expo-router"
@@ -14,7 +14,7 @@ import { registerPushToken } from "@/lib/pushTokenRegistration"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import * as SystemUI from "expo-system-ui"
 
-import { ensureAmbientAudioMode, playStartupAmbienceIfNeeded } from "@/lib/ambientSounds"
+import { startRootAmbientPlayback, stopRootAmbientPlayback } from "@/lib/ambientSounds"
 import IntroScreen from "@/components/IntroScreen"
 
 const APP_SURFACE = "#0a1410"
@@ -35,39 +35,18 @@ export const unstable_settings = {
   anchor: "(tabs)",
 }
 
-/**
- * Play startup ambience only after auth is resolved and a user session exists.
- * Avoids firing expo-av during the cold start / login screen (often fails or is missed),
- * so first login matches "open app already signed in".
- */
-function StartupAmbienceOnAuthenticated() {
-  const { session, loading } = useAuth()
-  const hasPlayedRef = useRef(false)
-
+/** Session ambient at root — not gated on auth (plays through intro + auth + tabs until teardown). */
+function RootSessionAmbient() {
   useEffect(() => {
-    if (loading) return
-
-    if (!session?.user?.id) {
-      hasPlayedRef.current = false
-      return
-    }
-
-    if (hasPlayedRef.current) return
-
-    let cancelled = false
-
-    playStartupAmbienceIfNeeded()
-      .then(() => {
-        if (!cancelled) hasPlayedRef.current = true
-      })
-      .catch((e) => {
-        if (__DEV__) console.warn("[ambient] startup play failed after auth", e)
-      })
-
+    startRootAmbientPlayback().catch((e) => {
+      console.warn("[audio] root session ambient failed:", e)
+    })
     return () => {
-      cancelled = true
+      stopRootAmbientPlayback().catch((e) => {
+        console.warn("[audio] root session ambient stop failed:", e)
+      })
     }
-  }, [loading, session?.user?.id])
+  }, [])
 
   return null
 }
@@ -121,11 +100,8 @@ export default function RootLayout() {
   }, [])
 
   useEffect(() => {
-    ensureAmbientAudioMode().catch((e) => {
-      if (__DEV__) console.warn("[ambient] ensureAmbientAudioMode failed", e)
-    })
     SystemUI.setBackgroundColorAsync(APP_SURFACE).catch((e) => {
-      if (__DEV__) console.warn("[system-ui] setBackgroundColorAsync failed", e)
+      console.warn("[system-ui] setBackgroundColorAsync failed", e)
     })
   }, [])
 
@@ -144,8 +120,8 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={navTheme}>
+      <RootSessionAmbient />
       <AuthProvider>
-        <StartupAmbienceOnAuthenticated />
         <View style={{ flex: 1, backgroundColor: APP_SURFACE }}>
           <RootLayoutNav />
           <StatusBar style="auto" />

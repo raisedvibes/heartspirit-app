@@ -2,47 +2,13 @@ import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
 const AMBIENT_SOUNDS_ENABLED_KEY = "heartspirit.ambient_sounds.enabled"
-/** After first successful startup ambience, following launches use the shorter tail. */
-const STARTUP_AMBIENCE_ONCE_KEY = "heartspirit.startup_ambience.completed_once"
 
-const STARTUP_AMBIENCE = require("@/assets/audio/Forest-creek-noise-and-singing-birds-relaxing-nature-sounds.mp3")
+/** Bundled forest ambience — same asset path Metro resolves at build time. */
+const SESSION_AMBIENCE = require("@/assets/audio/Forest-creek-noise-and-singing-birds-relaxing-nature-sounds.mp3")
 
-const TARGET_VOLUME = 0.32
-const FADE_IN_MS = 500
-const FADE_OUT_MS = 900
+const TARGET_VOLUME = 0.35
 
-/** Hold after fade-in before fade-out: first-ever completion uses long tail (~6–8s total); later opens shorter. */
-const HOLD_FIRST_MS = 5400
-const HOLD_RETURNING_MS = 1400
-
-let activeStartupSound: Audio.Sound | null = null
-
-async function fadeVolume(
-  sound: Audio.Sound,
-  from: number,
-  to: number,
-  durationMs: number
-) {
-  const steps = Math.max(1, Math.round(durationMs / 100))
-  const delta = (to - from) / steps
-
-  for (let i = 1; i <= steps; i++) {
-    const next = Math.max(0, Math.min(1, from + delta * i))
-    await sound.setVolumeAsync(next)
-    if (i < steps) {
-      await new Promise((resolve) => setTimeout(resolve, 100))
-    }
-  }
-}
-
-async function getHoldAfterFadeInMs(): Promise<number> {
-  try {
-    const once = await AsyncStorage.getItem(STARTUP_AMBIENCE_ONCE_KEY)
-    return once === "1" ? HOLD_RETURNING_MS : HOLD_FIRST_MS
-  } catch {
-    return HOLD_FIRST_MS
-  }
-}
+let rootAmbientSound: Audio.Sound | null = null
 
 export async function getAmbientSoundsEnabled(): Promise<boolean> {
   try {
@@ -60,9 +26,7 @@ export async function setAmbientSoundsEnabled(enabled: boolean): Promise<void> {
   } catch {}
 }
 
-/** Sets mixing-friendly playback mode; call early so the first startup clip can play reliably. */
 export async function ensureAmbientAudioMode(): Promise<void> {
-  if (__DEV__) console.log("[ambient] setting audio mode (mix + silent switch playback)")
   await Audio.setAudioModeAsync({
     allowsRecordingIOS: false,
     playsInSilentModeIOS: true,
@@ -72,66 +36,85 @@ export async function ensureAmbientAudioMode(): Promise<void> {
     interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
     interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
   })
-  if (__DEV__) console.log("[ambient] audio mode set")
 }
 
-export async function playStartupAmbienceIfNeeded(): Promise<void> {
-  if (activeStartupSound) {
-    if (__DEV__) console.log("[ambient] skip startup — previous startup ambience still active")
+/**
+ * Root-session ambient: starts once when the app shell mounts (not tied to auth).
+ * Loops until stopRootAmbientPlayback / unload.
+ */
+export async function startRootAmbientPlayback(): Promise<void> {
+  if (rootAmbientSound) {
+    console.log("[audio] skip — session ambient already loaded")
     return
   }
 
   const enabled = await getAmbientSoundsEnabled()
   if (!enabled) {
-    if (__DEV__) console.log("[ambient] startup skipped — ambient sounds disabled in settings")
+    console.log("[audio] skipped — ambient disabled in user preferences")
     return
   }
 
-  let sound: Audio.Sound | null = null
+  console.log("[audio] loading")
 
   try {
     await ensureAmbientAudioMode()
 
-    const holdMs = await getHoldAfterFadeInMs()
-    if (__DEV__) {
-      console.log("[ambient] loading startup MP3 asset, hold phase ms:", holdMs)
-    }
-
     const created = await Audio.Sound.createAsync(
-      STARTUP_AMBIENCE,
-      { shouldPlay: false, volume: 0, isLooping: false }
+      SESSION_AMBIENCE,
+      {
+        shouldPlay: true,
+        volume: TARGET_VOLUME,
+        isLooping: true,
+        isMuted: false,
+      },
+      (status) => {
+        if (!status.isLoaded && "error" in status && status.error) {
+          console.warn("[audio] playback status error:", status.error)
+        }
+      }
     )
-    sound = created.sound
-    activeStartupSound = sound
 
-    if (__DEV__) console.log("[ambient] calling playAsync()")
+    const sound = created.sound
+    rootAmbientSound = sound
+
+    await sound.setIsMutedAsync(false)
+    await sound.setVolumeAsync(TARGET_VOLUME)
+
+    console.log("[audio] playAsync called")
     await sound.playAsync()
 
-    await fadeVolume(sound, 0, TARGET_VOLUME, FADE_IN_MS)
-
-    await new Promise((resolve) => setTimeout(resolve, holdMs))
-    await fadeVolume(sound, TARGET_VOLUME, 0, FADE_OUT_MS)
-    await sound.stopAsync()
-
-    try {
-      await AsyncStorage.setItem(STARTUP_AMBIENCE_ONCE_KEY, "1")
-    } catch (storageErr) {
-      if (__DEV__) console.warn("[ambient] could not persist startup ambience completion flag", storageErr)
+    const after = await sound.getStatusAsync()
+    if (!after.isLoaded) {
+      throw new Error("[audio] sound failed to load — status not loaded after playAsync")
     }
 
-    if (__DEV__) console.log("[ambient] startup ambience completed successfully")
+    console.log("[audio] success")
   } catch (error) {
-    if (__DEV__) console.warn("[ambient] startup ambience failed", error)
-    else console.log("[ambient] startup ambience failed", error)
-    throw error
-  } finally {
-    if (sound) {
+    console.warn("[audio] error", error)
+    if (rootAmbientSound) {
       try {
-        await sound.unloadAsync()
+        await rootAmbientSound.unloadAsync()
       } catch (unloadErr) {
-        if (__DEV__) console.warn("[ambient] unloadAsync after startup failed", unloadErr)
+        console.warn("[audio] unload after failed start:", unloadErr)
       }
+      rootAmbientSound = null
     }
-    activeStartupSound = null
+    throw error
+  }
+}
+
+export async function stopRootAmbientPlayback(): Promise<void> {
+  const sound = rootAmbientSound
+  if (!sound) return
+  rootAmbientSound = null
+  try {
+    await sound.stopAsync()
+  } catch (e) {
+    console.warn("[audio] stopAsync error:", e)
+  }
+  try {
+    await sound.unloadAsync()
+  } catch (e) {
+    console.warn("[audio] unloadAsync error:", e)
   }
 }

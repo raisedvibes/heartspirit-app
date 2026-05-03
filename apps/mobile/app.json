@@ -2,6 +2,7 @@
   "expo": {
     "name": "Heartspirit",
     "slug": "heartspirit",
+    "backgroundColor": "#0a1410",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -12,6 +13,14 @@
       "supportsTablet": true,
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.raised-vibes.heartspirit",
+      "splash": {
+        "backgroundColor": "#0a1410",
+        "resizeMode": "cover",
+        "image": "./assets/images/heartspirit-intro.png",
+        "dark": {
+          "backgroundColor": "#0a1410"
+        }
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": ["audio"]
@@ -20,7 +29,15 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#000000"
+        "backgroundColor": "#0a1410"
+      },
+      "splash": {
+        "backgroundColor": "#0a1410",
+        "resizeMode": "cover",
+        "image": "./assets/images/heartspirit-intro.png",
+        "dark": {
+          "backgroundColor": "#0a1410"
+        }
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,

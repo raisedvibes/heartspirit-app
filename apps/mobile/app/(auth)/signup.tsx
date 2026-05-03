@@ -1,24 +1,12 @@
 import { useEffect, useState } from "react"
 import { router } from "expo-router"
 import * as Localization from "expo-localization"
-import {
-  View,
-  Text,
-  StyleSheet,
-  ImageBackground,
-  Pressable,
-  TextInput,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Linking,
-} from "react-native"
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Linking } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import { ThemedText } from "@/components/themed-text"
-import { useScreenBackground } from "@/hooks/useScreenBackground"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import { SIGNUP_COPY } from "@/constants/signup"
 
@@ -48,11 +36,6 @@ export default function SignupScreen() {
 
   const [emailSent, setEmailSent] = useState(false)
   const [signupEmail, setSignupEmail] = useState("")
-  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground(
-    "(auth)/signup",
-    require("@/assets/images/redwoods.trail1.png")
-  )
-
   const strength = passwordStrength(password)
 
   const handleSubmit = async () => {
@@ -111,35 +94,24 @@ export default function SignupScreen() {
 
   return (
     <View style={styles.root}>
-      <ImageBackground
-        source={backgroundSource}
-        style={styles.bg}
-        resizeMode="cover"
-        onError={onBackgroundError}
+      <KeyboardAvoidingView
+        style={styles.avoid}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
       >
-        <View pointerEvents="none" style={styles.backgroundOverlay} />
-
         <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            keyboardVerticalOffset={0}
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: Math.min(80, Math.max(insets.bottom + 36, 52)) },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            alwaysBounceVertical={false}
+            overScrollMode="never"
           >
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={[
-                styles.scrollContent,
-                {
-                  paddingTop: 6,
-                  paddingBottom: Math.max(insets.bottom + 40, 56),
-                },
-              ]}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              bounces={false}
-              alwaysBounceVertical={false}
-              overScrollMode="never"
-            >
               <View style={styles.headerBlock}>
                 <ThemedText style={styles.pageTitle}>Your Portal</ThemedText>
                 <ThemedText type="muted" style={styles.pageSubhead}>
@@ -148,7 +120,7 @@ export default function SignupScreen() {
               </View>
 
               {emailSent ? (
-                <TranslucentCard tone="dark" opacity={1.08} style={styles.card}>
+                <TranslucentCard tone="dark" opacity={1.18} style={styles.card}>
                   <View style={styles.cardHeaderBlock}>
                     <ThemedText style={styles.cardTitle}>
                       {SIGNUP_COPY.confirmationTitle}
@@ -357,7 +329,7 @@ export default function SignupScreen() {
 
                   <Pressable
                     style={styles.loginLink}
-                    onPress={() => router.push("/(auth)/login")}
+                    onPress={() => router.replace("/(auth)/login")}
                     hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   >
                     <ThemedText type="muted" style={styles.loginLinkText}>
@@ -369,29 +341,27 @@ export default function SignupScreen() {
                   </Pressable>
                 </TranslucentCard>
               )}
-            </ScrollView>
-          </KeyboardAvoidingView>
+          </ScrollView>
         </SafeAreaView>
-      </ImageBackground>
+      </KeyboardAvoidingView>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0a1410" },
-  bg: { flex: 1, backgroundColor: "#0a1410" },
-  backgroundOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.28)",
-  },
+  root: { flex: 1, backgroundColor: "transparent" },
+  avoid: { flex: 1 },
   safeArea: { flex: 1 },
+  scroll: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
+    justifyContent: "center",
     paddingHorizontal: 20,
+    paddingTop: 28,
   },
   headerBlock: {
-    marginTop: 64,
-    marginBottom: 32,
+    marginTop: 16,
+    marginBottom: 28,
     alignItems: "center",
   },
 
@@ -421,8 +391,6 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 18,
     marginBottom: 8,
-    backgroundColor: "rgba(6, 14, 11, 0.85)",
-    borderColor: "rgba(255,255,255,0.12)",
     shadowColor: "#000",
     shadowOpacity: 0.25,
     shadowRadius: 18,

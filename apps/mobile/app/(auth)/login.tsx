@@ -1,21 +1,11 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { router } from "expo-router"
-import {
-  View,
-  StyleSheet,
-  ImageBackground,
-  Pressable,
-  TextInput,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native"
+import { View, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import { ThemedText } from "@/components/themed-text"
-import { useScreenBackground } from "@/hooks/useScreenBackground"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import { registerPushToken } from "@/lib/pushTokenRegistration"
 import { LOGIN_COPY } from "@/constants/signup"
@@ -29,11 +19,6 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [noticeEmail, setNoticeEmail] = useState("")
-  const { source: backgroundSource, onError: onBackgroundError } = useScreenBackground(
-    "(auth)/login",
-    require("@/assets/images/redwoods.trail1.png")
-  )
-
   const handleSubmit = async () => {
     const trimmed = email.trim()
     if (!trimmed || !password) return
@@ -87,32 +72,24 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.root}>
-      <ImageBackground
-        source={backgroundSource}
-        style={styles.bg}
-        resizeMode="cover"
-        onError={onBackgroundError}
+      <KeyboardAvoidingView
+        style={styles.avoid}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
       >
-        <View pointerEvents="none" style={styles.backgroundOverlay} />
-
         <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            keyboardVerticalOffset={0}
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: Math.min(80, Math.max(insets.bottom + 36, 52)) },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            alwaysBounceVertical={false}
+            overScrollMode="never"
           >
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={[
-                styles.scrollContent,
-                {
-                  paddingTop: 6,
-                  paddingBottom: Math.max(insets.bottom + 40, 56),
-                },
-              ]}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
               <View style={styles.headerBlock}>
                 <ThemedText style={styles.pageTitle}>Your Portal</ThemedText>
                 <ThemedText type="muted" style={styles.pageSubhead}>
@@ -192,7 +169,7 @@ export default function LoginScreen() {
 
                 <Pressable
                   style={styles.signupLink}
-                  onPress={() => router.push("/(auth)/signup")}
+                  onPress={() => router.replace("/(auth)/signup")}
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                   <ThemedText type="muted" style={styles.signupLinkText}>
@@ -203,35 +180,32 @@ export default function LoginScreen() {
                   </ThemedText>
                 </Pressable>
               </TranslucentCard>
-            </ScrollView>
-          </KeyboardAvoidingView>
+          </ScrollView>
         </SafeAreaView>
-      </ImageBackground>
+      </KeyboardAvoidingView>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0a1410" },
+  root: { flex: 1, backgroundColor: "transparent" },
 
-  bg: { flex: 1, backgroundColor: "#0a1410" },
-
-  backgroundOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.28)",
-  },
+  avoid: { flex: 1 },
 
   safeArea: { flex: 1 },
+
+  scroll: { flex: 1 },
 
   scrollContent: {
     paddingHorizontal: 20,
     flexGrow: 1,
     justifyContent: "center",
+    paddingTop: 28,
   },
 
   headerBlock: {
-    marginTop: 24,
-    marginBottom: 32,
+    marginTop: 16,
+    marginBottom: 28,
     alignItems: "center",
   },
 
