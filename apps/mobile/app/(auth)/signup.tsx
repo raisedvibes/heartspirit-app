@@ -378,8 +378,8 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  bg: { flex: 1 },
+  root: { flex: 1, backgroundColor: "#0a1410" },
+  bg: { flex: 1, backgroundColor: "#0a1410" },
   backgroundOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.28)",

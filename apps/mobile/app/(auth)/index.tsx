@@ -26,7 +26,7 @@ export default function AuthIndex() {
   }
 
   return (
-    <Pressable style={{ flex: 1 }} onPress={handleContinue}>
+    <Pressable style={styles.pressRoot} onPress={handleContinue}>
       <ImageBackground
         source={backgroundSource}
         style={styles.bg}
@@ -40,7 +40,8 @@ export default function AuthIndex() {
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
+  pressRoot: { flex: 1, backgroundColor: "#0a1410" },
+  bg: { flex: 1, backgroundColor: "#0a1410" },
 
   safe: {
     flex: 1,

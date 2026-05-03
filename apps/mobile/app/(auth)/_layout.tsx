@@ -7,7 +7,8 @@ export default function AuthLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        animation: "fade",
+        /** Fade cross-fades through transparency and reveals the OS window (black) behind screens. */
+        animation: "none",
         contentStyle: { backgroundColor: AUTH_SURFACE },
       }}
     >

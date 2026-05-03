@@ -12,6 +12,8 @@ import { useColorScheme } from "@/hooks/use-color-scheme"
 import { AuthProvider, useAuth } from "@/lib/auth"
 import { registerPushToken } from "@/lib/pushTokenRegistration"
 import { getSupabaseClient } from "@/lib/supabaseClient"
+import * as SystemUI from "expo-system-ui"
+
 import { ensureAmbientAudioMode, playStartupAmbienceIfNeeded } from "@/lib/ambientSounds"
 import IntroScreen from "@/components/IntroScreen"
 
@@ -51,10 +53,20 @@ function StartupAmbienceOnAuthenticated() {
     }
 
     if (hasPlayedRef.current) return
-    hasPlayedRef.current = true
-    playStartupAmbienceIfNeeded().catch((e) => {
-      if (__DEV__) console.warn("[ambient] startup play failed after auth", e)
-    })
+
+    let cancelled = false
+
+    playStartupAmbienceIfNeeded()
+      .then(() => {
+        if (!cancelled) hasPlayedRef.current = true
+      })
+      .catch((e) => {
+        if (__DEV__) console.warn("[ambient] startup play failed after auth", e)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [loading, session?.user?.id])
 
   return null
@@ -112,6 +124,9 @@ export default function RootLayout() {
     ensureAmbientAudioMode().catch((e) => {
       if (__DEV__) console.warn("[ambient] ensureAmbientAudioMode failed", e)
     })
+    SystemUI.setBackgroundColorAsync(APP_SURFACE).catch((e) => {
+      if (__DEV__) console.warn("[system-ui] setBackgroundColorAsync failed", e)
+    })
   }, [])
 
   const [fontsLoaded] = useFonts({
@@ -131,7 +146,7 @@ export default function RootLayout() {
     <ThemeProvider value={navTheme}>
       <AuthProvider>
         <StartupAmbienceOnAuthenticated />
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: APP_SURFACE }}>
           <RootLayoutNav />
           <StatusBar style="auto" />
           {showIntro ? (

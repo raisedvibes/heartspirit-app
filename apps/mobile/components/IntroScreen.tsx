@@ -49,8 +49,11 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1000,
+    /** Native window + RN ImageBackground decode can briefly show black without this. */
+    backgroundColor: "#0a1410",
   },
   image: {
     flex: 1,
+    backgroundColor: "#0a1410",
   },
 })
