@@ -11,7 +11,7 @@ import {
   Keyboard,
   type KeyboardEvent,
 } from "react-native"
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 
 import TranslucentCard from "@/components/ui/TranslucentCard"
@@ -95,124 +95,141 @@ export default function LoginScreen() {
     router.replace("/(tabs)")
   }
 
-  const baseBottomPad = Math.min(80, Math.max(insets.bottom + 36, 52))
   const keyboardOpen = keyboardPad > 0
+
+  /** Cinematic: centered hero + card. Focus: top-anchored form, hero collapsed via style only (same tree). */
+  const scrollContentCinematic = {
+    flexGrow: 1,
+    justifyContent: "center" as const,
+    paddingTop: insets.top + 28,
+    paddingBottom: insets.bottom + 40,
+    paddingHorizontal: 20,
+  }
+  const scrollContentFocus = {
+    flexGrow: 1,
+    justifyContent: "flex-start" as const,
+    paddingTop: insets.top + 24,
+    // iOS: KAV already shrinks for keyboard — do not add keyboardPad here (avoids huge blank scroll).
+    paddingBottom:
+      Platform.OS === "ios"
+        ? insets.bottom + 4
+        : keyboardPad + insets.bottom + 48,
+    paddingHorizontal: 20,
+  }
 
   return (
     <View style={styles.root}>
       <KeyboardAvoidingView
         style={styles.avoid}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={0}
       >
-        <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={[
-              styles.scrollContent,
-              keyboardOpen && styles.scrollContentKeyboardOpen,
-              {
-                paddingBottom: baseBottomPad + keyboardPad + (keyboardOpen ? 28 : 0),
-              },
-            ]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-            alwaysBounceVertical={false}
-            overScrollMode="never"
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={keyboardOpen ? scrollContentFocus : scrollContentCinematic}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          alwaysBounceVertical={false}
+          overScrollMode="never"
+        >
+          <View style={[styles.headerBlock, keyboardOpen && styles.heroFocusMode]}>
+            <ThemedText style={styles.pageTitle}>Your Portal</ThemedText>
+            <ThemedText type="muted" style={styles.pageSubhead}>
+              Energy • Rituals • Circles
+            </ThemedText>
+          </View>
+
+          <TranslucentCard
+            tone="dark"
+            opacity={1.18}
+            style={[styles.card, styles.cardFrame, keyboardOpen && styles.cardFocusPanel]}
           >
-              <View style={styles.headerBlock}>
-                <ThemedText style={styles.pageTitle}>Your Portal</ThemedText>
-                <ThemedText type="muted" style={styles.pageSubhead}>
-                  Energy • Rituals • Circles
-                </ThemedText>
-              </View>
-
-              <TranslucentCard tone="dark" opacity={1.18} style={styles.card}>
-                {notice ? (
-                  <View style={styles.notice}>
-                    <ThemedText type="default" style={styles.noticeText}>
-                      {notice}
+            <View style={styles.cardForm}>
+              {notice ? (
+                <View style={styles.notice}>
+                  <ThemedText type="default" style={styles.noticeText}>
+                    {notice}
+                  </ThemedText>
+                  {noticeEmail ? (
+                    <ThemedText type="muted" style={styles.noticeEmail}>
+                      Email: {noticeEmail}
                     </ThemedText>
-                    {noticeEmail ? (
-                      <ThemedText type="muted" style={styles.noticeEmail}>
-                        Email: {noticeEmail}
-                      </ThemedText>
-                    ) : null}
-                    <ThemedText type="muted" style={styles.noticeHint}>
-                      {LOGIN_COPY.spamHint}
-                    </ThemedText>
-                  </View>
-                ) : null}
+                  ) : null}
+                  <ThemedText type="muted" style={styles.noticeHint}>
+                    {LOGIN_COPY.spamHint}
+                  </ThemedText>
+                </View>
+              ) : null}
 
-                <ThemedText type="muted" style={styles.label}>
-                  Email
-                </ThemedText>
+              <ThemedText type="muted" style={[styles.label, keyboardOpen && styles.labelKb]}>
+                Email
+              </ThemedText>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter your email"
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+
+              <ThemedText type="muted" style={[styles.label, keyboardOpen && styles.labelKb]}>
+                Password
+              </ThemedText>
+              <View style={styles.passwordRow}>
                 <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Enter your email"
+                  style={styles.inputWithToggle}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Enter your password"
                   placeholderTextColor="rgba(255,255,255,0.5)"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
+                  secureTextEntry={!showPassword}
                   editable={!loading}
                 />
-
-                <ThemedText type="muted" style={styles.label}>
-                  Password
-                </ThemedText>
-                <View style={styles.passwordRow}>
-                  <TextInput
-                    style={styles.inputWithToggle}
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Enter your password"
-                    placeholderTextColor="rgba(255,255,255,0.5)"
-                    secureTextEntry={!showPassword}
-                    editable={!loading}
+                <Pressable
+                  style={styles.toggleButton}
+                  onPress={() => setShowPassword((p) => !p)}
+                  hitSlop={12}
+                >
+                  <MaterialIcons
+                    name={showPassword ? "visibility-off" : "visibility"}
+                    size={22}
+                    color="rgba(255,255,255,0.72)"
                   />
-                  <Pressable
-                    style={styles.toggleButton}
-                    onPress={() => setShowPassword((p) => !p)}
-                    hitSlop={12}
-                  >
-                    <MaterialIcons
-                      name={showPassword ? "visibility-off" : "visibility"}
-                      size={22}
-                      color="rgba(255,255,255,0.72)"
-                    />
-                  </Pressable>
-                </View>
-
-                {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
-
-                <Pressable
-                  style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-                  onPress={handleSubmit}
-                  disabled={loading}
-                >
-                  <ThemedText type="defaultSemiBold" style={styles.submitText}>
-                    {loading ? "Signing In..." : "Sign In"}
-                  </ThemedText>
                 </Pressable>
+              </View>
 
-                <Pressable
-                  style={styles.signupLink}
-                  onPress={() => router.replace("/(auth)/signup")}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                >
-                  <ThemedText type="muted" style={styles.signupLinkText}>
-                    Don&apos;t have an account?
-                  </ThemedText>
-                  <ThemedText type="defaultSemiBold" style={styles.signupLinkButton}>
-                    Create account
-                  </ThemedText>
-                </Pressable>
-              </TranslucentCard>
-          </ScrollView>
-        </SafeAreaView>
+              {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
+
+              <Pressable
+                style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                onPress={handleSubmit}
+                disabled={loading}
+              >
+                <ThemedText type="defaultSemiBold" style={styles.submitText}>
+                  {loading ? "Signing In..." : "Sign In"}
+                </ThemedText>
+              </Pressable>
+
+              <Pressable
+                style={styles.signupLink}
+                onPress={() => router.replace("/(auth)/signup")}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <ThemedText type="muted" style={styles.signupLinkText}>
+                  Don&apos;t have an account?
+                </ThemedText>
+                <ThemedText type="defaultSemiBold" style={styles.signupLinkButton}>
+                  Create account
+                </ThemedText>
+              </Pressable>
+            </View>
+          </TranslucentCard>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   )
@@ -223,26 +240,26 @@ const styles = StyleSheet.create({
 
   avoid: { flex: 1 },
 
-  safeArea: { flex: 1 },
-
   scroll: { flex: 1 },
-
-  scrollContent: {
-    paddingHorizontal: 20,
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingTop: 28,
-  },
-
-  scrollContentKeyboardOpen: {
-    justifyContent: "flex-start",
-    paddingTop: 12,
-  },
 
   headerBlock: {
     marginTop: 16,
     marginBottom: 28,
     alignItems: "center",
+  },
+
+  /**
+   * Focus mode: same hero subtree, no swap — opacity 0 + collapsed box so the form sits near the top.
+   * (Ritual-style “quiet chrome”; redwoods stay visible around the card.)
+   */
+  heroFocusMode: {
+    opacity: 0,
+    height: 0,
+    minHeight: 0,
+    marginTop: 0,
+    marginBottom: 0,
+    overflow: "hidden",
+    pointerEvents: "none",
   },
 
   pageTitle: {
@@ -268,6 +285,16 @@ const styles = StyleSheet.create({
     textShadowRadius: 12,
   },
 
+  cardFrame: {
+    width: "100%",
+    maxWidth: 520,
+    alignSelf: "center",
+  },
+
+  cardForm: {
+    width: "100%",
+  },
+
   card: {
     paddingHorizontal: 20,
     paddingTop: 18,
@@ -278,6 +305,19 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 10,
+  },
+
+  /** Focus mode: tighter glass panel, slight top anchor — still readable on redwoods. */
+  cardFocusPanel: {
+    paddingTop: 9,
+    paddingBottom: 11,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+
+  labelKb: {
+    marginTop: 7,
+    marginBottom: 6,
   },
 
   notice: {

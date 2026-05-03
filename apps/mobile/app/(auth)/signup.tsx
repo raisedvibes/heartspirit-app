@@ -14,7 +14,7 @@ import {
   Keyboard,
   type KeyboardEvent,
 } from "react-native"
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 
 import TranslucentCard from "@/components/ui/TranslucentCard"
@@ -118,263 +118,295 @@ export default function SignupScreen() {
     router.replace("/(tabs)")
   }
 
-  const baseBottomPad = Math.min(80, Math.max(insets.bottom + 36, 52))
   const keyboardOpen = keyboardPad > 0
+
+  const scrollContentCinematic = {
+    flexGrow: 1,
+    justifyContent: "center" as const,
+    paddingTop: insets.top + 28,
+    paddingBottom: insets.bottom + 40,
+    paddingHorizontal: 20,
+  }
+  const scrollContentFocus = {
+    flexGrow: 1,
+    justifyContent: "flex-start" as const,
+    paddingTop: insets.top + 12,
+    // iOS: KAV padding handles keyboard — Android needs keyboardPad in content inset.
+    paddingBottom:
+      Platform.OS === "ios"
+        ? insets.bottom + 4
+        : keyboardPad + insets.bottom + 48,
+    paddingHorizontal: 20,
+  }
 
   return (
     <View style={styles.root}>
       <KeyboardAvoidingView
         style={styles.avoid}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={0}
       >
-        <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={[
-              styles.scrollContent,
-              keyboardOpen && styles.scrollContentKeyboardOpen,
-              {
-                paddingBottom: baseBottomPad + keyboardPad + (keyboardOpen ? 28 : 0),
-              },
-            ]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-            alwaysBounceVertical={false}
-            overScrollMode="never"
-          >
-              <View style={styles.headerBlock}>
-                <ThemedText style={styles.pageTitle}>Your Portal</ThemedText>
-                <ThemedText type="muted" style={styles.pageSubhead}>
-                  Energy • Rituals • Circles
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={keyboardOpen ? scrollContentFocus : scrollContentCinematic}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          alwaysBounceVertical={false}
+          overScrollMode="never"
+        >
+          <View style={[styles.headerBlock, keyboardOpen && styles.heroFocusMode]}>
+            <ThemedText style={styles.pageTitle}>Your Portal</ThemedText>
+            <ThemedText type="muted" style={styles.pageSubhead}>
+              Energy • Rituals • Circles
+            </ThemedText>
+          </View>
+
+          {emailSent ? (
+            <TranslucentCard
+              tone="dark"
+              opacity={1.18}
+              style={[
+                styles.card,
+                styles.cardFrame,
+                keyboardOpen && styles.cardFocusPanel,
+                keyboardOpen && styles.cardFocusPanelKeyboardTop,
+              ]}
+            >
+              <View style={styles.cardForm}>
+                <View style={styles.cardHeaderBlock}>
+                  <ThemedText style={styles.cardTitle}>
+                    {SIGNUP_COPY.confirmationTitle}
+                  </ThemedText>
+                </View>
+
+                <ThemedText type="muted" style={styles.confirmBody}>
+                  {SIGNUP_COPY.confirmationBody}
+                </ThemedText>
+
+                <ThemedText type="muted" style={styles.confirmEmail}>
+                  {SIGNUP_COPY.confirmationSentTo} {signupEmail}
+                </ThemedText>
+
+                <Pressable
+                  style={styles.submitButton}
+                  onPress={() => router.replace("/(auth)/login")}
+                >
+                  <ThemedText type="defaultSemiBold" style={styles.submitText}>
+                    {SIGNUP_COPY.confirmationCta}
+                  </ThemedText>
+                </Pressable>
+
+                <ThemedText type="muted" style={styles.confirmHint}>
+                  {SIGNUP_COPY.confirmationHint}
                 </ThemedText>
               </View>
+            </TranslucentCard>
+          ) : (
+            <TranslucentCard
+              tone="dark"
+              opacity={1.18}
+              style={[
+                styles.card,
+                styles.cardFrame,
+                keyboardOpen && styles.cardFocusPanel,
+                keyboardOpen && styles.cardFocusPanelKeyboardTop,
+              ]}
+            >
+              <View style={styles.cardForm}>
+                <View style={styles.cardHeaderBlock}>
+                  <ThemedText style={styles.cardTitle}>Create Account</ThemedText>
+                </View>
 
-              {emailSent ? (
-                <TranslucentCard tone="dark" opacity={1.18} style={styles.card}>
-                  <View style={styles.cardHeaderBlock}>
-                    <ThemedText style={styles.cardTitle}>
-                      {SIGNUP_COPY.confirmationTitle}
-                    </ThemedText>
-                  </View>
+                <ThemedText type="muted" style={[styles.label, keyboardOpen && styles.labelKb]}>
+                  {SIGNUP_COPY.fields.fullName}
+                </ThemedText>
+                <TextInput
+                  style={styles.input}
+                  value={fullName}
+                  onChangeText={setFullName}
+                  placeholder="Enter your full name"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  autoCapitalize="words"
+                  editable={!loading}
+                />
 
-                  <ThemedText type="muted" style={styles.confirmBody}>
-                    {SIGNUP_COPY.confirmationBody}
-                  </ThemedText>
+                <ThemedText type="muted" style={[styles.label, keyboardOpen && styles.labelKb]}>
+                  {SIGNUP_COPY.fields.email}
+                </ThemedText>
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Enter your email"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                />
 
-                  <ThemedText type="muted" style={styles.confirmEmail}>
-                    {SIGNUP_COPY.confirmationSentTo} {signupEmail}
-                  </ThemedText>
-
+                <ThemedText type="muted" style={[styles.label, keyboardOpen && styles.labelKb]}>
+                  {SIGNUP_COPY.fields.password}
+                </ThemedText>
+                <View style={styles.passwordRow}>
+                  <TextInput
+                    style={styles.inputWithToggle}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Create a password"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    secureTextEntry={!showPassword}
+                    editable={!loading}
+                  />
                   <Pressable
-                    style={styles.submitButton}
-                    onPress={() => router.replace("/(auth)/login")}
+                    style={styles.toggleButton}
+                    onPress={() => setShowPassword((p) => !p)}
+                    hitSlop={12}
                   >
-                    <ThemedText type="defaultSemiBold" style={styles.submitText}>
-                      {SIGNUP_COPY.confirmationCta}
-                    </ThemedText>
+                    <MaterialIcons
+                      name={showPassword ? "visibility-off" : "visibility"}
+                      size={22}
+                      color="rgba(255,255,255,0.72)"
+                    />
                   </Pressable>
+                </View>
 
-                  <ThemedText type="muted" style={styles.confirmHint}>
-                    {SIGNUP_COPY.confirmationHint}
-                  </ThemedText>
-                </TranslucentCard>
-              ) : (
-                <TranslucentCard tone="dark" opacity={1.18} style={styles.card}>
-                  <View style={styles.cardHeaderBlock}>
-                    <ThemedText style={styles.cardTitle}>Create Account</ThemedText>
-                  </View>
+                {password ? (
+                  <View style={styles.strengthBlock}>
+                    <View style={styles.strengthRow}>
+                      {[1, 2, 3, 4].map((level) => (
+                        <View
+                          key={level}
+                          style={[
+                            styles.strengthBar,
+                            strength >= level && styles.strengthBarActive,
+                          ]}
+                        />
+                      ))}
+                    </View>
 
-                  <ThemedText type="muted" style={styles.label}>
-                    {SIGNUP_COPY.fields.fullName}
-                  </ThemedText>
-                  <TextInput
-                    style={styles.input}
-                    value={fullName}
-                    onChangeText={setFullName}
-                    placeholder="Enter your full name"
-                    placeholderTextColor="rgba(255,255,255,0.5)"
-                    autoCapitalize="words"
-                    editable={!loading}
-                  />
-
-                  <ThemedText type="muted" style={styles.label}>
-                    {SIGNUP_COPY.fields.email}
-                  </ThemedText>
-                  <TextInput
-                    style={styles.input}
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="Enter your email"
-                    placeholderTextColor="rgba(255,255,255,0.5)"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!loading}
-                  />
-
-                  <ThemedText type="muted" style={styles.label}>
-                    {SIGNUP_COPY.fields.password}
-                  </ThemedText>
-                  <View style={styles.passwordRow}>
-                    <TextInput
-                      style={styles.inputWithToggle}
-                      value={password}
-                      onChangeText={setPassword}
-                      placeholder="Create a password"
-                      placeholderTextColor="rgba(255,255,255,0.5)"
-                      secureTextEntry={!showPassword}
-                      editable={!loading}
-                    />
-                    <Pressable
-                      style={styles.toggleButton}
-                      onPress={() => setShowPassword((p) => !p)}
-                      hitSlop={12}
-                    >
-                      <MaterialIcons
-                        name={showPassword ? "visibility-off" : "visibility"}
-                        size={22}
-                        color="rgba(255,255,255,0.72)"
-                      />
-                    </Pressable>
-                  </View>
-
-                  {password ? (
-                    <View style={styles.strengthBlock}>
-                      <View style={styles.strengthRow}>
-                        {[1, 2, 3, 4].map((level) => (
-                          <View
-                            key={level}
-                            style={[
-                              styles.strengthBar,
-                              strength >= level && styles.strengthBarActive,
-                            ]}
-                          />
-                        ))}
+                    <View style={styles.hintsRow}>
+                      <View style={styles.hintItem}>
+                        <MaterialIcons
+                          name="check"
+                          size={14}
+                          color={
+                            password.length >= 8
+                              ? "rgba(255,255,255,0.92)"
+                              : "rgba(255,255,255,0.55)"
+                          }
+                        />
+                        <ThemedText type="muted" style={styles.hintText}>
+                          {SIGNUP_COPY.passwordHints.minLength}
+                        </ThemedText>
                       </View>
 
-                      <View style={styles.hintsRow}>
-                        <View style={styles.hintItem}>
-                          <MaterialIcons
-                            name="check"
-                            size={14}
-                            color={
-                              password.length >= 8
-                                ? "rgba(255,255,255,0.92)"
-                                : "rgba(255,255,255,0.55)"
-                            }
-                          />
-                          <ThemedText type="muted" style={styles.hintText}>
-                            {SIGNUP_COPY.passwordHints.minLength}
-                          </ThemedText>
-                        </View>
-
-                        <View style={styles.hintItem}>
-                          <MaterialIcons
-                            name="check"
-                            size={14}
-                            color={
-                              /[A-Z]/.test(password)
-                                ? "rgba(255,255,255,0.92)"
-                                : "rgba(255,255,255,0.55)"
-                            }
-                          />
-                          <ThemedText type="muted" style={styles.hintText}>
-                            {SIGNUP_COPY.passwordHints.uppercase}
-                          </ThemedText>
-                        </View>
+                      <View style={styles.hintItem}>
+                        <MaterialIcons
+                          name="check"
+                          size={14}
+                          color={
+                            /[A-Z]/.test(password)
+                              ? "rgba(255,255,255,0.92)"
+                              : "rgba(255,255,255,0.55)"
+                          }
+                        />
+                        <ThemedText type="muted" style={styles.hintText}>
+                          {SIGNUP_COPY.passwordHints.uppercase}
+                        </ThemedText>
                       </View>
                     </View>
-                  ) : null}
-
-                  <ThemedText type="muted" style={styles.label}>
-                    {SIGNUP_COPY.fields.confirmPassword}
-                  </ThemedText>
-                  <View style={styles.passwordRow}>
-                    <TextInput
-                      style={styles.inputWithToggle}
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      placeholder="Confirm your password"
-                      placeholderTextColor="rgba(255,255,255,0.5)"
-                      secureTextEntry={!showConfirmPassword}
-                      editable={!loading}
-                    />
-                    <Pressable
-                      style={styles.toggleButton}
-                      onPress={() => setShowConfirmPassword((p) => !p)}
-                      hitSlop={12}
-                    >
-                      <MaterialIcons
-                        name={showConfirmPassword ? "visibility-off" : "visibility"}
-                        size={22}
-                        color="rgba(255,255,255,0.72)"
-                      />
-                    </Pressable>
                   </View>
+                ) : null}
 
+                <ThemedText type="muted" style={[styles.label, keyboardOpen && styles.labelKb]}>
+                  {SIGNUP_COPY.fields.confirmPassword}
+                </ThemedText>
+                <View style={styles.passwordRow}>
+                  <TextInput
+                    style={styles.inputWithToggle}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="Confirm your password"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    secureTextEntry={!showConfirmPassword}
+                    editable={!loading}
+                  />
                   <Pressable
-                    style={styles.termsRow}
-                    onPress={() => setAgreeToTerms((v) => !v)}
+                    style={styles.toggleButton}
+                    onPress={() => setShowConfirmPassword((p) => !p)}
+                    hitSlop={12}
                   >
-                    <View style={[styles.checkbox, agreeToTerms && styles.checkboxChecked]}>
-                      {agreeToTerms ? (
-                        <MaterialIcons name="check" size={14} color="#ffffff" />
-                      ) : null}
-                    </View>
+                    <MaterialIcons
+                      name={showConfirmPassword ? "visibility-off" : "visibility"}
+                      size={22}
+                      color="rgba(255,255,255,0.72)"
+                    />
+                  </Pressable>
+                </View>
 
-                    <View style={styles.termsTextWrap}>
-                      <Text style={styles.termsText}>
-                        I agree to the{" "}
-                        <Text
-                          style={styles.inlineLink}
-                          onPress={() => Linking.openURL("https://app.heartspirit.earth/terms")}
-                        >
-                          Terms of Use
-                        </Text>{" "}
-                        and{" "}
-                        <Text
-                          style={styles.inlineLink}
-                          onPress={() => Linking.openURL("https://app.heartspirit.earth/privacy")}
-                        >
-                          Privacy Policy
-                        </Text>
+                <Pressable
+                  style={styles.termsRow}
+                  onPress={() => setAgreeToTerms((v) => !v)}
+                >
+                  <View style={[styles.checkbox, agreeToTerms && styles.checkboxChecked]}>
+                    {agreeToTerms ? (
+                      <MaterialIcons name="check" size={14} color="#ffffff" />
+                    ) : null}
+                  </View>
+
+                  <View style={styles.termsTextWrap}>
+                    <Text style={styles.termsText}>
+                      I agree to the{" "}
+                      <Text
+                        style={styles.inlineLink}
+                        onPress={() => Linking.openURL("https://app.heartspirit.earth/terms")}
+                      >
+                        Terms of Use
+                      </Text>{" "}
+                      and{" "}
+                      <Text
+                        style={styles.inlineLink}
+                        onPress={() => Linking.openURL("https://app.heartspirit.earth/privacy")}
+                      >
+                        Privacy Policy
                       </Text>
-                    </View>
-                  </Pressable>
+                    </Text>
+                  </View>
+                </Pressable>
 
-                  {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
+                {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
 
-                  <Pressable
-                    style={[
-                      styles.submitButton,
-                      (!agreeToTerms || loading) && styles.submitButtonDisabled,
-                    ]}
-                    onPress={handleSubmit}
-                    disabled={!agreeToTerms || loading}
-                  >
-                    <ThemedText type="defaultSemiBold" style={styles.submitText}>
-                      {loading ? SIGNUP_COPY.ctaLoading : SIGNUP_COPY.cta}
-                    </ThemedText>
-                  </Pressable>
+                <Pressable
+                  style={[
+                    styles.submitButton,
+                    (!agreeToTerms || loading) && styles.submitButtonDisabled,
+                  ]}
+                  onPress={handleSubmit}
+                  disabled={!agreeToTerms || loading}
+                >
+                  <ThemedText type="defaultSemiBold" style={styles.submitText}>
+                    {loading ? SIGNUP_COPY.ctaLoading : SIGNUP_COPY.cta}
+                  </ThemedText>
+                </Pressable>
 
-                  <Pressable
-                    style={styles.loginLink}
-                    onPress={() => router.replace("/(auth)/login")}
-                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  >
-                    <ThemedText type="muted" style={styles.loginLinkText}>
-                      Already have an account?
-                    </ThemedText>
-                    <ThemedText type="defaultSemiBold" style={styles.loginLinkButton}>
-                      Log In
-                    </ThemedText>
-                  </Pressable>
-                </TranslucentCard>
-              )}
-          </ScrollView>
-        </SafeAreaView>
+                <Pressable
+                  style={styles.loginLink}
+                  onPress={() => router.replace("/(auth)/login")}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <ThemedText type="muted" style={styles.loginLinkText}>
+                    Already have an account?
+                  </ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.loginLinkButton}>
+                    Log In
+                  </ThemedText>
+                </Pressable>
+              </View>
+            </TranslucentCard>
+          )}
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   )
@@ -383,23 +415,22 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "transparent" },
   avoid: { flex: 1 },
-  safeArea: { flex: 1 },
   scroll: { flex: 1 },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingTop: 28,
-  },
 
-  scrollContentKeyboardOpen: {
-    justifyContent: "flex-start",
-    paddingTop: 12,
-  },
   headerBlock: {
     marginTop: 16,
     marginBottom: 28,
     alignItems: "center",
+  },
+
+  heroFocusMode: {
+    opacity: 0,
+    height: 0,
+    minHeight: 0,
+    marginTop: 0,
+    marginBottom: 0,
+    overflow: "hidden",
+    pointerEvents: "none",
   },
 
   pageTitle: {
@@ -423,6 +454,16 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 12,
   },
+  cardFrame: {
+    width: "100%",
+    maxWidth: 520,
+    alignSelf: "center",
+  },
+
+  cardForm: {
+    width: "100%",
+  },
+
   card: {
     paddingHorizontal: 20,
     paddingTop: 18,
@@ -433,6 +474,22 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 10,
+  },
+
+  /** Focus mode: base vertical rhythm; top tightened by +cardFocusPanelKeyboardTop when keyboard is open. */
+  cardFocusPanel: {
+    paddingTop: 4,
+    paddingBottom: 4,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  cardFocusPanelKeyboardTop: {
+    paddingTop: 2,
+  },
+
+  labelKb: {
+    marginTop: 7,
+    marginBottom: 6,
   },
   cardHeaderBlock: {
     marginBottom: 4,
