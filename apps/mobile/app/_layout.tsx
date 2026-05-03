@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react"
-import { ActivityIndicator, StyleSheet, View } from "react-native"
+import { useEffect, useRef, useState } from "react"
+import { ActivityIndicator, Image, View } from "react-native"
 import { DarkTheme, DefaultTheme, ThemeProvider, type Theme } from "@react-navigation/native"
 import { Stack } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useFonts } from "expo-font"
 import { AlegreyaSans_400Regular, AlegreyaSans_500Medium } from "@expo-google-fonts/alegreya-sans"
+import * as SplashScreen from "expo-splash-screen"
 import "react-native-reanimated"
 import "../global.css"
 
@@ -17,7 +18,10 @@ import * as SystemUI from "expo-system-ui"
 import { startRootAmbientPlayback, stopRootAmbientPlayback } from "@/lib/ambientSounds"
 import IntroScreen from "@/components/IntroScreen"
 
+void SplashScreen.preventAutoHideAsync()
+
 const APP_SURFACE = "#0a1410"
+const INTRO_BG = require("@/assets/images/redwoods.trail1.png")
 
 function appNavigationTheme(colorScheme: string | null | undefined): Theme {
   const base = colorScheme === "dark" ? DarkTheme : DefaultTheme
@@ -83,6 +87,8 @@ function RootLayoutNav() {
 export default function RootLayout() {
   const colorScheme = useColorScheme()
   const [showIntro, setShowIntro] = useState(true)
+  const [introImageReady, setIntroImageReady] = useState(false)
+  const splashHiddenRef = useRef(false)
   const navTheme = appNavigationTheme(colorScheme)
 
   useEffect(() => {
@@ -110,7 +116,45 @@ export default function RootLayout() {
     AlegreyaSans_500Medium,
   })
 
-  if (!fontsLoaded) {
+  useEffect(() => {
+    if (!fontsLoaded) return
+
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        const src = Image.resolveAssetSource(INTRO_BG)
+        if (src?.uri) {
+          await Image.prefetch(src.uri)
+        }
+      } catch {
+        // Still allow intro to mount; ImageBackground may load from disk.
+      }
+      if (!cancelled) setIntroImageReady(true)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fontsLoaded])
+
+  useEffect(() => {
+    if (!fontsLoaded || !introImageReady || !showIntro || splashHiddenRef.current) return
+
+    splashHiddenRef.current = true
+    let raf2 = 0
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        SplashScreen.hideAsync().catch(() => {})
+      })
+    })
+    return () => {
+      cancelAnimationFrame(raf1)
+      if (raf2) cancelAnimationFrame(raf2)
+    }
+  }, [fontsLoaded, introImageReady, showIntro])
+
+  if (!fontsLoaded || !introImageReady) {
     return (
       <ThemeProvider value={navTheme}>
         <View style={{ flex: 1, backgroundColor: APP_SURFACE }} />
@@ -125,12 +169,6 @@ export default function RootLayout() {
         <View style={{ flex: 1, backgroundColor: APP_SURFACE }}>
           <RootLayoutNav />
           <StatusBar style="auto" />
-          {showIntro ? (
-            <View
-              pointerEvents="none"
-              style={[StyleSheet.absoluteFillObject, { backgroundColor: APP_SURFACE, zIndex: 999 }]}
-            />
-          ) : null}
           {showIntro ? <IntroScreen onFinish={() => setShowIntro(false)} /> : null}
         </View>
       </AuthProvider>

@@ -7,21 +7,20 @@ type IntroScreenProps = {
 
 const REDWOODS = require("@/assets/images/redwoods.trail1.png")
 
+/** Total time from mount (full-opacity intro) until `onFinish`: 5.5s (hold + fade-out). */
+const INTRO_TOTAL_MS = 5500
+const FADE_OUT_MS = 350
+const HOLD_MS = INTRO_TOTAL_MS - FADE_OUT_MS
+
 export default function IntroScreen({ onFinish }: IntroScreenProps) {
-  const opacity = useRef(new Animated.Value(0)).current
+  const opacity = useRef(new Animated.Value(1)).current
 
   useEffect(() => {
     const animation = Animated.sequence([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 700,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.delay(1800),
+      Animated.delay(HOLD_MS),
       Animated.timing(opacity, {
         toValue: 0,
-        duration: 600,
+        duration: FADE_OUT_MS,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
