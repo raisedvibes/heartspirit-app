@@ -3,21 +3,28 @@ import { Animated, Easing, ImageBackground, StyleSheet, Text, View } from "react
 
 type IntroScreenProps = {
   onFinish: () => void
+  /** Full sequence length (hold + fade-out) in ms; guest ~5.5s, returning ~3.1s. */
+  totalDurationMs?: number
 }
 
 const REDWOODS = require("@/assets/images/redwoods.trail1.png")
 
-/** Total time from mount (full-opacity intro) until `onFinish`: 5.5s (hold + fade-out). */
-const INTRO_TOTAL_MS = 5500
+const DEFAULT_INTRO_TOTAL_MS = 5500
 const FADE_OUT_MS = 350
-const HOLD_MS = INTRO_TOTAL_MS - FADE_OUT_MS
 
-export default function IntroScreen({ onFinish }: IntroScreenProps) {
+function holdMsForTotal(totalMs: number) {
+  return Math.max(400, totalMs - FADE_OUT_MS)
+}
+
+export default function IntroScreen({ onFinish, totalDurationMs }: IntroScreenProps) {
+  const total = totalDurationMs ?? DEFAULT_INTRO_TOTAL_MS
+  const holdMs = holdMsForTotal(total)
+
   const opacity = useRef(new Animated.Value(1)).current
 
   useEffect(() => {
     const animation = Animated.sequence([
-      Animated.delay(HOLD_MS),
+      Animated.delay(holdMs),
       Animated.timing(opacity, {
         toValue: 0,
         duration: FADE_OUT_MS,
@@ -33,7 +40,7 @@ export default function IntroScreen({ onFinish }: IntroScreenProps) {
     return () => {
       animation.stop()
     }
-  }, [onFinish, opacity])
+  }, [holdMs, onFinish, opacity])
 
   return (
     <Animated.View pointerEvents="none" style={[styles.overlay, { opacity }]}>

@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react"
 import { router } from "expo-router"
 import * as Localization from "expo-localization"
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Linking } from "react-native"
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Linking,
+  Keyboard,
+  type KeyboardEvent,
+} from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 
@@ -21,6 +33,7 @@ function passwordStrength(password: string) {
 
 export default function SignupScreen() {
   const insets = useSafeAreaInsets()
+  const [keyboardPad, setKeyboardPad] = useState(0)
 
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
@@ -37,6 +50,19 @@ export default function SignupScreen() {
   const [emailSent, setEmailSent] = useState(false)
   const [signupEmail, setSignupEmail] = useState("")
   const strength = passwordStrength(password)
+
+  useEffect(() => {
+    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow"
+    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide"
+    const subShow = Keyboard.addListener(showEvt, (e: KeyboardEvent) => {
+      setKeyboardPad(e.endCoordinates.height)
+    })
+    const subHide = Keyboard.addListener(hideEvt, () => setKeyboardPad(0))
+    return () => {
+      subShow.remove()
+      subHide.remove()
+    }
+  }, [])
 
   const handleSubmit = async () => {
     const trimmedEmail = email.trim()
@@ -92,6 +118,9 @@ export default function SignupScreen() {
     router.replace("/(tabs)")
   }
 
+  const baseBottomPad = Math.min(80, Math.max(insets.bottom + 36, 52))
+  const keyboardOpen = keyboardPad > 0
+
   return (
     <View style={styles.root}>
       <KeyboardAvoidingView
@@ -104,7 +133,10 @@ export default function SignupScreen() {
             style={styles.scroll}
             contentContainerStyle={[
               styles.scrollContent,
-              { paddingBottom: Math.min(80, Math.max(insets.bottom + 36, 52)) },
+              keyboardOpen && styles.scrollContentKeyboardOpen,
+              {
+                paddingBottom: baseBottomPad + keyboardPad + (keyboardOpen ? 28 : 0),
+              },
             ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -358,6 +390,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 20,
     paddingTop: 28,
+  },
+
+  scrollContentKeyboardOpen: {
+    justifyContent: "flex-start",
+    paddingTop: 12,
   },
   headerBlock: {
     marginTop: 16,

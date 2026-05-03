@@ -103,6 +103,40 @@ export async function startRootAmbientPlayback(): Promise<void> {
   }
 }
 
+/**
+ * Smoothly lowers volume then stops/unloads (used when entering the main app after auth).
+ */
+export async function fadeOutRootAmbientPlayback(durationMs = 2200): Promise<void> {
+  const sound = rootAmbientSound
+  if (!sound) return
+
+  let startVol = TARGET_VOLUME
+  try {
+    const status = await sound.getStatusAsync()
+    if (status.isLoaded && "volume" in status && typeof status.volume === "number") {
+      startVol = status.volume
+    }
+  } catch {
+    startVol = TARGET_VOLUME
+  }
+
+  const steps = Math.max(10, Math.min(40, Math.ceil(durationMs / 80)))
+  const stepMs = durationMs / steps
+
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps
+    const v = Math.max(0, startVol * (1 - t))
+    try {
+      await sound.setVolumeAsync(v)
+    } catch {
+      break
+    }
+    await new Promise((r) => setTimeout(r, stepMs))
+  }
+
+  await stopRootAmbientPlayback()
+}
+
 export async function stopRootAmbientPlayback(): Promise<void> {
   const sound = rootAmbientSound
   if (!sound) return

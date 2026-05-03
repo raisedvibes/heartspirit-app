@@ -15,8 +15,8 @@
       "bundleIdentifier": "com.raised-vibes.heartspirit",
       "splash": {
         "backgroundColor": "#0a1410",
-        "resizeMode": "cover",
-        "image": "./assets/images/redwoods.trail1.png",
+        "resizeMode": "contain",
+        "image": "./assets/images/splash-icon.png",
         "dark": {
           "backgroundColor": "#0a1410"
         }
@@ -33,8 +33,8 @@
       },
       "splash": {
         "backgroundColor": "#0a1410",
-        "resizeMode": "cover",
-        "image": "./assets/images/redwoods.trail1.png",
+        "resizeMode": "contain",
+        "image": "./assets/images/splash-icon.png",
         "dark": {
           "backgroundColor": "#0a1410"
         }
@@ -59,8 +59,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/redwoods.trail1.png",
-          "resizeMode": "cover",
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
           "backgroundColor": "#0a1410",
           "enableFullScreenImage_legacy": true,
           "dark": {

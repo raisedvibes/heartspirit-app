@@ -1,6 +1,16 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { router } from "expo-router"
-import { View, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native"
+import {
+  View,
+  StyleSheet,
+  Pressable,
+  TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  type KeyboardEvent,
+} from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 
@@ -12,6 +22,7 @@ import { LOGIN_COPY } from "@/constants/signup"
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets()
+  const [keyboardPad, setKeyboardPad] = useState(0)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -19,6 +30,20 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [noticeEmail, setNoticeEmail] = useState("")
+
+  useEffect(() => {
+    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow"
+    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide"
+    const subShow = Keyboard.addListener(showEvt, (e: KeyboardEvent) => {
+      setKeyboardPad(e.endCoordinates.height)
+    })
+    const subHide = Keyboard.addListener(hideEvt, () => setKeyboardPad(0))
+    return () => {
+      subShow.remove()
+      subHide.remove()
+    }
+  }, [])
+
   const handleSubmit = async () => {
     const trimmed = email.trim()
     if (!trimmed || !password) return
@@ -70,6 +95,9 @@ export default function LoginScreen() {
     router.replace("/(tabs)")
   }
 
+  const baseBottomPad = Math.min(80, Math.max(insets.bottom + 36, 52))
+  const keyboardOpen = keyboardPad > 0
+
   return (
     <View style={styles.root}>
       <KeyboardAvoidingView
@@ -82,7 +110,10 @@ export default function LoginScreen() {
             style={styles.scroll}
             contentContainerStyle={[
               styles.scrollContent,
-              { paddingBottom: Math.min(80, Math.max(insets.bottom + 36, 52)) },
+              keyboardOpen && styles.scrollContentKeyboardOpen,
+              {
+                paddingBottom: baseBottomPad + keyboardPad + (keyboardOpen ? 28 : 0),
+              },
             ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -201,6 +232,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     paddingTop: 28,
+  },
+
+  scrollContentKeyboardOpen: {
+    justifyContent: "flex-start",
+    paddingTop: 12,
   },
 
   headerBlock: {

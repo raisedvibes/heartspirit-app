@@ -15,13 +15,22 @@ import { registerPushToken } from "@/lib/pushTokenRegistration"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import * as SystemUI from "expo-system-ui"
 
-import { startRootAmbientPlayback, stopRootAmbientPlayback } from "@/lib/ambientSounds"
+import {
+  fadeOutRootAmbientPlayback,
+  startRootAmbientPlayback,
+  stopRootAmbientPlayback,
+} from "@/lib/ambientSounds"
 import IntroScreen from "@/components/IntroScreen"
 
 void SplashScreen.preventAutoHideAsync()
 
 const APP_SURFACE = "#0a1410"
 const INTRO_BG = require("@/assets/images/redwoods.trail1.png")
+
+/** Guest / first-time auth entry — full intro length. */
+const INTRO_TOTAL_MS_GUEST = 5500
+/** Session already present — shorter path into tabs. */
+const INTRO_TOTAL_MS_RETURNING = 3100
 
 function appNavigationTheme(colorScheme: string | null | undefined): Theme {
   const base = colorScheme === "dark" ? DarkTheme : DefaultTheme
@@ -39,7 +48,7 @@ export const unstable_settings = {
   anchor: "(tabs)",
 }
 
-/** Session ambient at root — not gated on auth (plays through intro + auth + tabs until teardown). */
+/** Session ambient at root — not gated on auth (plays through intro + auth until fade). */
 function RootSessionAmbient() {
   useEffect(() => {
     startRootAmbientPlayback().catch((e) => {
@@ -51,6 +60,27 @@ function RootSessionAmbient() {
       })
     }
   }, [])
+
+  return null
+}
+
+/** After intro ends and user is signed in, fade forest ambience out (not on tabs). */
+function AmbientFadeAfterAppEntry({ showIntro }: { showIntro: boolean }) {
+  const { session, loading } = useAuth()
+  const fadedRef = useRef(false)
+
+  useEffect(() => {
+    if (loading || showIntro) return
+    if (!session) {
+      fadedRef.current = false
+      return
+    }
+    if (fadedRef.current) return
+    fadedRef.current = true
+    fadeOutRootAmbientPlayback(2200).catch((e) => {
+      console.warn("[audio] fade-out failed:", e)
+    })
+  }, [loading, session, showIntro])
 
   return null
 }
@@ -84,11 +114,48 @@ function RootLayoutNav() {
   )
 }
 
+function RootAppShell() {
+  const [showIntro, setShowIntro] = useState(true)
+  const { session, loading } = useAuth()
+  const splashHiddenRef = useRef(false)
+
+  useEffect(() => {
+    if (loading || !showIntro || splashHiddenRef.current) return
+
+    let raf2 = 0
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        if (splashHiddenRef.current) return
+        splashHiddenRef.current = true
+        SplashScreen.hideAsync().catch(() => {})
+      })
+    })
+    return () => {
+      cancelAnimationFrame(raf1)
+      if (raf2) cancelAnimationFrame(raf2)
+    }
+  }, [loading, showIntro])
+
+  const introTotalMs = session ? INTRO_TOTAL_MS_RETURNING : INTRO_TOTAL_MS_GUEST
+
+  return (
+    <>
+      <RootSessionAmbient />
+      <AmbientFadeAfterAppEntry showIntro={showIntro} />
+      <View style={{ flex: 1, backgroundColor: APP_SURFACE }}>
+        <RootLayoutNav />
+        <StatusBar style="auto" />
+        {!loading && showIntro ? (
+          <IntroScreen totalDurationMs={introTotalMs} onFinish={() => setShowIntro(false)} />
+        ) : null}
+      </View>
+    </>
+  )
+}
+
 export default function RootLayout() {
   const colorScheme = useColorScheme()
-  const [showIntro, setShowIntro] = useState(true)
   const [introImageReady, setIntroImageReady] = useState(false)
-  const splashHiddenRef = useRef(false)
   const navTheme = appNavigationTheme(colorScheme)
 
   useEffect(() => {
@@ -138,22 +205,6 @@ export default function RootLayout() {
     }
   }, [fontsLoaded])
 
-  useEffect(() => {
-    if (!fontsLoaded || !introImageReady || !showIntro || splashHiddenRef.current) return
-
-    splashHiddenRef.current = true
-    let raf2 = 0
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        SplashScreen.hideAsync().catch(() => {})
-      })
-    })
-    return () => {
-      cancelAnimationFrame(raf1)
-      if (raf2) cancelAnimationFrame(raf2)
-    }
-  }, [fontsLoaded, introImageReady, showIntro])
-
   if (!fontsLoaded || !introImageReady) {
     return (
       <ThemeProvider value={navTheme}>
@@ -164,13 +215,8 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={navTheme}>
-      <RootSessionAmbient />
       <AuthProvider>
-        <View style={{ flex: 1, backgroundColor: APP_SURFACE }}>
-          <RootLayoutNav />
-          <StatusBar style="auto" />
-          {showIntro ? <IntroScreen onFinish={() => setShowIntro(false)} /> : null}
-        </View>
+        <RootAppShell />
       </AuthProvider>
     </ThemeProvider>
   )
