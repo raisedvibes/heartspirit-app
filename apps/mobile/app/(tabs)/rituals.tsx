@@ -319,13 +319,13 @@ export default function RitualsScreen() {
                   return (
                     <TranslucentCard style={styles.emptyCard}>
                       <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
-                        No rituals yet — add a ritual to create.
+                        No rituals yet — create a new ritual.
                       </ThemedText>
                       <ThemedText type="muted" style={styles.emptyBody}>
                         A ritual elevates a practice by intentionally connecting to heart.
                       </ThemedText>
                       <ThemedText type="muted" style={styles.emptyBody}>
-                        What is a ritual that can support you right now?
+                        What's a ritual that will support you right now?
                       </ThemedText>
                       <ThemedText type="muted" style={styles.examplesLabel}>
                         examples

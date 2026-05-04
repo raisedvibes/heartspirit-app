@@ -76,7 +76,7 @@ export function RitualsWidget({ ctaLabel = "Add ritual" }: RitualsWidgetProps) {
             No rituals yet
           </ThemedText>
           <ThemedText type="muted" style={styles.emptyBody}>
-            Add a ritual to create.
+            Add a ritual.
           </ThemedText>
           <ThemedText type="muted" style={styles.emptyBody}>
             A ritual elevates a practice by intentionally connecting to heart.

@@ -69,43 +69,61 @@ function scopedStorageKey(userId: string | null): string {
  */
 let ritualsPersistUserId: string | null | undefined = undefined
 
-function createUserScopedStorage(): StateStorage {
-  return {
-    getItem: async (name) => {
-      if (name !== PERSIST_MIDDLEWARE_NAME) {
-        return AsyncStorage.getItem(name)
-      }
-      const uid = ritualsPersistUserId
-      const key = scopedStorageKey(uid ?? null)
-      let value = await AsyncStorage.getItem(key)
-      if (value) return value
-      if (uid) {
-        const legacy = await AsyncStorage.getItem(LEGACY_ASYNC_STORAGE_KEY)
-        if (legacy) {
-          await AsyncStorage.setItem(key, legacy)
-          await AsyncStorage.removeItem(LEGACY_ASYNC_STORAGE_KEY)
-          return legacy
+function resolveAsyncStorageKey(): string {
+  return scopedStorageKey(ritualsPersistUserId ?? null)
+}
+
+/**
+ * Single stable storage object so `createJSONStorage` always reads/writes the key
+ * implied by `ritualsPersistUserId` at call time (dynamic per user).
+ */
+const ritualsUserScopedStorage: StateStorage = {
+  getItem: async (name) => {
+    if (name !== PERSIST_MIDDLEWARE_NAME) {
+      return AsyncStorage.getItem(name)
+    }
+    const key = resolveAsyncStorageKey()
+    if (__DEV__) {
+      console.log("[rituals-persist] getItem → AsyncStorage key:", key)
+    }
+    let value = await AsyncStorage.getItem(key)
+    if (value) return value
+    const uid = ritualsPersistUserId
+    if (uid) {
+      const legacy = await AsyncStorage.getItem(LEGACY_ASYNC_STORAGE_KEY)
+      if (legacy) {
+        if (__DEV__) {
+          console.log("[rituals-persist] migrating legacy →", key)
         }
+        await AsyncStorage.setItem(key, legacy)
+        await AsyncStorage.removeItem(LEGACY_ASYNC_STORAGE_KEY)
+        return legacy
       }
-      return null
-    },
-    setItem: async (name, value) => {
-      if (name !== PERSIST_MIDDLEWARE_NAME) {
-        await AsyncStorage.setItem(name, value)
-        return
-      }
-      const key = scopedStorageKey(ritualsPersistUserId ?? null)
-      await AsyncStorage.setItem(key, value)
-    },
-    removeItem: async (name) => {
-      if (name !== PERSIST_MIDDLEWARE_NAME) {
-        await AsyncStorage.removeItem(name)
-        return
-      }
-      const key = scopedStorageKey(ritualsPersistUserId ?? null)
-      await AsyncStorage.removeItem(key)
-    },
-  }
+    }
+    return null
+  },
+  setItem: async (name, value) => {
+    if (name !== PERSIST_MIDDLEWARE_NAME) {
+      await AsyncStorage.setItem(name, value)
+      return
+    }
+    const key = resolveAsyncStorageKey()
+    if (__DEV__) {
+      console.log("[rituals-persist] setItem → AsyncStorage key:", key, "bytes:", value?.length ?? 0)
+    }
+    await AsyncStorage.setItem(key, value)
+  },
+  removeItem: async (name) => {
+    if (name !== PERSIST_MIDDLEWARE_NAME) {
+      await AsyncStorage.removeItem(name)
+      return
+    }
+    const key = resolveAsyncStorageKey()
+    if (__DEV__) {
+      console.log("[rituals-persist] removeItem → AsyncStorage key:", key)
+    }
+    await AsyncStorage.removeItem(key)
+  },
 }
 
 export const useRitualsStore = create<RitualsState>()(
@@ -154,7 +172,7 @@ export const useRitualsStore = create<RitualsState>()(
     }),
     {
       name: PERSIST_MIDDLEWARE_NAME,
-      storage: createJSONStorage(() => createUserScopedStorage()),
+      storage: createJSONStorage(() => ritualsUserScopedStorage),
       partialize: (s) => ({ rituals: s.rituals }),
       onRehydrateStorage: () => (state, _error) => {
         state?.setHasHydrated(true)
@@ -166,7 +184,9 @@ export const useRitualsStore = create<RitualsState>()(
 /**
  * Call whenever the Supabase auth user changes (initial session, login, logout, account switch).
  * Persists under `heartspirit:rituals:${userId}`; logged-out uses `heartspirit:rituals:__anonymous__`.
- * Cancels scheduled ritual reminders for the previous account before clearing memory.
+ *
+ * Important: Do not `set({ rituals: [] })` before `rehydrate()` — that would persist an empty list
+ * to the new user's key and wipe their saved rituals on every login.
  */
 export async function syncRitualsStoreWithAuthUserId(userId: string | null): Promise<void> {
   if (ritualsPersistUserId === userId && ritualsPersistUserId !== undefined) {
@@ -183,7 +203,12 @@ export async function syncRitualsStoreWithAuthUserId(userId: string | null): Pro
 
   ritualsPersistUserId = userId
 
-  useRitualsStore.setState({ rituals: [], hasHydrated: false })
+  if (__DEV__) {
+    console.log("[rituals-persist] sync auth user → AsyncStorage base key:", resolveAsyncStorageKey(), "rehydrating…")
+  }
+
+  // Do not call setState({ rituals }) or partial state before rehydrate — persist would flush
+  // in-memory rituals to the *new* AsyncStorage key (e.g. leak into anonymous on logout).
   await useRitualsStore.persist.rehydrate()
 }
 
