@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { requireAdmin } from "@/lib/admin/requireAdmin"
+import { mapCircleDbRowToApi } from "@/lib/circles/mapCircleJoinUrl"
 import { sendCircleActivityNotification } from "@/lib/server/notifications/circles"
 
 export async function POST(req: Request) {
@@ -25,19 +26,24 @@ export async function POST(req: Request) {
     // Store description exactly as provided (trim only, no length limit)
     const description: string | null = body.description?.trim() || null
 
+    const insertRow: Record<string, unknown> = {
+      name,
+      description,
+      frequency: body.frequency ?? "Weekly",
+      image_url: body.image_url ?? null,
+      tags: body.tags ?? null,
+      is_published: body.is_published ?? true,
+      starts_at: body.starts_at ?? null,
+    }
+
+    if ("join_url" in body) {
+      if (body.join_url === null) insertRow.payment_url = null
+      else if (typeof body.join_url === "string") insertRow.payment_url = body.join_url.trim() || null
+    }
+
     const { data, error } = await supabase
       .from("circles")
-      .insert([
-        {
-          name,
-          description,
-          frequency: body.frequency ?? "Weekly",
-          image_url: body.image_url ?? null,
-          tags: body.tags ?? null,
-          is_published: body.is_published ?? true,
-          starts_at: body.starts_at ?? null,
-        },
-      ])
+      .insert([insertRow])
       .select("*")
       .single()
 
@@ -55,7 +61,7 @@ export async function POST(req: Request) {
       console.warn("[Circles] create activity notification skipped:", notifyErr?.message ?? notifyErr)
     }
 
-    return NextResponse.json({ circle: data }, { status: 200 })
+    return NextResponse.json({ circle: mapCircleDbRowToApi(data as Record<string, unknown>) }, { status: 200 })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? "Unknown error" }, { status: 500 })
   }

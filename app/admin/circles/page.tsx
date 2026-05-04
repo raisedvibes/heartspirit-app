@@ -36,7 +36,7 @@ type Circle = {
   description: string | null
   frequency: Frequency
   member_count: number
-  payment_url: string | null
+  join_url: string | null
   image_url: string | null
   tags: string[] | null
   is_published: boolean
@@ -48,8 +48,8 @@ type Circle = {
 type Draft = {
   name: string
   description: string
-  payment_url: string
   frequency: Frequency
+  join_url: string
   image_url: string
   tags: string
   is_published: boolean
@@ -77,8 +77,8 @@ export default function AdminCirclesPage() {
   const [createDraft, setCreateDraft] = useState<Draft>({
     name: "",
     description: "",
-    payment_url: "",
     frequency: "Weekly",
+    join_url: "",
     image_url: "",
     tags: "",
     is_published: true,
@@ -150,8 +150,8 @@ export default function AdminCirclesPage() {
       name: circle.name ?? "",
       description: circle.description ?? "",
       frequency: circle.frequency ?? "Weekly",
+      join_url: circle.join_url ?? "",
       image_url: circle.image_url ?? "",
-      payment_url: circle.payment_url ?? "",
       tags: (circle.tags ?? []).join(", "),
       is_published: !!circle.is_published,
       starts_at: circle.starts_at ? utcStartsAtToDatetimeLocal(circle.starts_at) : "",
@@ -178,8 +178,8 @@ export default function AdminCirclesPage() {
         body: JSON.stringify({
           name: createDraft.name.trim(),
           description: createDraft.description.trim() || null,
-          payment_url: createDraft.payment_url.trim() || null,
           frequency: createDraft.frequency,
+          join_url: createDraft.join_url.trim() || null,
           image_url: createDraft.image_url.trim() || null,
           tags: parseTags(createDraft.tags),
           is_published: createDraft.is_published,
@@ -196,8 +196,8 @@ export default function AdminCirclesPage() {
         name: "",
         description: "",
         frequency: "Weekly",
+        join_url: "",
         image_url: "",
-        payment_url: "",
         tags: "",
         is_published: true,
         starts_at: "",
@@ -226,8 +226,8 @@ export default function AdminCirclesPage() {
           id,
           name: editDraft.name.trim(),
           description: editDraft.description.trim() || null,
-          payment_url: editDraft.payment_url.trim() || null,
           frequency: editDraft.frequency,
+          join_url: editDraft.join_url.trim() || null,
           image_url: editDraft.image_url.trim() || null,
           tags: parseTags(editDraft.tags),
           is_published: editDraft.is_published,
@@ -270,16 +270,17 @@ export default function AdminCirclesPage() {
 
   const formatManualPushResult = (r: Record<string, unknown>) => {
     if (r.ok === false && typeof r.error === "string") return r.error
+    const usersScanned = Number(r.usersScanned ?? 0)
+    const tokensFound = Number(r.tokensFound ?? 0)
     const sent = Number(r.sent ?? 0)
     const skipped = Number(r.skipped ?? 0)
     const failed = Number(r.failed ?? 0)
     const skippedNoPrefs = Number(r.skippedNoPrefs ?? 0)
     const skippedNoTokens = Number(r.skippedNoTokens ?? 0)
     const skippedDuplicate = Number(r.skippedDuplicate ?? 0)
-    const skippedNoMembers = Number(r.skippedNoMembers ?? 0)
     return (
-      `Manual push: sent ${sent}, skipped ${skipped}, failed ${failed}. ` +
-      `(No members: ${skippedNoMembers}, prefs off: ${skippedNoPrefs}, no push token: ${skippedNoTokens}, duplicate reserve: ${skippedDuplicate})`
+      `Manual push: users ${usersScanned}, token rows ${tokensFound}, sent ${sent}, skipped ${skipped}, failed ${failed}. ` +
+      `(Prefs off / no profile: ${skippedNoPrefs}, no token: ${skippedNoTokens}, duplicate reserve: ${skippedDuplicate})`
     )
   }
 
@@ -320,12 +321,20 @@ export default function AdminCirclesPage() {
       if (!res.ok) {
         throw new Error(typeof json?.error === "string" ? json.error : "Reminder test failed")
       }
-      const scanned = Number(json.circlesScanned ?? 0)
+      const circlesScanned = Number(json.circlesScanned ?? 0)
+      const usersScanned = Number(json.usersScanned ?? 0)
+      const usersWithPushTokens = Number(json.usersWithPushTokens ?? 0)
+      const tokensFound = Number(json.tokensFound ?? 0)
       const sent = Number(json.notificationsSent ?? 0)
       const failed = Number(json.notificationsFailed ?? 0)
+      const skippedNoPrefs = Number(json.skippedNoPrefs ?? 0)
+      const skippedNoTokens = Number(json.skippedNoTokens ?? 0)
+      const skippedDuplicate = Number(json.skippedDuplicate ?? 0)
       setNotifyBanner({
         tone: "success",
-        text: `Reminder cron test: circles scanned ${scanned}, notifications sent ${sent}, failed ${failed}.`,
+        text:
+          `Reminder cron test: circles ${circlesScanned}, users w/ tokens ${usersWithPushTokens}, token rows ${tokensFound}, ` +
+          `evaluations ${usersScanned}, sent ${sent}, failed ${failed}, skipped prefs ${skippedNoPrefs}, no token ${skippedNoTokens}, duplicate ${skippedDuplicate}.`,
       })
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Reminder test failed"
@@ -517,16 +526,15 @@ export default function AdminCirclesPage() {
                   />
                 </div>
 
-                {/* ✅ Payment URL */}
                 <div className="md:col-span-2">
-                  <label className="text-xs text-white/70">Payment URL (Join link)</label>
+                  <label className="text-xs text-white/70">Circle Link</label>
                   <input
-                    value={createDraft.payment_url}
-                    onChange={(e) => setCreateDraft((d) => ({ ...d, payment_url: e.target.value }))}
+                    value={createDraft.join_url}
+                    onChange={(e) => setCreateDraft((d) => ({ ...d, join_url: e.target.value }))}
                     className="mt-1 w-full rounded-xl bg-black/20 border border-white/20 text-white px-4 py-2 outline-none focus:border-white/35"
-                    placeholder="https://your-wix-site.com/..."
+                    placeholder="https://..."
                   />
-                  <p className="mt-1 text-xs text-white/50">This link opens when someone taps “Join” in the app.</p>
+                  <p className="mt-1 text-xs text-white/50">Opens when someone taps Reserve in the app.</p>
                 </div>
 
                 <div className="md:col-span-2">
@@ -596,13 +604,13 @@ export default function AdminCirclesPage() {
                               <div className="text-sm text-white/70 mt-1 line-clamp-2">{c.description}</div>
                             ) : null}
 
-                            {c.payment_url ? (
+                            {c.join_url ? (
                               <div className="text-xs text-white/60 mt-2 break-all">
-                                Join link: <span className="text-white/80">{c.payment_url}</span>
+                                Circle link: <span className="text-white/80">{c.join_url}</span>
                               </div>
                             ) : (
                               <div className="text-xs text-white/60 mt-2">
-                                Join link: <span className="text-white/70">Not set</span>
+                                Circle link: <span className="text-white/70">Not set</span>
                               </div>
                             )}
 
@@ -729,14 +737,14 @@ export default function AdminCirclesPage() {
                           </div>
 
                           <div className="md:col-span-2">
-                            <label className="text-xs text-white/70">Payment URL (Join link)</label>
+                            <label className="text-xs text-white/70">Circle Link</label>
                             <input
-                              value={editDraft?.payment_url ?? ""}
-                              onChange={(e) => setEditDraft((d) => (d ? { ...d, payment_url: e.target.value } : d))}
+                              value={editDraft?.join_url ?? ""}
+                              onChange={(e) => setEditDraft((d) => (d ? { ...d, join_url: e.target.value } : d))}
                               className="mt-1 w-full rounded-xl bg-black/20 border border-white/20 text-white px-4 py-2 outline-none focus:border-white/35"
-                              placeholder="https://your-wix-site.com/..."
+                              placeholder="https://..."
                             />
-                            <p className="mt-1 text-xs text-white/50">This link opens when someone taps “Join” in the app.</p>
+                            <p className="mt-1 text-xs text-white/50">Opens when someone taps Reserve in the app.</p>
                           </div>
 
                           <div className="md:col-span-2">

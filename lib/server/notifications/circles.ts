@@ -15,13 +15,20 @@ type CircleRow = {
   is_published?: boolean
 }
 
-type CircleMember = { user_id: string; circle_id: string }
 type ProfilePref = {
   id: string
   notif_circles_week_before: boolean | null
   notif_circles_day_before: boolean | null
 }
 type PushTokenRow = { user_id: string; expo_push_token: string }
+
+export type CircleNotificationRecipients = {
+  /** Distinct users with at least one push token row */
+  userIds: string[]
+  tokensByUser: Map<string, string[]>
+  /** Total push token rows (device endpoints) */
+  tokensFound: number
+}
 
 const LOOKBACK_HOURS = 26
 
@@ -44,13 +51,22 @@ function hashPayload(input: string): string {
   return createHash("sha256").update(input).digest("hex")
 }
 
-async function getCircleMembers(supabase: SupabaseClient, circleId: string): Promise<CircleMember[]> {
-  const { data, error } = await supabase
-    .from("circle_memberships")
-    .select("user_id, circle_id")
-    .eq("circle_id", circleId)
-  if (error) throw new Error(`circle_memberships query failed: ${error.message}`)
-  return (data ?? []) as CircleMember[]
+/**
+ * All users with push tokens (broadcast audience). Does not use circle_memberships.
+ */
+export async function getCircleNotificationRecipients(supabase: SupabaseClient): Promise<CircleNotificationRecipients> {
+  const { data, error } = await supabase.from("user_push_tokens").select("user_id, expo_push_token")
+  if (error) throw new Error(`user_push_tokens query failed: ${error.message}`)
+
+  const tokensByUser = new Map<string, string[]>()
+  let tokensFound = 0
+  for (const row of (data ?? []) as PushTokenRow[]) {
+    tokensFound += 1
+    if (!tokensByUser.has(row.user_id)) tokensByUser.set(row.user_id, [])
+    tokensByUser.get(row.user_id)!.push(row.expo_push_token)
+  }
+  const userIds = [...tokensByUser.keys()]
+  return { userIds, tokensByUser, tokensFound }
 }
 
 async function getProfiles(supabase: SupabaseClient, userIds: string[]): Promise<Map<string, ProfilePref>> {
@@ -61,22 +77,6 @@ async function getProfiles(supabase: SupabaseClient, userIds: string[]): Promise
     .in("id", userIds)
   if (error) throw new Error(`profiles query failed: ${error.message}`)
   return new Map(((data ?? []) as ProfilePref[]).map((r) => [r.id, r]))
-}
-
-async function getTokens(supabase: SupabaseClient, userIds: string[]): Promise<Map<string, string[]>> {
-  if (!userIds.length) return new Map()
-  const { data, error } = await supabase
-    .from("user_push_tokens")
-    .select("user_id, expo_push_token")
-    .in("user_id", userIds)
-  if (error) throw new Error(`user_push_tokens query failed: ${error.message}`)
-
-  const byUser = new Map<string, string[]>()
-  for (const row of (data ?? []) as PushTokenRow[]) {
-    if (!byUser.has(row.user_id)) byUser.set(row.user_id, [])
-    byUser.get(row.user_id)!.push(row.expo_push_token)
-  }
-  return byUser
 }
 
 async function reserveSend(
@@ -117,13 +117,25 @@ async function reserveSend(
   return !!data?.length
 }
 
-export async function sendCircleRemindersNow(supabase: SupabaseClient): Promise<{
+export type CircleRemindersRunResult = {
   circlesScanned: number
+  /** Per (circle × user) evaluations in the reminder loop */
+  usersScanned: number
+  usersWithPushTokens: number
+  tokensFound: number
   notificationsSent: number
   notificationsFailed: number
-}> {
+  skippedNoPrefs: number
+  skippedNoTokens: number
+  skippedDuplicate: number
+}
+
+export async function sendCircleRemindersNow(supabase: SupabaseClient): Promise<CircleRemindersRunResult> {
   const now = new Date()
   const upper = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000)
+
+  const { userIds, tokensByUser, tokensFound } = await getCircleNotificationRecipients(supabase)
+  const profiles = await getProfiles(supabase, userIds)
 
   const { data: circles, error } = await supabase
     .from("circles")
@@ -138,6 +150,10 @@ export async function sendCircleRemindersNow(supabase: SupabaseClient): Promise<
 
   let notificationsSent = 0
   let notificationsFailed = 0
+  let usersScanned = 0
+  let skippedNoPrefs = 0
+  let skippedNoTokens = 0
+  let skippedDuplicate = 0
 
   for (const circle of upcoming) {
     const startsAt = circle.starts_at as string
@@ -148,19 +164,21 @@ export async function sendCircleRemindersNow(supabase: SupabaseClient): Promise<
     const dayDue = isDueWindow(dayReminderAt, now)
     if (!weekDue && !dayDue) continue
 
-    const members = await getCircleMembers(supabase, circle.id)
-    const userIds = [...new Set(members.map((m) => m.user_id))]
-    if (!userIds.length) continue
-
-    const [profiles, tokensByUser] = await Promise.all([
-      getProfiles(supabase, userIds),
-      getTokens(supabase, userIds),
-    ])
-
     for (const userId of userIds) {
+      usersScanned += 1
+
       const profile = profiles.get(userId)
       const tokens = tokensByUser.get(userId) ?? []
-      if (!profile || !tokens.length) continue
+
+      if (!profile) {
+        skippedNoPrefs += 1
+        continue
+      }
+
+      if (!tokens.length) {
+        skippedNoTokens += 1
+        continue
+      }
 
       const wantsWeek = !!profile.notif_circles_week_before
       const wantsDay = !!profile.notif_circles_day_before
@@ -168,6 +186,11 @@ export async function sendCircleRemindersNow(supabase: SupabaseClient): Promise<
       const reminderKinds: ReminderKind[] = []
       if (weekDue && wantsWeek) reminderKinds.push("week_before")
       if (dayDue && wantsDay) reminderKinds.push("day_before")
+
+      if (reminderKinds.length === 0) {
+        skippedNoPrefs += 1
+        continue
+      }
 
       for (const kind of reminderKinds) {
         const scheduledFor = kind === "week_before" ? weekReminderAt.toISOString() : dayReminderAt.toISOString()
@@ -177,7 +200,10 @@ export async function sendCircleRemindersNow(supabase: SupabaseClient): Promise<
           kind,
           scheduledFor,
         })
-        if (!reserved) continue
+        if (!reserved) {
+          skippedDuplicate += 1
+          continue
+        }
 
         const label = kind === "week_before" ? "in 7 days" : "tomorrow"
         const result = await sendExpoPushMessages(
@@ -203,8 +229,14 @@ export async function sendCircleRemindersNow(supabase: SupabaseClient): Promise<
 
   return {
     circlesScanned: upcoming.length,
+    usersScanned,
+    usersWithPushTokens: userIds.length,
+    tokensFound,
     notificationsSent,
     notificationsFailed,
+    skippedNoPrefs,
+    skippedNoTokens,
+    skippedDuplicate,
   }
 }
 
@@ -223,14 +255,10 @@ export async function sendCircleActivityNotification(
   const hasImportantChange = params.changedFields.some((f) => important.has(f))
   if (!hasImportantChange) return { sent: 0, failed: 0, skipped: true }
 
-  const members = await getCircleMembers(supabase, after.id)
-  const userIds = [...new Set(members.map((m) => m.user_id))]
+  const { userIds, tokensByUser } = await getCircleNotificationRecipients(supabase)
   if (!userIds.length) return { sent: 0, failed: 0, skipped: true }
 
-  const [profiles, tokensByUser] = await Promise.all([
-    getProfiles(supabase, userIds),
-    getTokens(supabase, userIds),
-  ])
+  const profiles = await getProfiles(supabase, userIds)
 
   let sent = 0
   let failed = 0
@@ -289,29 +317,30 @@ export async function sendCircleActivityNotification(
 export type ManualCirclePushResult = {
   ok: boolean
   error?: string
+  usersScanned: number
+  tokensFound: number
   sent: number
   failed: number
   skipped: number
-  skippedNoMembers: number
   skippedNoPrefs: number
   skippedNoTokens: number
   skippedDuplicate: number
 }
 
 /**
- * Admin-only manual push: eligible members match activity notifications
- * (circle prefs on + push tokens). Each click uses a unique payload hash so
- * sends are not deduped against prior manual or cron sends.
+ * Admin-only manual push: all users with push tokens + circle notification prefs.
+ * Each click uses a unique payload hash per user so sends are not incorrectly deduped.
  */
 export async function sendManualCirclePushNow(
   supabase: SupabaseClient,
   circleId: string
 ): Promise<ManualCirclePushResult> {
   const empty = (): Omit<ManualCirclePushResult, "ok" | "error"> => ({
+    usersScanned: 0,
+    tokensFound: 0,
     sent: 0,
     failed: 0,
     skipped: 0,
-    skippedNoMembers: 0,
     skippedNoPrefs: 0,
     skippedNoTokens: 0,
     skippedDuplicate: 0,
@@ -335,23 +364,22 @@ export async function sendManualCirclePushNow(
     return { ok: false, error: "Circle is not published", ...empty() }
   }
 
-  const members = await getCircleMembers(supabase, circle.id)
-  const userIds = [...new Set(members.map((m) => m.user_id))]
+  const { userIds, tokensByUser, tokensFound } = await getCircleNotificationRecipients(supabase)
+  const usersScanned = userIds.length
+
   if (!userIds.length) {
     return {
       ok: true,
       ...empty(),
+      tokensFound: 0,
       skipped: 1,
-      skippedNoMembers: 1,
+      skippedNoTokens: 1,
     }
   }
 
-  const batchNonce = randomBytes(12).toString("hex")
+  const profiles = await getProfiles(supabase, userIds)
 
-  const [profiles, tokensByUser] = await Promise.all([
-    getProfiles(supabase, userIds),
-    getTokens(supabase, userIds),
-  ])
+  const batchNonce = randomBytes(12).toString("hex")
 
   let sent = 0
   let failed = 0
@@ -417,10 +445,11 @@ export async function sendManualCirclePushNow(
 
   return {
     ok: true,
+    usersScanned,
+    tokensFound,
     sent,
     failed,
     skipped,
-    skippedNoMembers: 0,
     skippedNoPrefs,
     skippedNoTokens,
     skippedDuplicate,

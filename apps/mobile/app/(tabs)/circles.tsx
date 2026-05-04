@@ -23,7 +23,7 @@ type CircleRow = {
   image_url: string | null
   tags: string[] | null
   member_count: number | null
-  payment_url: string | null
+  join_url: string | null
 }
 
 function formatStartsAt(startsAt: string | null): string {
@@ -120,7 +120,13 @@ export default function CirclesScreen() {
       setLoadError(error.message)
       setCircles([])
     } else {
-      setCircles((data ?? []) as CircleRow[])
+      const rows = (data ?? []) as Record<string, unknown>[]
+      setCircles(
+        rows.map(({ payment_url, ...rest }) => ({
+          ...(rest as Omit<CircleRow, "join_url">),
+          join_url: typeof payment_url === "string" ? payment_url : null,
+        }))
+      )
     }
 
     setLoading(false)
@@ -154,11 +160,11 @@ export default function CirclesScreen() {
   const hasCircles = circles.length > 0
 
   const handleJoin = (circle: CircleRow) => {
-    const url = circle.payment_url?.trim()
+    const url = circle.join_url?.trim()
     if (!url) {
       Alert.alert(
-        "Join link not set",
-        "Join link not set yet for this circle. Please check back soon."
+        "Circle link not set",
+        "A circle link hasn’t been added yet for this circle. Please check back soon."
       )
       return
     }

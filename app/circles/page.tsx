@@ -18,7 +18,7 @@ type CircleRow = {
   tags: string[] | null
   is_published: boolean
   starts_at: string | null
-  payment_url: string | null
+  join_url: string | null
   created_at: string
   updated_at: string
 }
@@ -45,7 +45,13 @@ export default function CirclesPage() {
         setLoadError(error.message)
         setCircles([])
       } else {
-        setCircles((data as CircleRow[]) ?? [])
+        const rows = (data ?? []) as Record<string, unknown>[]
+        setCircles(
+          rows.map(({ payment_url, ...rest }) => ({
+            ...(rest as Omit<CircleRow, "join_url">),
+            join_url: typeof payment_url === "string" ? payment_url : null,
+          }))
+        )
       }
 
       setLoading(false)
@@ -57,9 +63,9 @@ export default function CirclesPage() {
   const hasCircles = useMemo(() => circles.length > 0, [circles])
 
   const handleJoin = (circle: CircleRow) => {
-    const url = circle.payment_url?.trim()
+    const url = circle.join_url?.trim()
     if (!url) {
-      alert("Join link not set yet for this circle. Please check back soon.")
+      alert("Circle link isn’t set yet for this circle. Please check back soon.")
       return
     }
     window.open(url, "_blank", "noopener,noreferrer")

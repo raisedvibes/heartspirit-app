@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { requireAdmin } from "@/lib/admin/requireAdmin"
+import { mapCircleDbRowToApi } from "@/lib/circles/mapCircleJoinUrl"
 import { sendCircleActivityNotification } from "@/lib/server/notifications/circles"
 
 const supabase = createClient(
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
 
     const { data: existing, error: existingError } = await supabase
       .from("circles")
-      .select("id, name, description, starts_at, is_published")
+      .select("id, name, description, starts_at, is_published, payment_url")
       .eq("id", id)
       .single()
 
@@ -55,9 +56,11 @@ export async function POST(req: Request) {
     if (body.starts_at === null) updates.starts_at = null
     if (typeof body.starts_at === "string") updates.starts_at = body.starts_at
 
-    // payment_url can be null or string
-    if (body.payment_url === null) updates.payment_url = null
-    if (typeof body.payment_url === "string") updates.payment_url = body.payment_url.trim() || null
+    // Stored as payment_url in DB; API uses join_url
+    if ("join_url" in body) {
+      if (body.join_url === null) updates.payment_url = null
+      else if (typeof body.join_url === "string") updates.payment_url = body.join_url.trim() || null
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: "No fields provided to update" }, { status: 400 })
@@ -73,7 +76,9 @@ export async function POST(req: Request) {
       .from("circles")
       .update(updates)
       .eq("id", id)
-      .select("id,name,description,frequency,member_count,payment_url,image_url,tags,is_published,starts_at,created_at,updated_at")
+      .select(
+        "id,name,description,frequency,member_count,payment_url,image_url,tags,is_published,starts_at,created_at,updated_at"
+      )
       .single()
 
     if (error) {
@@ -92,7 +97,7 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ circle: data }, { status: 200 })
+    return NextResponse.json({ circle: mapCircleDbRowToApi(data as Record<string, unknown>) }, { status: 200 })
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || "Server error" }, { status: 500 })
   }
