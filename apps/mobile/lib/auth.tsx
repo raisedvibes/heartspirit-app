@@ -1,6 +1,7 @@
 import * as React from "react"
 import type { Session, User } from "@supabase/supabase-js"
 import { getSupabaseClient } from "./supabaseClient"
+import { syncRitualsStoreWithAuthUserId } from "./ritualsStore"
 
 type AuthState = {
   session: Session | null
@@ -22,21 +23,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     const supabase = getSupabaseClient()
     if (!supabase) {
+      syncRitualsStoreWithAuthUserId(null).catch(() => {})
       setLoading(false)
       return
     }
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s)
-      setUser(s?.user ?? null)
-      setLoading(false)
-    }).catch(() => {
-      setLoading(false)
-    })
+    supabase.auth
+      .getSession()
+      .then(async ({ data: { session: s } }) => {
+        setSession(s)
+        setUser(s?.user ?? null)
+        await syncRitualsStoreWithAuthUserId(s?.user?.id ?? null)
+      })
+      .catch(() => {})
+      .finally(() => {
+        setLoading(false)
+      })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
       setUser(s?.user ?? null)
+      void syncRitualsStoreWithAuthUserId(s?.user?.id ?? null)
     })
 
     return () => subscription.unsubscribe()

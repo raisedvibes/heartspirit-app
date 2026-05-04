@@ -20,7 +20,7 @@ export const SIGNUP_COPY = {
   confirmationBody: "Check your email to activate your access.",
   confirmationSentTo: "Sent to",
   confirmationCta: "Go to Login",
-  confirmationHint: "If you don't see it, check your spam/promotions folder.",
+  confirmationHint: "If you don't see it, check spam/promotions folder.",
   errors: {
     passwordsDontMatch: "Passwords don't match",
     mustAgreeToTerms: "You must agree to the Terms and Privacy Policy",
