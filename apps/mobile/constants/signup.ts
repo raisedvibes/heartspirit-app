@@ -16,7 +16,7 @@ export const SIGNUP_COPY = {
   ctaLoading: "Creating...",
   loginPrompt: "Already have an account?",
   loginLink: "Sign in",
-  confirmationTitle: "Your Heartspirit portal is ready ✨",
+  confirmationTitle: "",
   confirmationBody: "Check your email to activate your access.",
   confirmationSentTo: "Sent to",
   confirmationCta: "Go to Login",
