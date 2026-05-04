@@ -1,10 +1,11 @@
-import { createHash } from "crypto"
+import { createHash, randomBytes } from "crypto"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { sendExpoPushMessages } from "./expo"
 
 type ReminderKind = "week_before" | "day_before"
 type ActivityKind = "activity"
-type CircleNotificationKind = ReminderKind | ActivityKind
+type ManualKind = "manual_admin"
+type CircleNotificationKind = ReminderKind | ActivityKind | ManualKind
 
 type CircleRow = {
   id: string
@@ -243,12 +244,12 @@ export async function sendCircleActivityNotification(
     if (!circlesEnabled) continue
 
     const payloadKey = `${after.id}:${after.name}:${after.starts_at ?? ""}:${after.description ?? ""}:${params.changedFields.join(",")}`
-    const payloadHash = hashPayload(payloadKey)
+    const payloadHashActivity = hashPayload(payloadKey)
     const reserved = await reserveSend(supabase, {
       userId,
       circleId: after.id,
       kind: "activity",
-      payloadHash,
+      payloadHash: payloadHashActivity,
     })
     if (!reserved) continue
 
@@ -283,4 +284,145 @@ export async function sendCircleActivityNotification(
   }
 
   return { sent, failed, skipped: false }
+}
+
+export type ManualCirclePushResult = {
+  ok: boolean
+  error?: string
+  sent: number
+  failed: number
+  skipped: number
+  skippedNoMembers: number
+  skippedNoPrefs: number
+  skippedNoTokens: number
+  skippedDuplicate: number
+}
+
+/**
+ * Admin-only manual push: eligible members match activity notifications
+ * (circle prefs on + push tokens). Each click uses a unique payload hash so
+ * sends are not deduped against prior manual or cron sends.
+ */
+export async function sendManualCirclePushNow(
+  supabase: SupabaseClient,
+  circleId: string
+): Promise<ManualCirclePushResult> {
+  const empty = (): Omit<ManualCirclePushResult, "ok" | "error"> => ({
+    sent: 0,
+    failed: 0,
+    skipped: 0,
+    skippedNoMembers: 0,
+    skippedNoPrefs: 0,
+    skippedNoTokens: 0,
+    skippedDuplicate: 0,
+  })
+
+  const { data: circleRow, error: circleErr } = await supabase
+    .from("circles")
+    .select("id, name, starts_at, is_published")
+    .eq("id", circleId)
+    .maybeSingle()
+
+  if (circleErr) {
+    return { ok: false, error: `Failed to load circle: ${circleErr.message}`, ...empty() }
+  }
+  if (!circleRow) {
+    return { ok: false, error: "Circle not found", ...empty() }
+  }
+
+  const circle = circleRow as CircleRow
+  if (!circle.is_published) {
+    return { ok: false, error: "Circle is not published", ...empty() }
+  }
+
+  const members = await getCircleMembers(supabase, circle.id)
+  const userIds = [...new Set(members.map((m) => m.user_id))]
+  if (!userIds.length) {
+    return {
+      ok: true,
+      ...empty(),
+      skipped: 1,
+      skippedNoMembers: 1,
+    }
+  }
+
+  const batchNonce = randomBytes(12).toString("hex")
+
+  const [profiles, tokensByUser] = await Promise.all([
+    getProfiles(supabase, userIds),
+    getTokens(supabase, userIds),
+  ])
+
+  let sent = 0
+  let failed = 0
+  let skippedNoPrefs = 0
+  let skippedNoTokens = 0
+  let skippedDuplicate = 0
+
+  const when = circle.starts_at ? new Date(circle.starts_at).toLocaleString() : ""
+  const body = when.trim() ? `${circle.name} — ${when}` : circle.name
+
+  for (const userId of userIds) {
+    const profile = profiles.get(userId)
+    const tokens = tokensByUser.get(userId) ?? []
+
+    if (!profile) {
+      skippedNoPrefs += 1
+      continue
+    }
+
+    const circlesEnabled = !!profile.notif_circles_week_before || !!profile.notif_circles_day_before
+    if (!circlesEnabled) {
+      skippedNoPrefs += 1
+      continue
+    }
+
+    if (!tokens.length) {
+      skippedNoTokens += 1
+      continue
+    }
+
+    const payloadKey = `manual_admin:${circle.id}:${userId}:${batchNonce}`
+    const payloadHash = hashPayload(payloadKey)
+    const reserved = await reserveSend(supabase, {
+      userId,
+      circleId: circle.id,
+      kind: "manual_admin",
+      payloadHash,
+    })
+    if (!reserved) {
+      skippedDuplicate += 1
+      continue
+    }
+
+    const result = await sendExpoPushMessages(
+      tokens.map((to) => ({
+        to,
+        title: "Upcoming Circle",
+        body,
+        sound: "default",
+        data: {
+          type: "circle_manual",
+          circleId: circle.id,
+          startsAt: circle.starts_at ?? null,
+        },
+      }))
+    )
+
+    sent += result.sent
+    failed += result.failed
+  }
+
+  const skipped = skippedNoPrefs + skippedNoTokens + skippedDuplicate
+
+  return {
+    ok: true,
+    sent,
+    failed,
+    skipped,
+    skippedNoMembers: 0,
+    skippedNoPrefs,
+    skippedNoTokens,
+    skippedDuplicate,
+  }
 }

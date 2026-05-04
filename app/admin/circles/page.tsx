@@ -3,7 +3,19 @@
 import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { ArrowLeft, Plus, Trash2, Pencil, X, Check, Eye, EyeOff, RefreshCcw } from "lucide-react"
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Pencil,
+  X,
+  Check,
+  Eye,
+  EyeOff,
+  RefreshCcw,
+  Send,
+  Timer,
+} from "lucide-react"
 
 import { Navigation } from "@/components/layout/navigation"
 import { Button } from "@/components/ui/button"
@@ -76,6 +88,10 @@ export default function AdminCirclesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState<Draft | null>(null)
 
+  const [pushSendingId, setPushSendingId] = useState<string | null>(null)
+  const [cronTesting, setCronTesting] = useState(false)
+  const [notifyBanner, setNotifyBanner] = useState<{ tone: "success" | "error"; text: string } | null>(null)
+
   const fetchList = async () => {
     setLoading(true)
     setError(null)
@@ -120,6 +136,14 @@ export default function AdminCirclesPage() {
     return t.length ? t : null
   }
 
+  /** Stored UTC ISO → local `YYYY-MM-DDTHH:mm` for `<input type="datetime-local" />`. */
+  function utcStartsAtToDatetimeLocal(iso: string): string {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ""
+    // Omit `timeZone`: defaults to local (Intl does not support `timeZone: "local"`).
+    return d.toLocaleString("sv-SE").replace(" ", "T").slice(0, 16)
+  }
+
   const startEdit = (circle: Circle) => {
     setEditingId(circle.id)
     setEditDraft({
@@ -130,7 +154,7 @@ export default function AdminCirclesPage() {
       payment_url: circle.payment_url ?? "",
       tags: (circle.tags ?? []).join(", "),
       is_published: !!circle.is_published,
-      starts_at: circle.starts_at ? circle.starts_at.slice(0, 16) : "",
+      starts_at: circle.starts_at ? utcStartsAtToDatetimeLocal(circle.starts_at) : "",
     })
   }
 
@@ -244,6 +268,73 @@ export default function AdminCirclesPage() {
     }
   }
 
+  const formatManualPushResult = (r: Record<string, unknown>) => {
+    if (r.ok === false && typeof r.error === "string") return r.error
+    const sent = Number(r.sent ?? 0)
+    const skipped = Number(r.skipped ?? 0)
+    const failed = Number(r.failed ?? 0)
+    const skippedNoPrefs = Number(r.skippedNoPrefs ?? 0)
+    const skippedNoTokens = Number(r.skippedNoTokens ?? 0)
+    const skippedDuplicate = Number(r.skippedDuplicate ?? 0)
+    const skippedNoMembers = Number(r.skippedNoMembers ?? 0)
+    return (
+      `Manual push: sent ${sent}, skipped ${skipped}, failed ${failed}. ` +
+      `(No members: ${skippedNoMembers}, prefs off: ${skippedNoPrefs}, no push token: ${skippedNoTokens}, duplicate reserve: ${skippedDuplicate})`
+    )
+  }
+
+  const sendNotificationNow = async (circleId: string) => {
+    setPushSendingId(circleId)
+    setNotifyBanner(null)
+    setError(null)
+    try {
+      const res = await fetch("/api/admin/notifications/circles/send-now", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ circle_id: circleId }),
+      })
+      const json = (await res.json()) as Record<string, unknown>
+      if (!res.ok) {
+        const msg =
+          typeof json.error === "string"
+            ? json.error
+            : formatManualPushResult(json)
+        throw new Error(msg)
+      }
+      setNotifyBanner({ tone: "success", text: formatManualPushResult(json) })
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Manual push failed"
+      setNotifyBanner({ tone: "error", text: msg })
+    } finally {
+      setPushSendingId(null)
+    }
+  }
+
+  const runReminderCronTest = async () => {
+    setCronTesting(true)
+    setNotifyBanner(null)
+    setError(null)
+    try {
+      const res = await fetch("/api/admin/notifications/circles/reminders-test", { method: "POST" })
+      const json = await res.json()
+      if (!res.ok) {
+        throw new Error(typeof json?.error === "string" ? json.error : "Reminder test failed")
+      }
+      const scanned = Number(json.circlesScanned ?? 0)
+      const sent = Number(json.notificationsSent ?? 0)
+      const failed = Number(json.notificationsFailed ?? 0)
+      setNotifyBanner({
+        tone: "success",
+        text: `Reminder cron test: circles scanned ${scanned}, notifications sent ${sent}, failed ${failed}.`,
+      })
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Reminder test failed"
+      setNotifyBanner({ tone: "error", text: msg })
+    } finally {
+      setCronTesting(false)
+    }
+  }
+
   const deleteCircle = async (circle: Circle) => {
     const ok = confirm(`Delete circle "${circle.name}"? This cannot be undone.`)
     if (!ok) return
@@ -286,7 +377,17 @@ export default function AdminCirclesPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <Button
+                variant="ghost"
+                className={GLASS_BTN}
+                onClick={runReminderCronTest}
+                disabled={loading || saving || cronTesting}
+                title="Runs sendCircleRemindersNow (same as internal cron job)"
+              >
+                <Timer className="w-4 h-4 mr-2" />
+                {cronTesting ? "Running…" : "Run reminder cron test"}
+              </Button>
               <Button variant="ghost" className={GLASS_BTN} onClick={fetchList} disabled={loading || saving}>
                 <RefreshCcw className="w-4 h-4 mr-2" />
                 Refresh
@@ -337,6 +438,18 @@ export default function AdminCirclesPage() {
             {error ? (
               <div className="mt-3 text-sm text-white/80">
                 <span className="text-white font-medium">Error:</span> {error}
+              </div>
+            ) : null}
+            {notifyBanner ? (
+              <div
+                className={
+                  notifyBanner.tone === "success"
+                    ? "mt-3 text-sm text-emerald-200/95"
+                    : "mt-3 text-sm text-red-200/95"
+                }
+              >
+                <span className="font-medium">{notifyBanner.tone === "success" ? "Done:" : "Notify error:"}</span>{" "}
+                {notifyBanner.text}
               </div>
             ) : null}
           </div>
@@ -533,9 +646,9 @@ export default function AdminCirclesPage() {
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="md:col-span-2 flex items-center justify-between">
+                          <div className="md:col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="font-semibold">Editing</div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <Button variant="ghost" className={GLASS_BTN} onClick={() => updateCircle(c.id)} disabled={saving}>
                                 <Check className="w-4 h-4 mr-2" />
                                 {saving ? "Saving..." : "Save"}
@@ -543,6 +656,16 @@ export default function AdminCirclesPage() {
                               <Button variant="ghost" className={GLASS_BTN} onClick={cancelEdit} disabled={saving}>
                                 <X className="w-4 h-4 mr-2" />
                                 Cancel
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                className={GLASS_BTN}
+                                onClick={() => sendNotificationNow(c.id)}
+                                disabled={saving || pushSendingId === c.id}
+                                title="Sends “Upcoming Circle” to eligible members (published circle only). Does not run on Save."
+                              >
+                                <Send className="w-4 h-4 mr-2" />
+                                {pushSendingId === c.id ? "Sending…" : "Send notification now"}
                               </Button>
                             </div>
                           </div>
