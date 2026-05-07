@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { router } from "expo-router"
-import { View, StyleSheet, Pressable, Switch, Linking,TextInput } from "react-native"
+import { View, StyleSheet, Pressable, Switch, Linking, TextInput, Alert } from "react-native"
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
@@ -42,6 +42,8 @@ export default function SettingsScreen() {
   const [saveProfileLoading, setSaveProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [logoutError, setLogoutError] = useState<string | null>(null)
+  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false)
+  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null)
 
   // Privacy / local data
   const [saveHistoryOnDevice, setSaveHistoryOnDevice] = useState(true)
@@ -203,6 +205,83 @@ export default function SettingsScreen() {
     console.log("Clear history (local)")
   }
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account?",
+      "This will permanently delete your Heartspirit account. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Account",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert("Are you sure?", "Your account will be permanently deleted.", [
+              { text: "Keep Account", style: "cancel" },
+              {
+                text: "Yes, Delete My Account",
+                style: "destructive",
+                onPress: () => {
+                  void runDeleteAccount()
+                },
+              },
+            ])
+          },
+        },
+      ]
+    )
+  }
+
+  const runDeleteAccount = async () => {
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      setDeleteAccountError("We couldn’t delete your account. Please try again.")
+      return
+    }
+
+    setDeleteAccountLoading(true)
+    setDeleteAccountError(null)
+    setLogoutError(null)
+
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !sessionData.session?.access_token) {
+        throw new Error("No active session")
+      }
+
+      const apiBase =
+        process.env.EXPO_PUBLIC_API_BASE_URL?.trim() ||
+        process.env.EXPO_PUBLIC_APP_URL?.trim() ||
+        process.env.EXPO_PUBLIC_API_URL?.trim() ||
+        "https://app.heartspirit.earth"
+      const endpoint = `${apiBase.replace(/\/$/, "")}/api/account/delete`
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null
+      if (!response.ok) {
+        throw new Error(payload?.error || "Delete failed")
+      }
+
+      await supabase.auth.signOut()
+      setAuthUser(null)
+      setProfile({ display_name: "", full_name: "", email: "" })
+      setEditingProfile(false)
+      Alert.alert("Account deleted", "Your account has been deleted.")
+      router.replace("/(auth)/login")
+    } catch (e) {
+      console.warn("[Settings] account delete failed", e)
+      setDeleteAccountError("We couldn’t delete your account. Please try again.")
+    } finally {
+      setDeleteAccountLoading(false)
+    }
+  }
+
   const SectionHeader = ({
     section,
     iconName,
@@ -309,8 +388,8 @@ export default function SettingsScreen() {
                       </Pressable>
                     </View>
                   ) : !editingProfile ? (
-                    <View style={styles.profileRow}>
-                      <View style={styles.profileInfo}>
+                    <View style={styles.profileStack}>
+                      <View style={styles.profileInfoBlock}>
                         <ThemedText type="defaultSemiBold" style={styles.profileName}>
                           {profile.display_name || "Your name"}
                         </ThemedText>
@@ -318,7 +397,7 @@ export default function SettingsScreen() {
                           {profile.email || authUser.email || "your@email.com"}
                         </ThemedText>
                       </View>
-                      <View style={styles.profileActions}>
+                      <View style={styles.profileActionsRow}>
                         <Pressable
                           style={styles.editButton}
                           onPress={() => {
@@ -444,6 +523,33 @@ export default function SettingsScreen() {
                     We only use your contact info for account access. Your ritual history and
                     check-ins stay on your device.
                   </ThemedText>
+
+                  {!!authUser && !editingProfile && (
+                    <View style={styles.deleteAccountWrap}>
+                      <Pressable
+                        style={[styles.linkButton, styles.deleteAccountButton]}
+                        onPress={handleDeleteAccount}
+                        disabled={deleteAccountLoading}
+                      >
+                        <MaterialIcons name="delete-forever" size={18} color="rgba(255,150,150,0.95)" />
+                        <ThemedText
+                          type="defaultSemiBold"
+                          style={[styles.linkButtonText, styles.deleteAccountButtonText]}
+                        >
+                          {deleteAccountLoading ? "Deleting..." : "Delete Account"}
+                        </ThemedText>
+                      </Pressable>
+                      <ThemedText type="muted" style={styles.deleteAccountHint}>
+                        Permanently delete your account and remove access to Heartspirit.
+                      </ThemedText>
+                    </View>
+                  )}
+
+                  {deleteAccountError && authUser && (
+                    <ThemedText style={[styles.inputLabel, { color: "rgba(255,100,100,0.9)", marginTop: 8 }]}>
+                      {deleteAccountError}
+                    </ThemedText>
+                  )}
                 </View>
               )}
             </TranslucentCard>
@@ -604,7 +710,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
+  profileStack: { marginBottom: 12, gap: 10 },
+  profileInfoBlock: { width: "100%" },
   profileActions: { flexDirection: "row", gap: 8 },
+  profileActionsRow: { flexDirection: "row", gap: 8 },
   profileInfo: { flex: 1 },
   signOutButton: { backgroundColor: "rgba(255,80,80,0.35)" },
   profileName: { fontSize: 14 },
@@ -668,4 +777,15 @@ const styles = StyleSheet.create({
   linkButtonText: { fontSize: 14 },
   destructiveLink: {},
   footnote: { fontSize: 11, marginTop: 12 },
+  deleteAccountWrap: { marginTop: 8 },
+  deleteAccountButton: {
+    marginBottom: 0,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,130,130,0.35)",
+    backgroundColor: "rgba(120,30,30,0.18)",
+  },
+  deleteAccountButtonText: { color: "rgba(255,160,160,0.98)" },
+  deleteAccountHint: { fontSize: 11, marginTop: 6 },
 })
