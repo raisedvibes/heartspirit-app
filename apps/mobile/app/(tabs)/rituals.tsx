@@ -15,7 +15,6 @@ import {
 } from "react-native"
 import { BlurView } from "expo-blur"
 import Animated from "react-native-reanimated"
-import * as Notifications from "expo-notifications"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import ScreenContent, { TAB_BAR_HEIGHT } from "@/components/layout/ScreenContent"
@@ -33,6 +32,7 @@ import {
 } from "../../lib/ritualsStore"
 import { computeStreak } from "../../lib/ritualStats"
 import {
+  cancelScheduledNotification,
   ensureNotifPermissions,
   scheduleDailyReminder,
 } from "../../lib/ritualNotifications"
@@ -143,7 +143,7 @@ export default function RitualsScreen() {
 
       if (oldReminder !== newReminder) {
         if (notificationId) {
-          await Notifications.cancelScheduledNotificationAsync(notificationId)
+          await cancelScheduledNotification(notificationId)
           notificationId = undefined
         }
 
@@ -153,7 +153,8 @@ export default function RitualsScreen() {
             notificationId = await scheduleDailyReminder(
               `Ritual: ${name.trim()}`,
               "",
-              reminderTime
+              reminderTime,
+              { type: "ritual_reminder", ritualId: existing.id }
             )
           } else {
             console.warn("Notifications not granted; reminder will not fire.")
@@ -192,7 +193,8 @@ export default function RitualsScreen() {
         notificationId = await scheduleDailyReminder(
           `Ritual: ${name.trim()}`,
           "",
-          reminderTime
+          reminderTime,
+          { type: "ritual_reminder", ritualId: id }
         )
       } else {
         console.warn("Notifications not granted; reminder will not fire.")
@@ -712,9 +714,7 @@ export default function RitualsScreen() {
                     if (!target) return
 
                     try {
-                      if (target.notificationId) {
-                        await Notifications.cancelScheduledNotificationAsync(target.notificationId)
-                      }
+                      await cancelScheduledNotification(target.notificationId)
                     } catch (e) {
                       console.warn("Failed to cancel notification", target.notificationId, e)
                     }

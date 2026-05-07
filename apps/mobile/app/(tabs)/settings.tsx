@@ -14,6 +14,7 @@ import {
   loadCircleReminderPrefs,
   updateCircleReminderPrefs,
 } from "@/lib/pushTokenRegistration"
+import { cancelRitualReminderNotifications } from "@/lib/ritualNotifications"
 
 type SectionKey = "about" | "profile" | "notifications" | "privacy" | "support"
 
@@ -268,6 +269,7 @@ export default function SettingsScreen() {
         throw new Error(payload?.error || "Delete failed")
       }
 
+      await cancelRitualReminderNotifications()
       await supabase.auth.signOut()
       setAuthUser(null)
       setProfile({ display_name: "", full_name: "", email: "" })
@@ -424,6 +426,7 @@ export default function SettingsScreen() {
                               return
                             }
 
+                            await cancelRitualReminderNotifications()
                             const { error } = await supabase.auth.signOut()
                             if (error) {
                               setLogoutError(error.message)

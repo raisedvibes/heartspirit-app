@@ -1,9 +1,16 @@
 import * as Notifications from "expo-notifications"
 import { Platform } from "react-native"
+import type { Ritual } from "./ritualsStore"
 
 const RITUAL_CHANNEL_ID = "ritual-reminders"
 const PRACTICE_TIMER_CHANNEL_ID = "practice-timer"
 const PRACTICE_TIMER_SOUND = "heartspirit-chime.mp3"
+const RITUAL_NOTIFICATION_TYPE = "ritual_reminder"
+
+type ReminderData = {
+  type?: string
+  ritualId?: string
+}
 
 export async function ensureNotifPermissions(): Promise<boolean> {
   const settings = await Notifications.getPermissionsAsync()
@@ -16,7 +23,8 @@ export async function ensureNotifPermissions(): Promise<boolean> {
 export async function scheduleDailyReminder(
   title: string,
   body: string,
-  time: Date
+  time: Date,
+  data?: ReminderData
 ) {
   const hour = time.getHours()
   const minute = time.getMinutes()
@@ -33,6 +41,7 @@ export async function scheduleDailyReminder(
     content: {
       title,
       body,
+      data: data ?? { type: RITUAL_NOTIFICATION_TYPE },
       ...(Platform.OS === "android" ? { channelId: RITUAL_CHANNEL_ID } : {}),
     },
     trigger: Platform.select({
@@ -97,7 +106,8 @@ export async function scheduleRitualReminder(
   const id = await scheduleDailyReminder(
     `Ritual: ${ritualName}`,
     "",
-    time
+    time,
+    { type: RITUAL_NOTIFICATION_TYPE, ritualId }
   )
 
   return id
@@ -141,5 +151,59 @@ export async function cancelScheduledNotification(
     await Notifications.cancelScheduledNotificationAsync(notificationId)
   } catch (error) {
     console.log("[notifications] failed to cancel scheduled notification", error)
+  }
+}
+
+function notificationLooksLikeRitualReminder(
+  notification: Notifications.NotificationRequest
+): boolean {
+  const data = (notification.content.data ?? {}) as ReminderData
+  const title = notification.content.title ?? ""
+  const trigger = notification.trigger
+  const triggerChannelId =
+    trigger && typeof trigger === "object" && "channelId" in trigger
+      ? String(trigger.channelId ?? "")
+      : ""
+
+  if (data.type === RITUAL_NOTIFICATION_TYPE) return true
+  if (data.ritualId) return true
+  if (triggerChannelId === RITUAL_CHANNEL_ID) return true
+  if (title.startsWith("Ritual:")) return true
+  return false
+}
+
+/**
+ * Cancel only ritual reminder notifications, preserving other notifications
+ * like one-shot practice timer completion alerts.
+ */
+export async function cancelRitualReminderNotifications(
+  knownNotificationIds: Array<string | null | undefined> = []
+) {
+  const knownIds = new Set(knownNotificationIds.filter(Boolean) as string[])
+  const pending = await Notifications.getAllScheduledNotificationsAsync()
+
+  for (const notification of pending) {
+    if (knownIds.has(notification.identifier) || notificationLooksLikeRitualReminder(notification)) {
+      await cancelScheduledNotification(notification.identifier)
+    }
+  }
+}
+
+/**
+ * Ensure scheduled ritual reminders match the hydrated rituals list.
+ * - No rituals -> no pending ritual reminders.
+ * - Existing rituals -> keep only their known ids, cancel ritual orphans/legacy reminders.
+ */
+export async function reconcileRitualReminderNotifications(rituals: Ritual[]) {
+  const knownIds = rituals.map((ritual) => ritual.notificationId).filter(Boolean) as string[]
+  const knownSet = new Set(knownIds)
+  const pending = await Notifications.getAllScheduledNotificationsAsync()
+
+  for (const notification of pending) {
+    const isKnown = knownSet.has(notification.identifier)
+    const isRitual = notificationLooksLikeRitualReminder(notification)
+    if (!isKnown && isRitual) {
+      await cancelScheduledNotification(notification.identifier)
+    }
   }
 }

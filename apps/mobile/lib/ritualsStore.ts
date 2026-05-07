@@ -2,7 +2,10 @@ import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
 import type { StateStorage } from "zustand/middleware"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { cancelScheduledNotification } from "./ritualNotifications"
+import {
+  cancelRitualReminderNotifications,
+  reconcileRitualReminderNotifications,
+} from "./ritualNotifications"
 
 export type Mark = "empty" | "yes" | "no" | "skip"
 
@@ -196,9 +199,7 @@ export async function syncRitualsStoreWithAuthUserId(userId: string | null): Pro
   const switchingAccount = ritualsPersistUserId !== undefined && ritualsPersistUserId !== userId
   if (switchingAccount) {
     const rituals = useRitualsStore.getState().rituals
-    for (const r of rituals) {
-      await cancelScheduledNotification(r.notificationId)
-    }
+    await cancelRitualReminderNotifications(rituals.map((r) => r.notificationId))
   }
 
   ritualsPersistUserId = userId
@@ -210,6 +211,13 @@ export async function syncRitualsStoreWithAuthUserId(userId: string | null): Pro
   // Do not call setState({ rituals }) or partial state before rehydrate — persist would flush
   // in-memory rituals to the *new* AsyncStorage key (e.g. leak into anonymous on logout).
   await useRitualsStore.persist.rehydrate()
+
+  const hydratedRituals = useRitualsStore.getState().rituals
+  if (hydratedRituals.length === 0) {
+    await cancelRitualReminderNotifications()
+  } else {
+    await reconcileRitualReminderNotifications(hydratedRituals)
+  }
 }
 
 export { nextMark }
