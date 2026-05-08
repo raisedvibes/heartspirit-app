@@ -11,6 +11,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   Keyboard,
+  useWindowDimensions,
   type FlatList as RNFlatList,
 } from "react-native"
 import { BlurView } from "expo-blur"
@@ -34,6 +35,7 @@ import { computeStreak } from "../../lib/ritualStats"
 import {
   cancelScheduledNotification,
   ensureNotifPermissions,
+  reconcileRitualReminderNotifications,
   scheduleDailyReminder,
 } from "../../lib/ritualNotifications"
 
@@ -82,6 +84,8 @@ type RitualsListRow =
 
 export default function RitualsScreen() {
   const insets = useSafeAreaInsets()
+  const { width: windowWidth } = useWindowDimensions()
+  const deleteConfirmNarrowLayout = windowWidth < 360
   const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("rituals")
   const rituals = useRitualsStore((s) => s.rituals)
   const hasHydrated = useRitualsStore((s) => s.hasHydrated)
@@ -686,51 +690,81 @@ export default function RitualsScreen() {
         animationType="fade"
         onRequestClose={() => setDeleteTarget(null)}
       >
-        <Pressable style={styles.modalBackdrop} onPress={() => setDeleteTarget(null)}>
-          <Pressable style={styles.modalShell} onPress={(e) => e.stopPropagation()}>
-            <TranslucentCard style={styles.modalCard}>
-              <ThemedText type="defaultSemiBold" style={styles.modalTitle}>
-                Delete ritual?
-              </ThemedText>
-
-              <ThemedText type="muted" style={styles.modalBody}>
-                This will remove the ritual and its history.
-              </ThemedText>
-
-              <View style={styles.modalButtons}>
-                <Pressable
-                  style={styles.cancelButton}
-                  onPress={() => setDeleteTarget(null)}
-                >
-                  <ThemedText type="defaultSemiBold" style={styles.cancelButtonText}>
-                    cancel
+        <View style={styles.ritualFormModalRoot}>
+          <BlurView
+            intensity={Platform.OS === "ios" ? 62 : 50}
+            tint="dark"
+            style={StyleSheet.absoluteFill}
+          />
+          <Pressable
+            accessibilityRole="button"
+            style={styles.ritualFormModalDim}
+            onPress={() => setDeleteTarget(null)}
+          />
+          <View style={styles.ritualFormModalCenter} pointerEvents="box-none">
+            <Pressable onPress={(e) => e.stopPropagation()} style={styles.modalShell}>
+              <View style={styles.ritualFormCardElevated}>
+                <TranslucentCard opacity={1.06} style={styles.ritualFormCardInner}>
+                  <ThemedText type="defaultSemiBold" style={styles.deleteConfirmTitle}>
+                    Delete ritual?
                   </ThemedText>
-                </Pressable>
 
-                <Pressable
-                  style={[styles.addSubmitButton, styles.deleteButton]}
-                  onPress={async () => {
-                    const target = deleteTarget
-                    if (!target) return
-
-                    try {
-                      await cancelScheduledNotification(target.notificationId)
-                    } catch (e) {
-                      console.warn("Failed to cancel notification", target.notificationId, e)
-                    }
-
-                    remove(target.id)
-                    setDeleteTarget(null)
-                  }}
-                >
-                  <ThemedText type="defaultSemiBold" style={styles.addSubmitButtonText}>
-                    delete
+                  <ThemedText type="muted" style={styles.deleteConfirmBody}>
+                    This will remove the ritual and its history.
                   </ThemedText>
-                </Pressable>
+
+                  <View
+                    style={[
+                      styles.deleteConfirmButtonRow,
+                      deleteConfirmNarrowLayout && styles.deleteConfirmButtonRowStacked,
+                    ]}
+                  >
+                    <Pressable
+                      style={[
+                        styles.ritualFormGhostButton,
+                        !deleteConfirmNarrowLayout && styles.deleteConfirmBtnFlex,
+                        deleteConfirmNarrowLayout && styles.deleteConfirmBtnFullWidth,
+                      ]}
+                      onPress={() => setDeleteTarget(null)}
+                    >
+                      <ThemedText type="defaultSemiBold" style={styles.ritualFormGhostButtonText}>
+                        cancel
+                      </ThemedText>
+                    </Pressable>
+
+                    <Pressable
+                      style={[
+                        styles.deleteConfirmDestructive,
+                        !deleteConfirmNarrowLayout && styles.deleteConfirmBtnFlex,
+                        deleteConfirmNarrowLayout && styles.deleteConfirmBtnFullWidth,
+                      ]}
+                      onPress={async () => {
+                        const target = deleteTarget
+                        if (!target) return
+
+                        try {
+                          await cancelScheduledNotification(target.notificationId)
+                        } catch (e) {
+                          console.warn("Failed to cancel notification", target.notificationId, e)
+                        }
+
+                        remove(target.id)
+                        await reconcileRitualReminderNotifications(
+                          useRitualsStore.getState().rituals
+                        )
+                        setDeleteTarget(null)
+                      }}
+                    >
+                      <ThemedText type="defaultSemiBold" style={styles.deleteConfirmDestructiveText}>
+                        delete
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+                </TranslucentCard>
               </View>
-            </TranslucentCard>
-          </Pressable>
-        </Pressable>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   )
@@ -876,13 +910,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(120, 160, 140, 0.4)",
   },
   emptyAddButtonText: { fontSize: 14, color: "white" },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
   ritualFormModalRoot: {
     flex: 1,
     backgroundColor: "transparent",
@@ -1073,19 +1100,51 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 360,
   },
-  modalCard: {
-    padding: 20,
-    borderRadius: 16,
+  /** Delete confirmation: typography/spacing aligned with Edit ritual modal title + body rhythm */
+  deleteConfirmTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    letterSpacing: -0.35,
+    color: "#FFFFFF",
+    marginBottom: 14,
   },
-  modalTitle: { fontSize: 18, color: "white", marginBottom: 16 },
-  modalBody: {
-    marginTop: 8,
-    marginBottom: 16,
+  deleteConfirmBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 24,
   },
-  deleteButton: {
-    backgroundColor: "rgba(255, 80, 80, 0.35)",
+  deleteConfirmButtonRow: {
+    flexDirection: "row",
+    gap: 16,
+    width: "100%",
+  },
+  deleteConfirmButtonRowStacked: {
+    flexDirection: "column",
+  },
+  deleteConfirmBtnFlex: {
+    flex: 1,
+    minWidth: 0,
+  },
+  deleteConfirmBtnFullWidth: {
+    alignSelf: "stretch",
+    width: "100%",
+  },
+  /** Red glass destructive — same footprint as ritualFormGhostButton / edit Cancel */
+  deleteConfirmDestructive: {
+    paddingVertical: 15,
+    minHeight: 50,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(255, 120, 120, 0.35)",
+    borderColor: "rgba(255, 120, 120, 0.42)",
+    backgroundColor: "rgba(255, 80, 80, 0.28)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteConfirmDestructiveText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
   inputLabel: { fontSize: 12, marginBottom: 6, color: "rgba(255,255,255,0.7)" },
   reminderRow: {
@@ -1104,23 +1163,6 @@ const styles = StyleSheet.create({
     color: "white",
     marginBottom: 16,
   },
-  modalButtons: { flexDirection: "row", gap: 12, marginTop: 8 },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    alignItems: "center",
-  },
-  cancelButtonText: { color: "white" },
-  addSubmitButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: "rgba(120, 170, 140, 0.65)",
-    alignItems: "center",
-  },
-  addSubmitButtonText: { color: "white" },
   /** Tracker popup: narrower shell than full Add Ritual form — keeps 2×2 compact */
   markTrackerShell: {
     width: "100%",
