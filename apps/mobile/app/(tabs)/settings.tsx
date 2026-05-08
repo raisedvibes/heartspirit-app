@@ -15,6 +15,10 @@ import {
   updateCircleReminderPrefs,
 } from "@/lib/pushTokenRegistration"
 import { cancelRitualReminderNotifications } from "@/lib/ritualNotifications"
+import {
+  clearRitualsInMemoryForAuthTransition,
+  deleteLocalRitualDataForUser,
+} from "@/lib/ritualsStore"
 
 type SectionKey = "about" | "profile" | "notifications" | "privacy" | "support"
 
@@ -270,6 +274,11 @@ export default function SettingsScreen() {
       }
 
       await cancelRitualReminderNotifications()
+      if (authUser?.id) {
+        await deleteLocalRitualDataForUser(authUser.id)
+      } else {
+        clearRitualsInMemoryForAuthTransition()
+      }
       await supabase.auth.signOut()
       setAuthUser(null)
       setProfile({ display_name: "", full_name: "", email: "" })
@@ -427,6 +436,7 @@ export default function SettingsScreen() {
                             }
 
                             await cancelRitualReminderNotifications()
+                            clearRitualsInMemoryForAuthTransition()
                             const { error } = await supabase.auth.signOut()
                             if (error) {
                               setLogoutError(error.message)

@@ -56,8 +56,8 @@ type RitualsState = {
 /** Internal persist name (middleware); AsyncStorage keys are user-scoped — see `scopedStorageKey`. */
 const PERSIST_MIDDLEWARE_NAME = "heartspirit.rituals.v1"
 
-/** Pre–user-scoped installs used this key for the full persisted JSON blob. */
-const LEGACY_ASYNC_STORAGE_KEY = "heartspirit.rituals.v1"
+/** Legacy/global ritual keys from older builds. Do not auto-migrate these into authenticated users. */
+const LEGACY_RITUAL_KEYS = ["heartspirit.rituals.v1", "heartspirit:rituals", "heartspirit.rituals"]
 
 const ANONYMOUS_KEY = "heartspirit:rituals:__anonymous__"
 
@@ -71,6 +71,7 @@ function scopedStorageKey(userId: string | null): string {
  * `undefined` = before first `syncRitualsStoreWithAuthUserId` (treat like anonymous for reads).
  */
 let ritualsPersistUserId: string | null | undefined = undefined
+let suppressPersistWrites = false
 
 function resolveAsyncStorageKey(): string {
   return scopedStorageKey(ritualsPersistUserId ?? null)
@@ -89,25 +90,31 @@ const ritualsUserScopedStorage: StateStorage = {
     if (__DEV__) {
       console.log("[rituals-persist] getItem → AsyncStorage key:", key)
     }
-    let value = await AsyncStorage.getItem(key)
-    if (value) return value
-    const uid = ritualsPersistUserId
-    if (uid) {
-      const legacy = await AsyncStorage.getItem(LEGACY_ASYNC_STORAGE_KEY)
-      if (legacy) {
-        if (__DEV__) {
-          console.log("[rituals-persist] migrating legacy →", key)
+    const value = await AsyncStorage.getItem(key)
+    if (__DEV__) {
+      if (value) {
+        try {
+          const parsed = JSON.parse(value) as { state?: { rituals?: unknown[] } }
+          const count = parsed?.state?.rituals?.length ?? 0
+          console.log("[rituals-persist] loaded key:", key, "ritualCount:", count)
+        } catch {
+          console.log("[rituals-persist] loaded key:", key, "(unparsed)")
         }
-        await AsyncStorage.setItem(key, legacy)
-        await AsyncStorage.removeItem(LEGACY_ASYNC_STORAGE_KEY)
-        return legacy
+      } else {
+        console.log("[rituals-persist] loaded key:", key, "ritualCount: 0 (empty)")
       }
     }
-    return null
+    return value
   },
   setItem: async (name, value) => {
     if (name !== PERSIST_MIDDLEWARE_NAME) {
       await AsyncStorage.setItem(name, value)
+      return
+    }
+    if (suppressPersistWrites) {
+      if (__DEV__) {
+        console.log("[rituals-persist] setItem suppressed during auth transition")
+      }
       return
     }
     const key = resolveAsyncStorageKey()
@@ -127,6 +134,12 @@ const ritualsUserScopedStorage: StateStorage = {
     }
     await AsyncStorage.removeItem(key)
   },
+}
+
+function setEphemeralRitualState(next: Pick<RitualsState, "rituals" | "hasHydrated">) {
+  suppressPersistWrites = true
+  useRitualsStore.setState(next)
+  suppressPersistWrites = false
 }
 
 export const useRitualsStore = create<RitualsState>()(
@@ -202,10 +215,19 @@ export async function syncRitualsStoreWithAuthUserId(userId: string | null): Pro
     await cancelRitualReminderNotifications(rituals.map((r) => r.notificationId))
   }
 
+  // Clear old in-memory rituals immediately so previous-account data never renders while switching.
+  setEphemeralRitualState({ rituals: [], hasHydrated: false })
+
   ritualsPersistUserId = userId
 
   if (__DEV__) {
-    console.log("[rituals-persist] sync auth user → AsyncStorage base key:", resolveAsyncStorageKey(), "rehydrating…")
+    console.log(
+      "[rituals-persist] sync auth user:",
+      userId ?? "__anonymous__",
+      "→ key:",
+      resolveAsyncStorageKey(),
+      "rehydrating…"
+    )
   }
 
   // Do not call setState({ rituals }) or partial state before rehydrate — persist would flush
@@ -213,11 +235,52 @@ export async function syncRitualsStoreWithAuthUserId(userId: string | null): Pro
   await useRitualsStore.persist.rehydrate()
 
   const hydratedRituals = useRitualsStore.getState().rituals
+  if (__DEV__) {
+    console.log("[rituals-persist] post-hydration ritualCount:", hydratedRituals.length)
+  }
   if (hydratedRituals.length === 0) {
     await cancelRitualReminderNotifications()
   } else {
     await reconcileRitualReminderNotifications(hydratedRituals)
   }
+}
+
+export function getRitualStorageKeyForUser(userId: string | null): string {
+  return scopedStorageKey(userId)
+}
+
+/**
+ * Clear only in-memory ritual state (no storage writes). Use before signOut transitions.
+ */
+export function clearRitualsInMemoryForAuthTransition() {
+  setEphemeralRitualState({ rituals: [], hasHydrated: false })
+}
+
+/**
+ * Permanently remove local ritual storage for a specific authenticated user.
+ * Used by account deletion flow to prevent ritual carryover to recreated accounts.
+ */
+export async function deleteLocalRitualDataForUser(userId: string) {
+  const scopedKey = scopedStorageKey(userId)
+  await AsyncStorage.removeItem(scopedKey)
+  if (__DEV__) {
+    console.log("[rituals-persist] removed user key:", scopedKey)
+  }
+
+  for (const key of LEGACY_RITUAL_KEYS) {
+    await AsyncStorage.removeItem(key)
+    if (__DEV__) {
+      console.log("[rituals-persist] removed legacy key:", key)
+    }
+  }
+
+  // Account deletion signs out next; clear anonymous as a safe anti-bleed cleanup.
+  await AsyncStorage.removeItem(ANONYMOUS_KEY)
+  if (__DEV__) {
+    console.log("[rituals-persist] removed anonymous key:", ANONYMOUS_KEY)
+  }
+
+  clearRitualsInMemoryForAuthTransition()
 }
 
 export { nextMark }

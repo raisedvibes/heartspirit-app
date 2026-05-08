@@ -169,11 +169,12 @@ export default function SignupScreen() {
               style={[
                 styles.card,
                 styles.cardFrame,
+                styles.confirmationCard,
                 keyboardOpen && styles.cardFocusPanel,
                 keyboardOpen && styles.cardFocusPanelKeyboardTop,
               ]}
             >
-              <View style={styles.cardForm}>
+              <View style={[styles.cardForm, styles.confirmationCardForm]}>
                 <View style={styles.cardHeaderBlock}>
                   <ThemedText style={styles.cardTitle}>
                     {SIGNUP_COPY.confirmationTitle}
@@ -189,7 +190,7 @@ export default function SignupScreen() {
                 </ThemedText>
 
                 <Pressable
-                  style={styles.submitButton}
+                  style={[styles.submitButton, styles.confirmationSubmitButton]}
                   onPress={() => router.replace("/(auth)/login")}
                 >
                   <ThemedText type="defaultSemiBold" style={styles.submitText}>
@@ -475,6 +476,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 10,
   },
+  confirmationCard: {
+    paddingTop: 14,
+  },
 
   /** Focus mode: base vertical rhythm; top tightened by +cardFocusPanelKeyboardTop when keyboard is open. */
   cardFocusPanel: {
@@ -675,12 +679,18 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.85)",
   },
   confirmEmail: {
-    marginBottom: 16,
+    marginBottom: 10,
     fontSize: 12,
     color: "rgba(255,255,255,0.85)",
   },
+  confirmationCardForm: {
+    minHeight: 250,
+  },
+  confirmationSubmitButton: {
+    marginTop: 10,
+  },
   confirmHint: {
-    marginTop: 14,
+    marginTop: "auto",
     fontSize: 12,
     textAlign: "center",
     color: "rgba(255,255,255,0.85)",
