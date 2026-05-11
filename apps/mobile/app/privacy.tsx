@@ -12,7 +12,7 @@ export default function PrivacyScreen() {
   return (
     <View style={styles.root}>
       <ImageBackground
-        source={require("@/assets/images/fern.background.png")}
+        source={require("@/assets/images/fern_background.png")}
         style={styles.bg}
         resizeMode="cover"
       >

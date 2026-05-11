@@ -25,7 +25,7 @@ import IntroScreen from "@/components/IntroScreen"
 void SplashScreen.preventAutoHideAsync()
 
 const APP_SURFACE = "#0a1410"
-const INTRO_BG = require("@/assets/images/redwoods.trail1.png")
+const INTRO_BG = require("@/assets/images/redwoods_trail1.png")
 
 /** Guest / first-time auth entry — full intro length. */
 const INTRO_TOTAL_MS_GUEST = 5500

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import type { ImageSourcePropType } from "react-native"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 
-const DEFAULT_FERN = require("@/assets/images/fern.background.png") as ImageSourcePropType
+const DEFAULT_FERN = require("@/assets/images/fern_background.png") as ImageSourcePropType
 
 function isValidBackgroundUrl(url: string | null | undefined): boolean {
   const trimmed = url?.trim()

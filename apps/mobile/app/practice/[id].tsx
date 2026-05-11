@@ -574,7 +574,7 @@ export default function PracticeDetailScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <ImageBackground
-        source={require("@/assets/images/fern.background.png")}
+        source={require("@/assets/images/fern_background.png")}
         style={styles.bg}
         resizeMode="cover"
       >

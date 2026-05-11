@@ -4,7 +4,7 @@ import type { Ritual } from "./ritualsStore"
 
 const RITUAL_CHANNEL_ID = "ritual-reminders"
 const PRACTICE_TIMER_CHANNEL_ID = "practice-timer"
-const PRACTICE_TIMER_SOUND = "heartspirit-chime.mp3"
+const PRACTICE_TIMER_SOUND = "heartspirit_chime.mp3"
 const RITUAL_NOTIFICATION_TYPE = "ritual_reminder"
 
 type ReminderData = {

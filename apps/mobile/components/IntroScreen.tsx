@@ -7,7 +7,7 @@ type IntroScreenProps = {
   totalDurationMs?: number
 }
 
-const REDWOODS = require("@/assets/images/redwoods.trail1.png")
+const REDWOODS = require("@/assets/images/redwoods_trail1.png")
 
 const DEFAULT_INTRO_TOTAL_MS = 5500
 const FADE_OUT_MS = 350

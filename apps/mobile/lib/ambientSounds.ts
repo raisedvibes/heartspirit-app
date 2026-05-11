@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 const AMBIENT_SOUNDS_ENABLED_KEY = "heartspirit.ambient_sounds.enabled"
 
 /** Bundled forest ambience — same asset path Metro resolves at build time. */
-const SESSION_AMBIENCE = require("@/assets/audio/Forest-creek-noise-and-singing-birds-relaxing-nature-sounds.mp3")
+const SESSION_AMBIENCE = require("@/assets/audio/forest_creek_noise_and_singing_birds_relaxing_nature_sounds.mp3")
 
 const TARGET_VOLUME = 0.35
 

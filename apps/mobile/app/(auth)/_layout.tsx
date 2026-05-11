@@ -3,7 +3,7 @@ import { LinearGradient } from "expo-linear-gradient"
 import { Stack } from "expo-router"
 
 const AUTH_SURFACE = "#0a1410"
-const REDWOODS = require("@/assets/images/redwoods.trail1.png")
+const REDWOODS = require("@/assets/images/redwoods_trail1.png")
 
 /**
  * Single full-bleed forest background for all auth routes; screens are transparent content only.

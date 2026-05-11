@@ -49,7 +49,7 @@ function TabLayoutContent() {
   return (
     <View style={{ flex: 1 }}>
       <ImageBackground
-        source={require("@/assets/images/fern.background.png")}
+        source={require("@/assets/images/fern_background.png")}
         style={StyleSheet.absoluteFillObject}
         resizeMode="cover"
         pointerEvents="none"

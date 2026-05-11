@@ -182,7 +182,7 @@ function getImageSource(practice?: PracticeSummary | null) {
     return { uri: remoteUrl }
   }
 
-  return require("@/assets/images/fern.background.png")
+  return require("@/assets/images/fern_background.png")
 }
 
 function RailCardFooterTitle({ title }: { title: string }) {
@@ -214,7 +214,7 @@ function TodayPracticeCard({
   const [useLocalFallback, setUseLocalFallback] = useState(false)
 
   const source = useMemo(() => {
-    if (useLocalFallback) return require("@/assets/images/fern.background.png")
+    if (useLocalFallback) return require("@/assets/images/fern_background.png")
     return getImageSource(practice)
   }, [practice, useLocalFallback])
 
@@ -236,7 +236,7 @@ function TodayPracticeCard({
               contentFit="cover"
               cachePolicy="disk"
               transition={250}
-              placeholder={require("@/assets/images/fern.background.png")}
+              placeholder={require("@/assets/images/fern_background.png")}
               onError={() => {
                 console.log("[energy] today card image failed, using fallback")
                 setUseLocalFallback(true)
@@ -270,7 +270,7 @@ function SeasonalPracticeCard({
   const [useLocalFallback, setUseLocalFallback] = useState(false)
 
   const source = useMemo(() => {
-    if (useLocalFallback) return require("@/assets/images/fern.background.png")
+    if (useLocalFallback) return require("@/assets/images/fern_background.png")
     return getImageSource(practice)
   }, [practice, useLocalFallback])
 
@@ -291,7 +291,7 @@ function SeasonalPracticeCard({
               contentFit="cover"
               cachePolicy="disk"
               transition={250}
-              placeholder={require("@/assets/images/fern.background.png")}
+              placeholder={require("@/assets/images/fern_background.png")}
               onError={() => {
                 console.log("[energy] seasonal card image failed, using fallback")
                 setUseLocalFallback(true)
