@@ -4,8 +4,26 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { getSupabaseClient } from "./supabaseClient"
 
 const CIRCLES_PREFS_KEY = "heartspirit.push.circles_prefs"
+/** Matches expo-notifications `defaultChannel` in app.json — used for remote FCM push. */
+export const DEFAULT_PUSH_CHANNEL_ID = "default"
 
 export type CircleReminderPrefs = { weekBefore: boolean; dayBefore: boolean }
+
+/** In-app circle reminder opt-in defaults (OS permission is separate). */
+export const DEFAULT_CIRCLE_REMINDER_PREFS: CircleReminderPrefs = {
+  weekBefore: true,
+  dayBefore: true,
+}
+
+function resolveCircleReminderPrefs(
+  weekBefore: boolean | null | undefined,
+  dayBefore: boolean | null | undefined
+): CircleReminderPrefs {
+  return {
+    weekBefore: weekBefore ?? true,
+    dayBefore: dayBefore ?? true,
+  }
+}
 
 /** Load circle reminder prefs from profiles (if authenticated) or local fallback. */
 export async function loadCircleReminderPrefs(): Promise<CircleReminderPrefs> {
@@ -22,10 +40,10 @@ export async function loadCircleReminderPrefs(): Promise<CircleReminderPrefs> {
     .maybeSingle()
 
   if (!error && data) {
-    const p: CircleReminderPrefs = {
-      weekBefore: data.notif_circles_week_before ?? false,
-      dayBefore: data.notif_circles_day_before ?? false,
-    }
+    const p = resolveCircleReminderPrefs(
+      data.notif_circles_week_before,
+      data.notif_circles_day_before
+    )
     saveLocalPrefs(p)
     return p
   }
@@ -37,10 +55,10 @@ async function getLocalPrefs(): Promise<CircleReminderPrefs> {
     const raw = await AsyncStorage.getItem(CIRCLES_PREFS_KEY)
     if (raw) {
       const p = JSON.parse(raw) as CircleReminderPrefs
-      return { weekBefore: p.weekBefore ?? false, dayBefore: p.dayBefore ?? false }
+      return resolveCircleReminderPrefs(p.weekBefore, p.dayBefore)
     }
   } catch {}
-  return { weekBefore: false, dayBefore: false }
+  return { ...DEFAULT_CIRCLE_REMINDER_PREFS }
 }
 
 async function saveLocalPrefs(prefs: CircleReminderPrefs) {
@@ -49,17 +67,24 @@ async function saveLocalPrefs(prefs: CircleReminderPrefs) {
   } catch {}
 }
 
-/** Request permissions and return Expo push token, or null if denied. */
-export async function getExpoPushToken(): Promise<string | null> {
+async function ensureDefaultPushChannel(): Promise<void> {
+  if (Platform.OS !== "android") return
+
+  await Notifications.setNotificationChannelAsync(DEFAULT_PUSH_CHANNEL_ID, {
+    name: "General",
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: "default",
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+  })
+}
+
+async function fetchExpoPushTokenWhenGranted(): Promise<string | null> {
   if (Platform.OS === "web") return null
 
-  const { status: existing } = await Notifications.getPermissionsAsync()
-  let final = existing
-  if (existing !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync()
-    final = status
-  }
-  if (final !== "granted") return null
+  const { status } = await Notifications.getPermissionsAsync()
+  if (status !== "granted") return null
+
+  await ensureDefaultPushChannel()
 
   let projectId: string | undefined
   try {
@@ -75,20 +100,42 @@ export async function getExpoPushToken(): Promise<string | null> {
   return token ?? null
 }
 
+/** Request OS permission, then return Expo push token, or null if denied. */
+export async function getExpoPushToken(): Promise<string | null> {
+  if (Platform.OS === "web") return null
+
+  const { status: existing, canAskAgain } = await Notifications.getPermissionsAsync()
+  if (existing === "granted") {
+    return fetchExpoPushTokenWhenGranted()
+  }
+  if (!canAskAgain) {
+    console.warn("[Push] Notification permission denied; cannot request again")
+    return null
+  }
+
+  const { status } = await Notifications.requestPermissionsAsync()
+  if (status !== "granted") {
+    console.warn("[Push] Notification permission not granted")
+    return null
+  }
+
+  return fetchExpoPushTokenWhenGranted()
+}
+
 /** Stable device id for upsert key. Uses push token when no native id available. */
 function getDeviceId(token: string): string {
   return token
 }
 
-/** Register push token with Supabase. Call after login. Requires authenticated user. */
-export async function registerPushToken(): Promise<boolean> {
+/** Upsert push token when OS permission is already granted (no native prompt). */
+export async function registerPushTokenIfGranted(): Promise<boolean> {
   const supabase = getSupabaseClient()
   if (!supabase) return false
 
   const { data: auth } = await supabase.auth.getUser()
   if (!auth?.user) return false
 
-  const token = await getExpoPushToken()
+  const token = await fetchExpoPushTokenWhenGranted()
   if (!token) return false
 
   const platform = Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "web"
@@ -110,6 +157,43 @@ export async function registerPushToken(): Promise<boolean> {
     return false
   }
   return true
+}
+
+/** Request OS permission (if needed), then register push token with Supabase. */
+export async function requestNotificationPermissionAndRegister(): Promise<boolean> {
+  const token = await getExpoPushToken()
+  if (!token) return false
+
+  const supabase = getSupabaseClient()
+  if (!supabase) return false
+
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth?.user) return false
+
+  const platform = Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "web"
+  const deviceId = getDeviceId(token)
+
+  const { error } = await supabase.from("user_push_tokens").upsert(
+    {
+      user_id: auth.user.id,
+      expo_push_token: token,
+      platform,
+      device_id: deviceId,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,device_id" }
+  )
+
+  if (error) {
+    console.warn("[Push] Failed to register token:", error.message)
+    return false
+  }
+  return true
+}
+
+/** @deprecated Prefer registerPushTokenIfGranted or requestNotificationPermissionAndRegister. */
+export async function registerPushToken(): Promise<boolean> {
+  return requestNotificationPermissionAndRegister()
 }
 
 /** Update circle reminder preferences in profiles. Saves locally as fallback. */

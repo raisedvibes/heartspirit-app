@@ -1,68 +1,79 @@
-// Fallback for using MaterialIcons on Android and web.
+// Android / web: match iOS outline icons via Ionicons (see icon-symbol.ios.tsx).
 
-import MaterialIcons from "@expo/vector-icons/MaterialIcons"
+import { Ionicons } from "@expo/vector-icons"
 import type { ComponentProps } from "react"
 import { View, StyleSheet } from "react-native"
 import type { OpaqueColorValue, StyleProp, TextStyle } from "react-native"
 
-type MaterialIconName = ComponentProps<typeof MaterialIcons>["name"]
+type IoniconName = ComponentProps<typeof Ionicons>["name"]
 
-/**
- * Add your SF Symbols and custom names to Material Icons mappings here.
- * - see Material Icons in the Icons Directory (https://icons.expo.fyi)
- * - see SF Symbols in the SF Symbols app
- */
-const MAPPING: Record<string, MaterialIconName> = {
+const MAPPING: Record<string, IoniconName> = {
+  "home-outline": "home-outline",
+  "battery-charging-outline": "battery-charging-outline",
+  "flame-outline": "flame-outline",
+  "people-outline": "people-outline",
+  "settings-outline": "settings-outline",
+
+  home: "home-outline",
+  sparkles: "sparkles-outline",
+  people: "people-outline",
+  gearshape: "settings-outline",
+
+  house: "home-outline",
   "house.fill": "home",
-  "paperplane.fill": "send",
-  "chevron.left.forwardslash.chevron.right": "code",
-  "chevron.right": "chevron-right",
+  Home: "home-outline",
+  BatteryCharging: "battery-charging-outline",
+  Flame: "flame-outline",
+  NotebookText: "book-outline",
+  Users: "people-outline",
+  paperplane: "paper-plane-outline",
+  "paperplane.fill": "paper-plane",
+  magnifyingglass: "search-outline",
+  "gearshape.fill": "settings",
+  person: "person-outline",
+  "person.fill": "person",
+  plus: "add",
+  xmark: "close",
+  chevron_left: "chevron-back",
+  chevron_right: "chevron-forward",
+  "chevron.right": "chevron-forward",
+  "chevron.left.forwardslash.chevron.right": "code-slash-outline",
 
-  home: "home",
-  sparkles: "auto-awesome",
-  people: "people",
-  gearshape: "settings",
-  // SF Symbol / custom names (EnergyCheck, etc.)
-  drop: "opacity",
-  cloud: "cloud",
-  moon: "nights-stay",
-  bolt: "bolt",
-  do_not_disturb_on: "do-not-disturb-on",
-  warning_amber: "warning-amber",
-  thunderstorm: "thunderstorm",
-  "face.dashed": "sentiment-dissatisfied",
-  "exclamationmark.circle": "report-problem",
-
-  // Feelings (Energy Check)
-  Calm: "waves",
-  Foggy: "cloud",
-  Tired: "nights-stay",
-  Irritable: "smoking-rooms",
-  Anxious: "warning",
-  Energized: "bolt",
+  drop: "water-outline",
+  cloud: "cloud-outline",
+  moon: "moon-outline",
+  bolt: "flash-outline",
+  do_not_disturb_on: "remove-circle-outline",
+  warning_amber: "warning-outline",
+  thunderstorm: "thunderstorm-outline",
+  "face.dashed": "sad-outline",
+  "exclamationmark.circle": "alert-circle-outline",
+  Foggy: "cloud-outline",
+  Tired: "moon-outline",
+  Anxious: "alert-circle-outline",
+  Irritable: "skull-outline",
+  Energized: "flash-outline",
+  Calm: "water-outline",
 }
 
-type IconSymbolName = keyof typeof MAPPING
-
-/**
- * Icon component:
- * Uses Material Icons (Android/web). Names are mapped from SF Symbols / custom names.
- */
 export function IconSymbol({
   name,
   size = 24,
   color,
   style,
+  weight: _weight,
 }: {
-  name: IconSymbolName | string
+  name: string
   size?: number
   color: string | OpaqueColorValue
   style?: StyleProp<TextStyle>
+  /** Accepted for API parity with template / iOS; Ionicons outline set ignores weight. */
+  weight?: string
 }) {
-  const iconName = MAPPING[name] ?? "report-problem"
+  const iconName = (MAPPING[name] ?? "alert-circle-outline") as IoniconName
   return (
     <View style={styles.iconContainer}>
-      <MaterialIcons color={color} size={size} name={iconName} style={style} />
+      <Ionicons name={iconName} size={size} color={color as string} style={style} />
     </View>
   )
 }

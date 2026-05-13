@@ -16,7 +16,9 @@ import {
 } from "react-native"
 import { BlurView } from "expo-blur"
 import Animated from "react-native-reanimated"
-import DateTimePicker from "@react-native-community/datetimepicker"
+import DateTimePicker, {
+  DateTimePickerAndroid,
+} from "@react-native-community/datetimepicker"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import ScreenContent, { TAB_BAR_HEIGHT } from "@/components/layout/ScreenContent"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
@@ -126,6 +128,20 @@ export default function RitualsScreen() {
   const [intention, setIntention] = useState("")
   const [reminderEnabled, setReminderEnabled] = useState(false)
   const [reminderTime, setReminderTime] = useState<Date>(() => new Date())
+
+  const openAndroidReminderTimePicker = useCallback(() => {
+    DateTimePickerAndroid.open({
+      value: reminderTime,
+      mode: "time",
+      display: "spinner",
+      is24Hour: false,
+      onChange: (event, date) => {
+        if (event.type === "set" && date) {
+          setReminderTime(date)
+        }
+      },
+    })
+  }, [reminderTime])
 
   const [markOpen, setMarkOpen] = useState(false)
   const [activeRitualId, setActiveRitualId] = useState<string | null>(null)
@@ -548,24 +564,36 @@ export default function RitualsScreen() {
 
                   {reminderEnabled && (
                     <View style={styles.ritualFormTimeWrap}>
-                      <View style={styles.ritualTimePill}>
-                        <ThemedText
-                          type="defaultSemiBold"
-                          style={styles.ritualTimePillText}
-                          pointerEvents="none"
+                      {Platform.OS === "ios" ? (
+                        <View style={styles.ritualTimePill}>
+                          <ThemedText
+                            type="defaultSemiBold"
+                            style={styles.ritualTimePillText}
+                            pointerEvents="none"
+                          >
+                            {displayTime(reminderTime)}
+                          </ThemedText>
+                          <DateTimePicker
+                            style={styles.ritualTimePickerTouchOverlay}
+                            value={reminderTime}
+                            mode="time"
+                            display="compact"
+                            onChange={(_, date) => {
+                              if (date) setReminderTime(date)
+                            }}
+                          />
+                        </View>
+                      ) : (
+                        <Pressable
+                          accessibilityRole="button"
+                          style={styles.ritualTimePill}
+                          onPress={openAndroidReminderTimePicker}
                         >
-                          {displayTime(reminderTime)}
-                        </ThemedText>
-                        <DateTimePicker
-                          style={styles.ritualTimePickerTouchOverlay}
-                          value={reminderTime}
-                          mode="time"
-                          display="compact"
-                          onChange={(_, date) => {
-                            if (date) setReminderTime(date)
-                          }}
-                        />
-                      </View>
+                          <ThemedText type="defaultSemiBold" style={styles.ritualTimePillText}>
+                            {displayTime(reminderTime)}
+                          </ThemedText>
+                        </Pressable>
+                      )}
                       <ThemedText type="muted" style={styles.reminderCaption}>
                         Daily reminder • {displayTime(reminderTime)}
                       </ThemedText>

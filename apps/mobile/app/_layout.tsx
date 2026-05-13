@@ -11,7 +11,7 @@ import "../global.css"
 
 import { useColorScheme } from "@/hooks/use-color-scheme"
 import { AuthProvider, useAuth } from "@/lib/auth"
-import { registerPushToken } from "@/lib/pushTokenRegistration"
+import { registerPushTokenIfGranted } from "@/lib/pushTokenRegistration"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import * as SystemUI from "expo-system-ui"
 
@@ -159,14 +159,14 @@ export default function RootLayout() {
   const navTheme = appNavigationTheme(colorScheme)
 
   useEffect(() => {
-    registerPushToken().catch(() => {})
+    registerPushTokenIfGranted().catch(() => {})
 
     const supabase = getSupabaseClient()
     if (!supabase) return
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        registerPushToken().catch(() => {})
+        registerPushTokenIfGranted().catch(() => {})
       }
     })
     return () => subscription.unsubscribe()

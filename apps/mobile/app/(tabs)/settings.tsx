@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react"
-import { router } from "expo-router"
+import { useState, useEffect, useCallback } from "react"
+import { router, useFocusEffect } from "expo-router"
 import { View, StyleSheet, Pressable, Switch, Linking, TextInput, Alert } from "react-native"
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -19,6 +19,10 @@ import {
   clearRitualsInMemoryForAuthTransition,
   deleteLocalRitualDataForUser,
 } from "@/lib/ritualsStore"
+import {
+  enableNotificationsFromPrompt,
+  isNotificationPermissionGranted,
+} from "@/lib/notificationPermissionPrompt"
 
 type SectionKey = "about" | "profile" | "notifications" | "privacy" | "support"
 
@@ -36,6 +40,12 @@ export default function SettingsScreen() {
 
   // Notifications
   const [communityCircles, setCommunityCircles] = useState(false)
+  const [osNotifGranted, setOsNotifGranted] = useState<boolean | null>(null)
+
+  const refreshOsNotificationPermission = useCallback(async () => {
+    const granted = await isNotificationPermissionGranted()
+    setOsNotifGranted(granted)
+  }, [])
 
   // Auth & profile
   const [authUser, setAuthUser] = useState<{ id: string; email?: string } | null>(null)
@@ -83,8 +93,8 @@ export default function SettingsScreen() {
             full_name: prof.full_name ?? "",
             email: prof.email ?? user.email ?? "",
           })
-          const weekBefore = prof.notif_circles_week_before ?? false
-          const dayBefore = prof.notif_circles_day_before ?? false
+          const weekBefore = prof.notif_circles_week_before ?? true
+          const dayBefore = prof.notif_circles_day_before ?? true
           setCommunityCircles(weekBefore || dayBefore)
         } else {
           const metadataDisplayName =
@@ -99,13 +109,15 @@ export default function SettingsScreen() {
             full_name: metadataFullName,
             email: user.email ?? "",
           })
-          setCommunityCircles(false)
+          setCommunityCircles(true)
 
           const { error: upsertErr } = await supabase.from("profiles").upsert({
             id: user.id,
             display_name: fallbackDisplayName || null,
             full_name: metadataFullName || null,
             email: user.email ?? null,
+            notif_circles_week_before: true,
+            notif_circles_day_before: true,
           })
           if (upsertErr) {
             console.log("[Settings] profile upsert on init:", upsertErr.message)
@@ -140,6 +152,18 @@ export default function SettingsScreen() {
       subscription.unsubscribe()
     }
   }, [])
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshOsNotificationPermission()
+    }, [refreshOsNotificationPermission])
+  )
+
+  useEffect(() => {
+    if (openSections.notifications) {
+      void refreshOsNotificationPermission()
+    }
+  }, [openSections.notifications, refreshOsNotificationPermission])
 
   const toggleSection = (section: SectionKey) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
@@ -588,6 +612,33 @@ export default function SettingsScreen() {
                       }}
                     />
                   </View>
+
+                  {osNotifGranted !== null ? (
+                    <View style={styles.permissionStatusBlock}>
+                      <ThemedText type="muted" style={styles.permissionStatusText}>
+                        {osNotifGranted
+                          ? "Phone notifications: Enabled"
+                          : communityCircles
+                            ? "Circle reminders are on in Heartspirit, but your phone is currently blocking notifications."
+                            : "Phone notifications are disabled on this device."}
+                      </ThemedText>
+                      {!osNotifGranted ? (
+                        <Pressable
+                          style={styles.enableNotifButton}
+                          onPress={() => {
+                            void (async () => {
+                              await enableNotificationsFromPrompt()
+                              await refreshOsNotificationPermission()
+                            })()
+                          }}
+                        >
+                          <ThemedText type="defaultSemiBold" style={styles.enableNotifButtonText}>
+                            Enable Notifications
+                          </ThemedText>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ) : null}
                 </View>
               )}
             </TranslucentCard>
@@ -778,6 +829,26 @@ const styles = StyleSheet.create({
   toggleLabel: { flex: 1, marginRight: 12 },
   toggleTitle: { fontSize: 14 },
   toggleSubtitle: { fontSize: 12, marginTop: 2 },
+  permissionStatusBlock: {
+    marginTop: -8,
+    marginBottom: 4,
+    gap: 10,
+  },
+  permissionStatusText: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  enableNotifButton: {
+    alignSelf: "flex-start",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: "rgba(47, 143, 78, 0.9)",
+  },
+  enableNotifButtonText: {
+    color: "#fff",
+    fontSize: 13,
+  },
   bulletList: { marginTop: 4 },
   bullet: { fontSize: 12, marginBottom: 4 },
   linkButton: {

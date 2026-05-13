@@ -1,8 +1,8 @@
 {
   "android": {
-    "package": "com.raised_vibes.myv0project"
+    "package": "com.raised_vibes.heartspirit"
   },
   "ios": {
-    "bundleIdentifier": "com.raised-vibes.myv0project"
+    "bundleIdentifier": "com.raised-vibes.heartspirit"
   }
 }

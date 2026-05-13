@@ -17,7 +17,6 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import { ThemedText } from "@/components/themed-text"
 import { getSupabaseClient } from "@/lib/supabaseClient"
-import { registerPushToken } from "@/lib/pushTokenRegistration"
 import { LOGIN_COPY } from "@/constants/signup"
 
 export default function LoginScreen() {
@@ -91,7 +90,6 @@ export default function LoginScreen() {
       return
     }
 
-    await registerPushToken().catch(() => {})
     router.replace("/(tabs)")
   }
 

@@ -55,7 +55,10 @@ function TabLayoutContent() {
         pointerEvents="none"
       />
       <View
-          style={[styles.overlayHeader, { paddingTop: insets.top + 6 }]}
+          style={[
+            styles.overlayHeader,
+            { paddingTop: insets.top + (Platform.OS === "android" ? 14 : 6) },
+          ]}
           pointerEvents="box-none"
         >
           <Animated.View style={brandAnimatedStyle}>
@@ -191,7 +194,7 @@ const styles = StyleSheet.create({
   brand: { alignSelf: "flex-start" },
   brandText: {
     fontSize: 26,
-    fontWeight: "700",
+    fontWeight: "normal",
     letterSpacing: 0.2,
   },
 })

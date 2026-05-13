@@ -32,9 +32,13 @@ import {
   schedulePracticeTimerCompletion,
 } from "@/lib/ritualNotifications"
 import { getOfflineCacheData, OfflineCacheKeys, setOfflineCache } from "@/lib/offlineCache"
+import { NotificationPermissionModal } from "@/components/notifications/NotificationPermissionModal"
+import {
+  enableNotificationsFromPrompt,
+  isNotificationPermissionGranted,
+} from "@/lib/notificationPermissionPrompt"
 
-const CHIME_URL =
-  "https://tajqnuta9fwavw6h.public.blob.vercel-storage.com/triangle-percussion-ding-smartsound-fx-3-3-00-03.mp3"
+const CHIME_SOURCE = require("@/assets/audio/heartspirit_chime.mp3")
 const SILENT_LOOP_SOURCE = require("@/assets/audio/silence.mp3")
 
 type PracticeRecord = {
@@ -93,6 +97,7 @@ export default function PracticeDetailScreen() {
   const [hasTimerStarted, setHasTimerStarted] = useState(false)
   const [timerEndAt, setTimerEndAt] = useState<number | null>(null)
   const [usingCachedPractice, setUsingCachedPractice] = useState(false)
+  const [showTimerNotifPrompt, setShowTimerNotifPrompt] = useState(false)
 
   const practiceSoundRef = useRef<Audio.Sound | null>(null)
   const chimeSoundRef = useRef<Audio.Sound | null>(null)
@@ -170,11 +175,28 @@ export default function PracticeDetailScreen() {
     }
   }, [])
 
+  const ensureAudioMode = useCallback(async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      })
+    } catch (error) {
+      console.log("[practice audio] setAudioModeAsync failed", error)
+    }
+  }, [])
+
   const ensureSilentLoopForTimer = useCallback(async () => {
     if (isAudioPlaying || isVideoPlaying) return
     if (silentSoundRef.current) return
 
     try {
+      await ensureAudioMode()
       const { sound } = await Audio.Sound.createAsync(SILENT_LOOP_SOURCE, {
         shouldPlay: true,
         isLooping: true,
@@ -189,7 +211,7 @@ export default function PracticeDetailScreen() {
     } catch (error) {
       console.log("[practice silence] failed to start", error)
     }
-  }, [isAudioPlaying, isVideoPlaying])
+  }, [ensureAudioMode, isAudioPlaying, isVideoPlaying])
 
   useEffect(() => {
     if ((isAudioPlaying || isVideoPlaying) && silentSoundRef.current) {
@@ -214,22 +236,6 @@ export default function PracticeDetailScreen() {
     timerNotificationIdRef.current = null
   }, [])
 
-  const ensureAudioMode = useCallback(async () => {
-    try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        interruptionModeIOS: InterruptionModeIOS.DuckOthers,
-        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-      })
-    } catch (error) {
-      console.log("[practice audio] setAudioModeAsync failed", error)
-    }
-  }, [])
-
   const ensureChimeLoaded = useCallback(async () => {
     if (!hasChime) return null
 
@@ -239,7 +245,7 @@ export default function PracticeDetailScreen() {
 
     try {
       const { sound } = await Audio.Sound.createAsync(
-        { uri: CHIME_URL },
+        CHIME_SOURCE,
         { shouldPlay: false, progressUpdateIntervalMillis: 250, volume: 1 }
       )
       await sound.setVolumeAsync(1)
@@ -359,7 +365,7 @@ export default function PracticeDetailScreen() {
     }
   }, [])
 
-  const startTimer = useCallback(async () => {
+  const runTimerStart = useCallback(async () => {
     if (!timerMinutes) return
 
     const baseSeconds = timeLeft > 0 ? timeLeft : timerMinutes * 60
@@ -386,6 +392,16 @@ export default function PracticeDetailScreen() {
     timeLeft,
     timerMinutes,
   ])
+
+  const handleStartTimerPress = useCallback(async () => {
+    if (!timerMinutes) return
+    const granted = await isNotificationPermissionGranted()
+    if (granted) {
+      await runTimerStart()
+      return
+    }
+    setShowTimerNotifPrompt(true)
+  }, [runTimerStart, timerMinutes])
 
   const pauseTimer = useCallback(async () => {
     const remaining = getRemainingFromEndAt(timerEndAt)
@@ -843,7 +859,7 @@ export default function PracticeDetailScreen() {
 
                         <View style={styles.timerButtonsRow}>
                           {!isTimerRunning ? (
-                            <Pressable onPress={() => void startTimer()} style={styles.timerStartButton}>
+                            <Pressable onPress={() => void handleStartTimerPress()} style={styles.timerStartButton}>
                               <ThemedText type="defaultSemiBold" style={styles.timerStartButtonText}>
                                 {hasTimerStarted ? "Resume" : "Start"}
                               </ThemedText>
@@ -878,6 +894,26 @@ export default function PracticeDetailScreen() {
       </ImageBackground>
 
       <BottomFade />
+
+      <NotificationPermissionModal
+        visible={showTimerNotifPrompt}
+        title="Completion chime"
+        body="Enable notifications to receive your completion chime and practice reminders while your device is locked."
+        primaryLabel="Enable Notifications"
+        secondaryLabel="Continue Without Locked-Screen Alerts"
+        onPrimary={() => {
+          setShowTimerNotifPrompt(false)
+          void (async () => {
+            await enableNotificationsFromPrompt()
+            await runTimerStart()
+          })()
+        }}
+        onSecondary={() => {
+          setShowTimerNotifPrompt(false)
+          void runTimerStart()
+        }}
+        onRequestClose={() => setShowTimerNotifPrompt(false)}
+      />
     </View>
   )
 }

@@ -2,6 +2,8 @@ import { createHash, randomBytes } from "crypto"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { sendExpoPushMessages } from "./expo"
 
+const ANDROID_PUSH_CHANNEL_ID = "default"
+
 type ReminderKind = "week_before" | "day_before"
 type ActivityKind = "activity"
 type ManualKind = "manual_admin"
@@ -180,8 +182,8 @@ export async function sendCircleRemindersNow(supabase: SupabaseClient): Promise<
         continue
       }
 
-      const wantsWeek = !!profile.notif_circles_week_before
-      const wantsDay = !!profile.notif_circles_day_before
+      const wantsWeek = profile.notif_circles_week_before ?? true
+      const wantsDay = profile.notif_circles_day_before ?? true
 
       const reminderKinds: ReminderKind[] = []
       if (weekDue && wantsWeek) reminderKinds.push("week_before")
@@ -212,6 +214,7 @@ export async function sendCircleRemindersNow(supabase: SupabaseClient): Promise<
             title: `Upcoming Circle: ${circle.name}`,
             body: `Your circle starts ${label}.`,
             sound: "default",
+            channelId: ANDROID_PUSH_CHANNEL_ID,
             data: {
               type: "circle_reminder",
               circleId: circle.id,
@@ -268,7 +271,8 @@ export async function sendCircleActivityNotification(
     const tokens = tokensByUser.get(userId) ?? []
     if (!profile || !tokens.length) continue
 
-    const circlesEnabled = !!profile.notif_circles_week_before || !!profile.notif_circles_day_before
+    const circlesEnabled =
+      (profile.notif_circles_week_before ?? true) || (profile.notif_circles_day_before ?? true)
     if (!circlesEnabled) continue
 
     const payloadKey = `${after.id}:${after.name}:${after.starts_at ?? ""}:${after.description ?? ""}:${params.changedFields.join(",")}`
@@ -299,6 +303,7 @@ export async function sendCircleActivityNotification(
         title,
         body,
         sound: "default",
+        channelId: ANDROID_PUSH_CHANNEL_ID,
         data: {
           type: "circle_activity",
           circleId: after.id,
@@ -399,7 +404,8 @@ export async function sendManualCirclePushNow(
       continue
     }
 
-    const circlesEnabled = !!profile.notif_circles_week_before || !!profile.notif_circles_day_before
+    const circlesEnabled =
+      (profile.notif_circles_week_before ?? true) || (profile.notif_circles_day_before ?? true)
     if (!circlesEnabled) {
       skippedNoPrefs += 1
       continue
@@ -429,6 +435,7 @@ export async function sendManualCirclePushNow(
         title: "Upcoming Circle",
         body,
         sound: "default",
+        channelId: ANDROID_PUSH_CHANNEL_ID,
         data: {
           type: "circle_manual",
           circleId: circle.id,

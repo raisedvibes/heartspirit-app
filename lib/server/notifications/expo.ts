@@ -4,6 +4,8 @@ type ExpoPushMessage = {
   body?: string
   data?: Record<string, unknown>
   sound?: "default" | null
+  /** Android only; iOS ignores. Must match a channel created on device (see mobile defaultChannel). */
+  channelId?: string
 }
 
 type ExpoPushTicket = {
@@ -70,5 +72,12 @@ export async function sendExpoPushMessages(messages: ExpoPushMessage[]): Promise
 
   const sent = tickets.filter((t) => t.status === "ok").length
   const failed = tickets.filter((t) => t.status === "error").length + (messages.length - validMessages.length)
+
+  for (const ticket of tickets) {
+    if (ticket.status === "error") {
+      console.error("[expo-push] ticket error:", ticket.message, ticket.details ?? "")
+    }
+  }
+
   return { sent, failed, tickets }
 }

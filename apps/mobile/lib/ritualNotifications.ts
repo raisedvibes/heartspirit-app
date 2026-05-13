@@ -3,8 +3,8 @@ import { Platform } from "react-native"
 import type { Ritual } from "./ritualsStore"
 
 const RITUAL_CHANNEL_ID = "ritual-reminders"
-const PRACTICE_TIMER_CHANNEL_ID = "practice-timer"
-const PRACTICE_TIMER_SOUND = "heartspirit_chime.mp3"
+const PRACTICE_TIMER_CHANNEL_ID = "practice_timer"
+const PRACTICE_TIMER_SOUND = "heartspirit_chime"
 const RITUAL_NOTIFICATION_TYPE = "ritual_reminder"
 
 type ReminderData = {
@@ -18,6 +18,12 @@ export async function ensureNotifPermissions(): Promise<boolean> {
 
   const req = await Notifications.requestPermissionsAsync()
   return req.granted
+}
+
+/** Check permission only — does not show the native OS prompt. */
+export async function hasNotifPermissions(): Promise<boolean> {
+  const settings = await Notifications.getPermissionsAsync()
+  return settings.granted
 }
 
 export async function scheduleDailyReminder(
@@ -79,6 +85,11 @@ async function ensurePracticeTimerChannel() {
       name: "Practice timer",
       importance: Notifications.AndroidImportance.HIGH,
       sound: PRACTICE_TIMER_SOUND,
+      audioAttributes: {
+        usage: Notifications.AndroidAudioUsage.NOTIFICATION,
+        contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+      },
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     })
   }
 }
@@ -118,7 +129,7 @@ export async function schedulePracticeTimerCompletion(
   body: string,
   secondsUntilEnd: number
 ): Promise<string | null> {
-  if (!(await ensureNotifPermissions())) {
+  if (!(await hasNotifPermissions())) {
     return null
   }
 

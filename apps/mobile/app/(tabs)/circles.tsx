@@ -13,6 +13,15 @@ import BottomFade from "@/components/ui/BottomFade"
 import { GLASS } from "@/components/ui/glass"
 import { ThemedText } from "@/components/themed-text"
 import { getSupabaseClient } from "@/lib/supabaseClient"
+import { NotificationPermissionModal } from "@/components/notifications/NotificationPermissionModal"
+import {
+  enableNotificationsFromPrompt,
+  isNotificationPermissionGranted,
+  markCirclesSoftPromptShownThisSession,
+  wasCirclesSoftPromptShownThisSession,
+} from "@/lib/notificationPermissionPrompt"
+
+const CIRCLES_NOTIF_PROMPT_DELAY_MS = 900
 
 type CircleRow = {
   id: string
@@ -98,6 +107,7 @@ export default function CirclesScreen() {
   const [circles, setCircles] = useState<CircleRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false)
 
   const fetchCircles = useCallback(async () => {
     if (!supabase) {
@@ -135,6 +145,20 @@ export default function CirclesScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchCircles()
+
+      let cancelled = false
+      const timer = setTimeout(async () => {
+        if (cancelled || wasCirclesSoftPromptShownThisSession()) return
+        const granted = await isNotificationPermissionGranted()
+        if (cancelled || granted) return
+        markCirclesSoftPromptShownThisSession()
+        setShowNotifPrompt(true)
+      }, CIRCLES_NOTIF_PROMPT_DELAY_MS)
+
+      return () => {
+        cancelled = true
+        clearTimeout(timer)
+      }
     }, [fetchCircles])
   )
 
@@ -274,6 +298,20 @@ export default function CirclesScreen() {
             )}
         </Animated.ScrollView>
       </ScreenContent>
+
+      <NotificationPermissionModal
+        visible={showNotifPrompt}
+        title="Stay in rhythm"
+        body="Heartspirit will remind you of your rituals, practice completions, and upcoming circles."
+        primaryLabel="Enable Notifications"
+        secondaryLabel="Not Now"
+        onPrimary={() => {
+          setShowNotifPrompt(false)
+          void enableNotificationsFromPrompt()
+        }}
+        onSecondary={() => setShowNotifPrompt(false)}
+        onRequestClose={() => setShowNotifPrompt(false)}
+      />
 
       <BottomFade />
     </View>
