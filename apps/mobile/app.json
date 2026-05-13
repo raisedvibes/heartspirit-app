@@ -23,7 +23,9 @@
       },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -53,7 +55,9 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "sounds": ["./assets/audio/heartspirit_chime.mp3"],
+          "sounds": [
+            "./assets/audio/heartspirit_chime.mp3"
+          ],
           "defaultChannel": "default"
         }
       ],
