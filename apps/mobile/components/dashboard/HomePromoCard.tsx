@@ -1,6 +1,5 @@
 import { Linking, Pressable, StyleSheet, View } from "react-native"
 import TranslucentCard from "@/components/ui/TranslucentCard"
-import { GLASS_OUTLINE_CTA } from "@/components/ui/glass"
 import { ThemedText } from "@/components/themed-text"
 
 export type HomePromoRow = {
@@ -33,6 +32,7 @@ export function HomePromoCard({ promo }: Props) {
 
   const urlOk = isValidExternalUrl(promo.url)
   const ctaLabel = (promo.button_label?.trim() || "Learn more").trim()
+  const showCta = urlOk || Boolean(promo.button_label?.trim())
 
   const openUrl = async () => {
     if (!urlOk || !promo.url) return
@@ -55,18 +55,23 @@ export function HomePromoCard({ promo }: Props) {
           {body}
         </ThemedText>
       ) : null}
-      {urlOk ? (
+      {showCta ? (
         <View style={styles.footerRow}>
           <Pressable
             onPress={openUrl}
+            disabled={!urlOk}
+            // NativeWind wraps Pressable; raw `style` can fail to apply without this.
+            // @ts-expect-error react-native-css-interop escape hatch (not on RN PressableProps)
+            cssInterop={false}
             style={({ pressed }) => [
-              GLASS_OUTLINE_CTA.button,
-              pressed && styles.ctaPressed,
+              styles.ctaButton,
+              pressed && urlOk && styles.ctaPressed,
+              !urlOk && styles.ctaDisabled,
             ]}
             accessibilityRole="button"
             accessibilityLabel={ctaLabel}
           >
-            <ThemedText type="defaultSemiBold" style={GLASS_OUTLINE_CTA.buttonText}>
+            <ThemedText type="defaultSemiBold" style={styles.ctaButtonText}>
               {ctaLabel}
             </ThemedText>
           </Pressable>
@@ -86,5 +91,23 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     marginTop: 16,
   },
+  // Matches CirclesWidget / RitualsWidget addButton
+  ctaButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(0,0,0,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ctaButtonText: {
+    fontSize: 12,
+    lineHeight: 16,
+    opacity: 0.9,
+    color: "#ffffff",
+  },
   ctaPressed: { opacity: 0.85 },
+  ctaDisabled: { opacity: 0.55 },
 })
