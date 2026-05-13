@@ -5,6 +5,7 @@ import {
   ScrollView,
   Pressable,
   Dimensions,
+  Platform,
 } from "react-native"
 import { Image } from "expo-image"
 import Animated from "react-native-reanimated"
@@ -595,6 +596,7 @@ export default function EnergyCheckScreen() {
             <ThemedText style={styles.sectionTitle}>Today</ThemedText>
             <ScrollView
               horizontal
+              nestedScrollEnabled={Platform.OS === "android"}
               snapToInterval={RAIL_CARD_SNAP_INTERVAL}
               snapToAlignment="start"
               decelerationRate="fast"
@@ -632,6 +634,7 @@ export default function EnergyCheckScreen() {
             </ThemedText>
             <ScrollView
               horizontal
+              nestedScrollEnabled={Platform.OS === "android"}
               snapToInterval={RAIL_CARD_SNAP_INTERVAL}
               snapToAlignment="start"
               decelerationRate="fast"
@@ -670,6 +673,7 @@ export default function EnergyCheckScreen() {
               ) : null}
               <ScrollView
                 horizontal
+                nestedScrollEnabled={Platform.OS === "android"}
                 snapToInterval={RAIL_CARD_SNAP_INTERVAL}
                 snapToAlignment="start"
                 decelerationRate="fast"

@@ -83,6 +83,9 @@ export default function PracticeDetailScreen() {
   const [practice, setPractice] = useState<PracticeRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [showVideo, setShowVideo] = useState(false)
+  const [videoLoading, setVideoLoading] = useState(false)
+  const [videoBuffered, setVideoBuffered] = useState(false)
+  const [videoRevealed, setVideoRevealed] = useState(false)
 
   const [audioReady, setAudioReady] = useState(false)
   const [audioLoading, setAudioLoading] = useState(false)
@@ -114,6 +117,7 @@ export default function PracticeDetailScreen() {
   const mediaType = practice?.media_type?.trim()?.toLowerCase() || null
 
   const videoUrl = mediaType === "video" ? mediaUrl : null
+  const videoThumbnailUrl = practice?.thumbnail_url?.trim() || null
   const resolvedAudioUrl = audioUrl || (mediaType === "audio" ? mediaUrl : null)
   const timerMinutes = useMemo(() => {
     if (!practice) return null
@@ -125,6 +129,34 @@ export default function PracticeDetailScreen() {
     practice != null && practice.timer_enabled !== false && timerMinutes != null
 
   const hasChime = practice?.has_chime ?? true
+
+  const handlePlayVideo = useCallback(() => {
+    setShowVideo(true)
+    if (videoBuffered) {
+      setVideoRevealed(true)
+      setVideoLoading(false)
+    } else {
+      setVideoLoading(true)
+    }
+  }, [videoBuffered])
+
+  const handleVideoPlaybackStatus = useCallback(
+    (status: AVPlaybackStatus) => {
+      if (!status.isLoaded) {
+        setIsVideoPlaying(false)
+        return
+      }
+
+      setVideoBuffered(true)
+      setIsVideoPlaying(status.isPlaying)
+
+      if (showVideo && !status.isBuffering) {
+        setVideoRevealed(true)
+        setVideoLoading(false)
+      }
+    },
+    [showVideo]
+  )
 
   const unloadPracticeSound = useCallback(async () => {
     const currentSound = practiceSoundRef.current
@@ -468,6 +500,9 @@ export default function PracticeDetailScreen() {
           has_chime: data?.has_chime,
         })
         setShowVideo(false)
+        setVideoLoading(false)
+        setVideoBuffered(false)
+        setVideoRevealed(false)
         setPractice(data)
         setUsingCachedPractice(false)
         void setOfflineCache(cacheKey, data as PracticeRecord)
@@ -481,6 +516,13 @@ export default function PracticeDetailScreen() {
     return () => {
       cancelled = true
     }
+  }, [id])
+
+  useEffect(() => {
+    setShowVideo(false)
+    setVideoLoading(false)
+    setVideoBuffered(false)
+    setVideoRevealed(false)
   }, [id])
 
   useEffect(() => {
@@ -671,40 +713,76 @@ export default function PracticeDetailScreen() {
 
                     {videoUrl && (
                       <View style={styles.mediaBlock}>
-                        {!showVideo && practice.thumbnail_url ? (
-                          <Pressable onPress={() => setShowVideo(true)} style={styles.videoPosterWrap}>
-                            <ImageBackground
-                              source={{ uri: practice.thumbnail_url }}
-                              style={styles.video}
-                              imageStyle={styles.videoPosterImage}
-                              resizeMode="cover"
+                        <Video
+                          source={{ uri: videoUrl }}
+                          useNativeControls={videoRevealed}
+                          resizeMode={ResizeMode.COVER}
+                          style={[
+                            styles.video,
+                            videoRevealed ? styles.videoVisible : styles.videoHidden,
+                          ]}
+                          isLooping={false}
+                          shouldPlay={showVideo}
+                          isMuted={false}
+                          volume={1}
+                          usePoster={Boolean(videoThumbnailUrl)}
+                          posterSource={
+                            videoThumbnailUrl ? { uri: videoThumbnailUrl } : undefined
+                          }
+                          posterStyle={styles.videoPosterImage}
+                          onReadyForDisplay={() => {
+                            setVideoBuffered(true)
+                            if (showVideo) {
+                              setVideoRevealed(true)
+                              setVideoLoading(false)
+                            }
+                          }}
+                          onPlaybackStatusUpdate={handleVideoPlaybackStatus}
+                          onError={(error) => {
+                            console.log("[practice video] failed", error)
+                            setVideoLoading(false)
+                          }}
+                        />
+                        {!videoRevealed ? (
+                          <View style={styles.videoPosterOverlay} pointerEvents="auto">
+                            <Pressable
+                              onPress={handlePlayVideo}
+                              style={styles.videoPosterWrap}
+                              disabled={showVideo}
                             >
-                              <View style={styles.playOverlay}>
-                                <View style={styles.playButton}>
-                                  <MaterialIcons name="play-arrow" size={42} color="#fff" />
+                              {videoThumbnailUrl ? (
+                                <ImageBackground
+                                  source={{ uri: videoThumbnailUrl }}
+                                  style={styles.video}
+                                  imageStyle={styles.videoPosterImage}
+                                  resizeMode="cover"
+                                >
+                                  <View style={styles.playOverlay}>
+                                    {showVideo && videoLoading ? (
+                                      <ActivityIndicator size="large" color="#fff" />
+                                    ) : (
+                                      <View style={styles.playButton}>
+                                        <MaterialIcons name="play-arrow" size={42} color="#fff" />
+                                      </View>
+                                    )}
+                                  </View>
+                                </ImageBackground>
+                              ) : (
+                                <View style={[styles.video, styles.videoPosterFallback]}>
+                                  <View style={styles.playOverlay}>
+                                    {showVideo && videoLoading ? (
+                                      <ActivityIndicator size="large" color="#fff" />
+                                    ) : (
+                                      <View style={styles.playButton}>
+                                        <MaterialIcons name="play-arrow" size={42} color="#fff" />
+                                      </View>
+                                    )}
+                                  </View>
                                 </View>
-                              </View>
-                            </ImageBackground>
-                          </Pressable>
-                        ) : (
-                          <Video
-                            source={{ uri: videoUrl }}
-                            useNativeControls
-                            resizeMode={ResizeMode.COVER}
-                            style={styles.video}
-                            isLooping={false}
-                            shouldPlay={showVideo}
-                            isMuted={false}
-                            volume={1}
-                            onPlaybackStatusUpdate={(status) => {
-                              if (!status.isLoaded) {
-                                setIsVideoPlaying(false)
-                                return
-                              }
-                              setIsVideoPlaying(status.isPlaying)
-                            }}
-                          />
-                        )}
+                              )}
+                            </Pressable>
+                          </View>
+                        ) : null}
                       </View>
                     )}
 
@@ -1028,6 +1106,7 @@ const styles = StyleSheet.create({
   },
 
   mediaBlock: {
+    position: "relative",
     marginVertical: 16,
     borderRadius: 16,
     overflow: "hidden",
@@ -1042,8 +1121,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
   },
 
+  videoHidden: {
+    opacity: 0,
+  },
+
+  videoVisible: {
+    opacity: 1,
+  },
+
+  videoPosterOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+
   videoPosterWrap: {
     width: "100%",
+  },
+
+  videoPosterFallback: {
+    backgroundColor: "#000",
   },
 
   videoPosterImage: {

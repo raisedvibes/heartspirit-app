@@ -22,8 +22,8 @@ export type CollapsibleTabHeaderId =
   | "settings"
 
 /**
- * Shared collapsible tab header: drives logo fade/slide + ScreenContent top inset
- * from this tab’s primary vertical scroll. Call only on main tab screens.
+ * Shared collapsible tab header: drives logo fade/slide + ScreenContent collapse
+ * (GPU translateY) from this tab’s primary vertical scroll. Call only on main tab screens.
  */
 export function useCollapsibleTabHeader(tabId: CollapsibleTabHeaderId) {
   const insets = useSafeAreaInsets()
@@ -57,8 +57,8 @@ export function useCollapsibleTabHeader(tabId: CollapsibleTabHeaderId) {
     },
   })
 
-  const contentTopMax = getTabScreenContentTopMargin(insets)
-  const contentTopMin = insets.top + TAB_SCREEN_TOP_INSET_COLLAPSED
+  const collapseDelta =
+    getTabScreenContentTopMargin(insets) - (insets.top + TAB_SCREEN_TOP_INSET_COLLAPSED)
 
   const animatedScreenOuterStyle = useAnimatedStyle(() => {
     const activeY =
@@ -66,9 +66,13 @@ export function useCollapsibleTabHeader(tabId: CollapsibleTabHeaderId) {
     const y = Math.min(Math.max(activeY, 0), HOME_HEADER_SCROLL_RANGE)
     const t = interpolate(y, [0, HOME_HEADER_SCROLL_RANGE], [0, 1], Extrapolation.CLAMP)
     return {
-      marginTop: interpolate(t, [0, 1], [contentTopMax, contentTopMin]),
+      transform: [
+        {
+          translateY: interpolate(t, [0, 1], [collapseDelta, 0], Extrapolation.CLAMP),
+        },
+      ],
     }
-  }, [contentTopMax, contentTopMin, localTabScrollY, scrollY, activeDriverId, tabId])
+  }, [collapseDelta, localTabScrollY, scrollY, activeDriverId, tabId])
 
   return { animatedScreenOuterStyle, scrollHandler }
 }

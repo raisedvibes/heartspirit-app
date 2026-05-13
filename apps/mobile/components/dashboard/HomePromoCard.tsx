@@ -1,5 +1,6 @@
-import { Linking, Pressable, StyleSheet } from "react-native"
+import { Linking, Pressable, StyleSheet, View } from "react-native"
 import TranslucentCard from "@/components/ui/TranslucentCard"
+import { GLASS_OUTLINE_CTA } from "@/components/ui/glass"
 import { ThemedText } from "@/components/themed-text"
 
 export type HomePromoRow = {
@@ -55,16 +56,21 @@ export function HomePromoCard({ promo }: Props) {
         </ThemedText>
       ) : null}
       {urlOk ? (
-        <Pressable
-          onPress={openUrl}
-          style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
-          accessibilityRole="button"
-          accessibilityLabel={ctaLabel}
-        >
-          <ThemedText type="defaultSemiBold" style={styles.ctaText}>
-            {ctaLabel}
-          </ThemedText>
-        </Pressable>
+        <View style={styles.footerRow}>
+          <Pressable
+            onPress={openUrl}
+            style={({ pressed }) => [
+              GLASS_OUTLINE_CTA.button,
+              pressed && styles.ctaPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={ctaLabel}
+          >
+            <ThemedText type="defaultSemiBold" style={GLASS_OUTLINE_CTA.buttonText}>
+              {ctaLabel}
+            </ThemedText>
+          </Pressable>
+        </View>
       ) : null}
     </TranslucentCard>
   )
@@ -75,14 +81,10 @@ const styles = StyleSheet.create({
   title: { fontSize: 16 },
   body: { fontSize: 14, lineHeight: 20 },
   bodyAfterTitle: { marginTop: 8 },
-  cta: {
-    marginTop: 12,
-    alignSelf: "flex-start",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: "rgba(120, 170, 140, 0.65)",
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 16,
   },
   ctaPressed: { opacity: 0.85 },
-  ctaText: { color: "#ffffff", fontSize: 15 },
 })

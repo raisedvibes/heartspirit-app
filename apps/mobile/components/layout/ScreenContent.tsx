@@ -30,7 +30,7 @@ export default function ScreenContent({
   style,
   noTabPadding,
   bottomPaddingOverride,
-  /** When set, outer wrapper is animated and supplies marginTop (e.g. Home header collapse). Omit static top margin. */
+  /** When set, inner wrapper animates translateY for header collapse; outer uses collapsed top inset. */
   animatedOuterStyle,
 }: {
   children: React.ReactNode
@@ -41,6 +41,7 @@ export default function ScreenContent({
 }) {
   const insets = useSafeAreaInsets()
   const contentTop = getTabScreenContentTopMargin(insets)
+  const contentTopCollapsed = insets.top + TAB_SCREEN_TOP_INSET_COLLAPSED
 
   const paddingBottom =
     typeof bottomPaddingOverride === "number"
@@ -58,7 +59,15 @@ export default function ScreenContent({
 
   if (animatedOuterStyle) {
     return (
-      <Animated.View style={[base, animatedOuterStyle, style]}>{children}</Animated.View>
+      <View
+        style={[
+          base,
+          { marginTop: contentTopCollapsed, overflow: "hidden" as const },
+          style,
+        ]}
+      >
+        <Animated.View style={[{ flex: 1 }, animatedOuterStyle]}>{children}</Animated.View>
+      </View>
     )
   }
 

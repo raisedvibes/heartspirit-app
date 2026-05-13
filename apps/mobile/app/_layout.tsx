@@ -12,6 +12,7 @@ import "../global.css"
 import { useColorScheme } from "@/hooks/use-color-scheme"
 import { AuthProvider, useAuth } from "@/lib/auth"
 import { registerPushTokenIfGranted } from "@/lib/pushTokenRegistration"
+import { NotificationTapHandler } from "@/lib/notificationTapRouting"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import * as SystemUI from "expo-system-ui"
 
@@ -99,18 +100,21 @@ function RootLayoutNav() {
   const isAuthenticated = !!session
 
   return (
-    <Stack screenOptions={{ contentStyle: { backgroundColor: APP_SURFACE } }}>
-      <Stack.Protected guard={!isAuthenticated}>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      </Stack.Protected>
-      <Stack.Protected guard={isAuthenticated}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
-        <Stack.Screen name="support" options={{ headerShown: false }} />
-        <Stack.Screen name="privacy" options={{ headerShown: false }} />
-        <Stack.Screen name="terms" options={{ headerShown: false }} />
-      </Stack.Protected>
-    </Stack>
+    <>
+      {isAuthenticated ? <NotificationTapHandler /> : null}
+      <Stack screenOptions={{ contentStyle: { backgroundColor: APP_SURFACE } }}>
+        <Stack.Protected guard={!isAuthenticated}>
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={isAuthenticated}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
+          <Stack.Screen name="support" options={{ headerShown: false }} />
+          <Stack.Screen name="privacy" options={{ headerShown: false }} />
+          <Stack.Screen name="terms" options={{ headerShown: false }} />
+        </Stack.Protected>
+      </Stack>
+    </>
   )
 }
 
