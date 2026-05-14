@@ -10,6 +10,7 @@ import {
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import { ThemedText } from "@/components/themed-text"
 import { getSupabaseClient } from "../../lib/supabaseClient"
+import { ANDROID_SCROLL_PRESS_DELAY } from "@/lib/androidScrollPress"
 
 type NextCircle = {
   id: string
@@ -145,6 +146,7 @@ export function CirclesWidget() {
           </View>
           <View style={styles.footerRow}>
             <Pressable
+              delayPressIn={ANDROID_SCROLL_PRESS_DELAY}
               onPress={() => router.push("/circles")}
               style={styles.addButton}
             >
@@ -164,6 +166,7 @@ export function CirclesWidget() {
         </ThemedText>
         <View style={styles.footerRow}>
           <Pressable
+            delayPressIn={ANDROID_SCROLL_PRESS_DELAY}
             onPress={() => router.push("/circles")}
             style={styles.addButton}
           >
@@ -177,7 +180,7 @@ export function CirclesWidget() {
   }
 
   return (
-    <Pressable onPress={() => router.push("/circles")}>
+    <Pressable delayPressIn={ANDROID_SCROLL_PRESS_DELAY} onPress={() => router.push("/circles")}>
       <TranslucentCard style={styles.cardWrapper}>
         <View style={styles.cardInner}>
           <ThemedText type="defaultSemiBold" style={styles.cardTitle}>

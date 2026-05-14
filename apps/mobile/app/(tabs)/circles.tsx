@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { View, StyleSheet, Pressable, Linking, Alert } from "react-native"
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -18,6 +18,7 @@ import {
   enableNotificationsFromPrompt,
   isNotificationPermissionGranted,
   markCirclesSoftPromptShownThisSession,
+  STAY_IN_RHYTHM_PROMPT,
   wasCirclesSoftPromptShownThisSession,
 } from "@/lib/notificationPermissionPrompt"
 
@@ -107,7 +108,8 @@ export default function CirclesScreen() {
   const [circles, setCircles] = useState<CircleRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [showNotifPrompt, setShowNotifPrompt] = useState(false)
+  const [notifPromptSource, setNotifPromptSource] = useState<"tab" | "reserve" | null>(null)
+  const pendingReserveCircleRef = useRef<CircleRow | null>(null)
 
   const fetchCircles = useCallback(async () => {
     if (!supabase) {
@@ -152,7 +154,7 @@ export default function CirclesScreen() {
         const granted = await isNotificationPermissionGranted()
         if (cancelled || granted) return
         markCirclesSoftPromptShownThisSession()
-        setShowNotifPrompt(true)
+        setNotifPromptSource("tab")
       }, CIRCLES_NOTIF_PROMPT_DELAY_MS)
 
       return () => {
@@ -183,7 +185,7 @@ export default function CirclesScreen() {
 
   const hasCircles = circles.length > 0
 
-  const handleJoin = (circle: CircleRow) => {
+  const openReserveUrl = useCallback((circle: CircleRow) => {
     const url = circle.join_url?.trim()
     if (!url) {
       Alert.alert(
@@ -194,7 +196,33 @@ export default function CirclesScreen() {
     }
 
     Linking.openURL(url)
-  }
+  }, [])
+
+  const handleReservePress = useCallback(
+    async (circle: CircleRow) => {
+      const url = circle.join_url?.trim()
+      if (!url) {
+        Alert.alert(
+          "Circle link not set",
+          "A circle link hasn’t been added yet for this circle. Please check back soon."
+        )
+        return
+      }
+
+      if (await isNotificationPermissionGranted()) {
+        Linking.openURL(url)
+        return
+      }
+
+      pendingReserveCircleRef.current = circle
+      setNotifPromptSource("reserve")
+    },
+    []
+  )
+
+  const dismissNotifPrompt = useCallback(() => {
+    setNotifPromptSource(null)
+  }, [])
 
   return (
     <View style={styles.root}>
@@ -273,7 +301,7 @@ export default function CirclesScreen() {
 
                       <Pressable
                         style={styles.reserveButton}
-                        onPress={() => handleJoin(circle)}
+                        onPress={() => void handleReservePress(circle)}
                       >
                         <ThemedText type="defaultSemiBold" style={styles.reserveButtonText}>
                           Reserve
@@ -300,17 +328,33 @@ export default function CirclesScreen() {
       </ScreenContent>
 
       <NotificationPermissionModal
-        visible={showNotifPrompt}
-        title="Stay in rhythm"
-        body="Heartspirit will remind you of your rituals, practice completions, and upcoming circles."
-        primaryLabel="Enable Notifications"
-        secondaryLabel="Not Now"
+        visible={notifPromptSource !== null}
+        title={STAY_IN_RHYTHM_PROMPT.title}
+        body={STAY_IN_RHYTHM_PROMPT.body}
+        primaryLabel={STAY_IN_RHYTHM_PROMPT.primaryLabel}
+        secondaryLabel={STAY_IN_RHYTHM_PROMPT.secondaryLabel}
         onPrimary={() => {
-          setShowNotifPrompt(false)
-          void enableNotificationsFromPrompt()
+          const source = notifPromptSource
+          const pending = pendingReserveCircleRef.current
+          dismissNotifPrompt()
+          pendingReserveCircleRef.current = null
+          void (async () => {
+            await enableNotificationsFromPrompt()
+            if (source === "reserve" && pending) {
+              openReserveUrl(pending)
+            }
+          })()
         }}
-        onSecondary={() => setShowNotifPrompt(false)}
-        onRequestClose={() => setShowNotifPrompt(false)}
+        onSecondary={() => {
+          const source = notifPromptSource
+          const pending = pendingReserveCircleRef.current
+          dismissNotifPrompt()
+          pendingReserveCircleRef.current = null
+          if (source === "reserve" && pending) {
+            openReserveUrl(pending)
+          }
+        }}
+        onRequestClose={dismissNotifPrompt}
       />
 
       <BottomFade />

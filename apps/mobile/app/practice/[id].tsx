@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   useWindowDimensions,
   AppState,
+  Platform,
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
@@ -84,8 +85,10 @@ export default function PracticeDetailScreen() {
   const [loading, setLoading] = useState(true)
   const [showVideo, setShowVideo] = useState(false)
   const [videoLoading, setVideoLoading] = useState(false)
-  const [videoBuffered, setVideoBuffered] = useState(false)
   const [videoRevealed, setVideoRevealed] = useState(false)
+
+  const showVideoRef = useRef(false)
+  const videoReadyForDisplayRef = useRef(false)
 
   const [audioReady, setAudioReady] = useState(false)
   const [audioLoading, setAudioLoading] = useState(false)
@@ -131,32 +134,30 @@ export default function PracticeDetailScreen() {
   const hasChime = practice?.has_chime ?? true
 
   const handlePlayVideo = useCallback(() => {
+    showVideoRef.current = true
     setShowVideo(true)
-    if (videoBuffered) {
+    if (videoReadyForDisplayRef.current) {
       setVideoRevealed(true)
       setVideoLoading(false)
-    } else {
-      setVideoLoading(true)
+      return
     }
-  }, [videoBuffered])
+    setVideoLoading(true)
+  }, [])
 
-  const handleVideoPlaybackStatus = useCallback(
-    (status: AVPlaybackStatus) => {
-      if (!status.isLoaded) {
-        setIsVideoPlaying(false)
-        return
-      }
+  const revealVideoIfRequested = useCallback(() => {
+    if (!showVideoRef.current) return
+    setVideoRevealed(true)
+    setVideoLoading(false)
+  }, [])
 
-      setVideoBuffered(true)
-      setIsVideoPlaying(status.isPlaying)
+  const handleVideoPlaybackStatus = useCallback((status: AVPlaybackStatus) => {
+    if (!status.isLoaded) {
+      setIsVideoPlaying(false)
+      return
+    }
 
-      if (showVideo && !status.isBuffering) {
-        setVideoRevealed(true)
-        setVideoLoading(false)
-      }
-    },
-    [showVideo]
-  )
+    setIsVideoPlaying(status.isPlaying)
+  }, [])
 
   const unloadPracticeSound = useCallback(async () => {
     const currentSound = practiceSoundRef.current
@@ -292,6 +293,8 @@ export default function PracticeDetailScreen() {
   const playChime = useCallback(async () => {
     if (!hasChime) return
 
+    console.log("[practice chime] playChime", { appState: AppState.currentState })
+
     try {
       const sound = await ensureChimeLoaded()
       if (!sound) return
@@ -413,13 +416,18 @@ export default function PracticeDetailScreen() {
     timerNotificationIdRef.current = await schedulePracticeTimerCompletion(
       "Practice complete",
       practice?.title ? `${practice.title} is complete.` : "Your practice is complete.",
-      baseSeconds
+      baseSeconds,
+      endAt
     )
-    await playChime()
+    console.log("[practice timer] started", {
+      endAt: new Date(endAt).toISOString(),
+      baseSeconds,
+      notificationId: timerNotificationIdRef.current,
+      appState: AppState.currentState,
+    })
   }, [
     cancelTimerNotification,
     ensureSilentLoopForTimer,
-    playChime,
     practice?.title,
     timeLeft,
     timerMinutes,
@@ -501,8 +509,9 @@ export default function PracticeDetailScreen() {
         })
         setShowVideo(false)
         setVideoLoading(false)
-        setVideoBuffered(false)
         setVideoRevealed(false)
+        showVideoRef.current = false
+        videoReadyForDisplayRef.current = false
         setPractice(data)
         setUsingCachedPractice(false)
         void setOfflineCache(cacheKey, data as PracticeRecord)
@@ -521,9 +530,14 @@ export default function PracticeDetailScreen() {
   useEffect(() => {
     setShowVideo(false)
     setVideoLoading(false)
-    setVideoBuffered(false)
     setVideoRevealed(false)
+    showVideoRef.current = false
+    videoReadyForDisplayRef.current = false
   }, [id])
+
+  useEffect(() => {
+    showVideoRef.current = showVideo
+  }, [showVideo])
 
   useEffect(() => {
     ensureAudioMode()
@@ -581,8 +595,12 @@ export default function PracticeDetailScreen() {
         setTimerEndAt(null)
         setIsTimerRunning(false)
         void stopSilentLoopForTimer()
-        void cancelTimerNotification()
-        void playChime()
+        const appState = AppState.currentState
+        console.log("[practice timer] completed", { appState })
+        if (appState === "active") {
+          void cancelTimerNotification()
+          void playChime()
+        }
       }
     }
 
@@ -604,12 +622,20 @@ export default function PracticeDetailScreen() {
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
+      console.log("[practice timer] appState", state)
       if (state === "active" && isTimerRunning && timerEndAt) {
-        setTimeLeft(getRemainingFromEndAt(timerEndAt))
+        const remaining = getRemainingFromEndAt(timerEndAt)
+        setTimeLeft(remaining)
+        if (remaining <= 0) {
+          setTimerEndAt(null)
+          setIsTimerRunning(false)
+          void stopSilentLoopForTimer()
+          void cancelTimerNotification()
+        }
       }
     })
     return () => sub.remove()
-  }, [getRemainingFromEndAt, isTimerRunning, timerEndAt])
+  }, [cancelTimerNotification, getRemainingFromEndAt, isTimerRunning, stopSilentLoopForTimer, timerEndAt])
 
   useEffect(() => {
     return () => {
@@ -725,17 +751,10 @@ export default function PracticeDetailScreen() {
                           shouldPlay={showVideo}
                           isMuted={false}
                           volume={1}
-                          usePoster={Boolean(videoThumbnailUrl)}
-                          posterSource={
-                            videoThumbnailUrl ? { uri: videoThumbnailUrl } : undefined
-                          }
-                          posterStyle={styles.videoPosterImage}
+                          usePoster={false}
                           onReadyForDisplay={() => {
-                            setVideoBuffered(true)
-                            if (showVideo) {
-                              setVideoRevealed(true)
-                              setVideoLoading(false)
-                            }
+                            videoReadyForDisplayRef.current = true
+                            revealVideoIfRequested()
                           }}
                           onPlaybackStatusUpdate={handleVideoPlaybackStatus}
                           onError={(error) => {
@@ -1123,6 +1142,7 @@ const styles = StyleSheet.create({
 
   videoHidden: {
     opacity: 0,
+    pointerEvents: "none",
   },
 
   videoVisible: {
@@ -1134,6 +1154,8 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+    zIndex: 2,
+    ...(Platform.OS === "android" ? { elevation: 4 } : {}),
   },
 
   videoPosterWrap: {

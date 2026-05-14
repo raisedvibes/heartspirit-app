@@ -18,6 +18,26 @@ export async function isNotificationPermissionGranted(): Promise<boolean> {
   return status === "granted"
 }
 
+export async function getNotificationPermissionState(): Promise<{
+  granted: boolean
+  canAskAgain: boolean
+}> {
+  if (Platform.OS === "web") return { granted: false, canAskAgain: false }
+  const settings = await Notifications.getPermissionsAsync()
+  return {
+    granted: settings.granted,
+    canAskAgain: settings.canAskAgain !== false,
+  }
+}
+
+/** Shared soft-prompt copy for contextual notification asks. */
+export const STAY_IN_RHYTHM_PROMPT = {
+  title: "Stay in rhythm",
+  body: "Heartspirit will remind you of your rituals, practice completions, and upcoming circles.",
+  primaryLabel: "Enable Notifications",
+  secondaryLabel: "Not Now",
+} as const
+
 export async function openNotificationSettings(): Promise<void> {
   try {
     await Linking.openSettings()

@@ -384,15 +384,20 @@ export default function SettingsScreen() {
   A portal—where awareness opens and power returns.
 </ThemedText>
 
-<ThemedText type="muted" style={styles.aboutText}>
-  — Created by Gabriel{"\n"}
-  <ThemedText
-    onPress={() => Linking.openURL("https://wellnessranger.com")}
-    style={{ fontSize: 15, opacity: 0.9 }}
-  >
-    WellnessRanger.com
-  </ThemedText>
-</ThemedText>
+                  <ThemedText type="muted" style={styles.aboutText}>
+                    — Created by Gabriel
+                  </ThemedText>
+                  <Pressable
+                    accessibilityRole="link"
+                    accessibilityLabel="Open WellnessRanger.com"
+                    onPress={() => Linking.openURL("https://wellnessranger.com")}
+                    style={styles.aboutLinkHit}
+                  >
+                    <ThemedText type="defaultSemiBold" style={styles.aboutLinkText}>
+                      WellnessRanger.com
+                      <ThemedText style={styles.aboutLinkGlyph}> ↗</ThemedText>
+                    </ThemedText>
+                  </Pressable>
                   </View>
                 </View>
               )}
@@ -767,6 +772,21 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16 },
   aboutBody: { gap: 10 },
   aboutText: { fontSize: 14, lineHeight: 21 },
+  aboutLinkHit: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    paddingVertical: 2,
+  },
+  aboutLinkText: {
+    fontSize: 14,
+    lineHeight: 21,
+    opacity: 0.94,
+  },
+  aboutLinkGlyph: {
+    fontSize: 12,
+    lineHeight: 21,
+    opacity: 0.62,
+  },
   sectionBody: { paddingHorizontal: 4, paddingTop: 4, paddingBottom: 12 },
   profileRow: {
     flexDirection: "row",

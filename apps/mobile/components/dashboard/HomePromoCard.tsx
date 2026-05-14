@@ -1,5 +1,6 @@
 import { Linking, Pressable, StyleSheet, View } from "react-native"
 import TranslucentCard from "@/components/ui/TranslucentCard"
+import { ANDROID_SCROLL_PRESS_DELAY } from "@/lib/androidScrollPress"
 import { ThemedText } from "@/components/themed-text"
 
 export type HomePromoRow = {
@@ -60,6 +61,7 @@ export function HomePromoCard({ promo }: Props) {
           <Pressable
             onPress={openUrl}
             disabled={!urlOk}
+            delayPressIn={ANDROID_SCROLL_PRESS_DELAY}
             // NativeWind wraps Pressable; raw `style` can fail to apply without this.
             // @ts-expect-error react-native-css-interop escape hatch (not on RN PressableProps)
             cssInterop={false}

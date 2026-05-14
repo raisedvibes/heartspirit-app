@@ -22,10 +22,17 @@ import DateTimePicker, {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import ScreenContent, { TAB_BAR_HEIGHT } from "@/components/layout/ScreenContent"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
+import { ANDROID_SCROLL_PRESS_DELAY } from "@/lib/androidScrollPress"
 import BottomFade from "@/components/ui/BottomFade"
 import TranslucentCard from "../../components/ui/TranslucentCard"
 import { GLASS } from "@/components/ui/glass"
 import { ThemedText } from "@/components/themed-text"
+import { NotificationPermissionModal } from "@/components/notifications/NotificationPermissionModal"
+import {
+  enableNotificationsFromPrompt,
+  isNotificationPermissionGranted,
+  STAY_IN_RHYTHM_PROMPT,
+} from "@/lib/notificationPermissionPrompt"
 import {
   useRitualsStore,
   todayISO,
@@ -36,7 +43,7 @@ import {
 import { computeStreak } from "../../lib/ritualStats"
 import {
   cancelScheduledNotification,
-  ensureNotifPermissions,
+  hasNotifPermissions,
   reconcileRitualReminderNotifications,
   scheduleDailyReminder,
 } from "../../lib/ritualNotifications"
@@ -147,8 +154,9 @@ export default function RitualsScreen() {
   const [activeRitualId, setActiveRitualId] = useState<string | null>(null)
   const [activeISO, setActiveISO] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Ritual | null>(null)
+  const [showReminderNotifPrompt, setShowReminderNotifPrompt] = useState(false)
 
-  const addRitual = async () => {
+  const commitRitualSave = async () => {
     if (!name.trim()) return
     const now = new Date().toISOString()
 
@@ -168,7 +176,7 @@ export default function RitualsScreen() {
         }
 
         if (newReminder) {
-          const ok = await ensureNotifPermissions()
+          const ok = await hasNotifPermissions()
           if (ok) {
             notificationId = await scheduleDailyReminder(
               `Ritual: ${name.trim()}`,
@@ -208,7 +216,7 @@ export default function RitualsScreen() {
 
     let notificationId: string | undefined = undefined
     if (reminderEnabled) {
-      const ok = await ensureNotifPermissions()
+      const ok = await hasNotifPermissions()
       if (ok) {
         notificationId = await scheduleDailyReminder(
           `Ritual: ${name.trim()}`,
@@ -240,6 +248,15 @@ export default function RitualsScreen() {
     setReminderTime(new Date())
     setShowAdd(false)
 }
+
+  const addRitual = async () => {
+    if (!name.trim()) return
+    if (reminderEnabled && !(await isNotificationPermissionGranted())) {
+      setShowReminderNotifPrompt(true)
+      return
+    }
+    await commitRitualSave()
+  }
 
   return (
     <View style={styles.root}>
@@ -290,12 +307,14 @@ export default function RitualsScreen() {
                     <TranslucentCard style={styles.weekHeaderCard}>
                       <View style={styles.weekNavRow}>
                         <Pressable
+                          delayPressIn={ANDROID_SCROLL_PRESS_DELAY}
                           style={styles.weekNavColLeft}
                           onPress={() => setWeekAnchor(addDays(weekAnchor, -7))}
                         >
                           <ThemedText type="default" style={styles.weekNavBtnText}>back</ThemedText>
                         </Pressable>
                         <Pressable
+                          delayPressIn={ANDROID_SCROLL_PRESS_DELAY}
                           style={styles.weekNavColCenter}
                           onPress={() => setWeekAnchor(new Date())}
                         >
@@ -304,6 +323,7 @@ export default function RitualsScreen() {
                           </ThemedText>
                         </Pressable>
                         <Pressable
+                          delayPressIn={ANDROID_SCROLL_PRESS_DELAY}
                           style={styles.weekNavColRight}
                           onPress={() => setWeekAnchor(addDays(weekAnchor, 7))}
                         >
@@ -317,6 +337,7 @@ export default function RitualsScreen() {
                           return (
                             <Pressable
                               key={d}
+                              delayPressIn={ANDROID_SCROLL_PRESS_DELAY}
                               style={[
                                 styles.weekCell,
                                 isToday && styles.weekCellToday,
@@ -794,6 +815,24 @@ export default function RitualsScreen() {
           </View>
         </View>
       </Modal>
+
+      <NotificationPermissionModal
+        visible={showReminderNotifPrompt}
+        title={STAY_IN_RHYTHM_PROMPT.title}
+        body={STAY_IN_RHYTHM_PROMPT.body}
+        primaryLabel={STAY_IN_RHYTHM_PROMPT.primaryLabel}
+        secondaryLabel={STAY_IN_RHYTHM_PROMPT.secondaryLabel}
+        onPrimary={async () => {
+          setShowReminderNotifPrompt(false)
+          await enableNotificationsFromPrompt()
+          await commitRitualSave()
+        }}
+        onSecondary={async () => {
+          setShowReminderNotifPrompt(false)
+          await commitRitualSave()
+        }}
+        onRequestClose={() => setShowReminderNotifPrompt(false)}
+      />
     </View>
   )
 }

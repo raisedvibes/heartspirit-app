@@ -9,6 +9,7 @@ import {
   nextMark,
   type Mark,
 } from "../../lib/ritualsStore"
+import { ANDROID_SCROLL_PRESS_DELAY } from "@/lib/androidScrollPress"
 
 const MARK_LABEL: Record<Mark, string> = {
   empty: "",
@@ -54,6 +55,7 @@ export function RitualsWidget({ ctaLabel = "Add ritual" }: RitualsWidgetProps) {
     <TranslucentCard style={styles.card}>
       <View style={styles.headerRow}>
         <Pressable
+          delayPressIn={ANDROID_SCROLL_PRESS_DELAY}
           onPress={() => router.push("/rituals")}
           style={styles.header}
         >
@@ -62,6 +64,7 @@ export function RitualsWidget({ ctaLabel = "Add ritual" }: RitualsWidgetProps) {
           </ThemedText>
         </Pressable>
         <Pressable
+          delayPressIn={ANDROID_SCROLL_PRESS_DELAY}
           onPress={() => router.push("/rituals")}
           style={styles.addButton}
         >

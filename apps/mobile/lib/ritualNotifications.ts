@@ -5,7 +5,22 @@ import type { Ritual } from "./ritualsStore"
 const RITUAL_CHANNEL_ID = "ritual-reminders"
 const PRACTICE_TIMER_CHANNEL_ID = "practice_timer"
 const PRACTICE_TIMER_SOUND = "heartspirit_chime"
+const PRACTICE_TIMER_NOTIFICATION_TYPE = "practice_timer_complete"
 const RITUAL_NOTIFICATION_TYPE = "ritual_reminder"
+
+let notificationHandlerConfigured = false
+
+function ensureNotificationHandlerConfigured() {
+  if (notificationHandlerConfigured) return
+  notificationHandlerConfigured = true
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  })
+}
 
 type ReminderData = {
   type?: string
@@ -103,7 +118,7 @@ export async function scheduleRitualReminder(
   ritualName: string,
   hhmm: string
 ): Promise<string | null> {
-  if (!(await ensureNotifPermissions())) {
+  if (!(await hasNotifPermissions())) {
     return null
   }
 
@@ -127,28 +142,53 @@ export async function scheduleRitualReminder(
 export async function schedulePracticeTimerCompletion(
   title: string,
   body: string,
-  secondsUntilEnd: number
+  secondsUntilEnd: number,
+  endAtMs?: number
 ): Promise<string | null> {
-  if (!(await hasNotifPermissions())) {
+  ensureNotificationHandlerConfigured()
+
+  const permission = await Notifications.getPermissionsAsync()
+  console.log("[practice timer notif] permission", {
+    granted: permission.granted,
+    status: permission.status,
+  })
+  if (!permission.granted) {
+    console.log("[practice timer notif] skipped — notifications not granted")
     return null
   }
 
   await ensurePracticeTimerChannel()
 
   const safeSeconds = Math.max(1, Math.ceil(secondsUntilEnd))
+  const fireDate = new Date(
+    typeof endAtMs === "number" && endAtMs > Date.now()
+      ? endAtMs
+      : Date.now() + safeSeconds * 1000
+  )
+
   const id = await Notifications.scheduleNotificationAsync({
     content: {
       title,
       body,
       sound: PRACTICE_TIMER_SOUND,
+      data: { type: PRACTICE_TIMER_NOTIFICATION_TYPE },
       ...(Platform.OS === "android" ? { channelId: PRACTICE_TIMER_CHANNEL_ID } : {}),
     },
     trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: safeSeconds,
-      repeats: false,
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: fireDate,
       ...(Platform.OS === "android" ? { channelId: PRACTICE_TIMER_CHANNEL_ID } : {}),
     },
+  })
+
+  const pending = await Notifications.getAllScheduledNotificationsAsync()
+  console.log("[practice timer notif] scheduled", {
+    id,
+    channelId: PRACTICE_TIMER_CHANNEL_ID,
+    sound: PRACTICE_TIMER_SOUND,
+    fireDate: fireDate.toISOString(),
+    secondsUntilEnd: safeSeconds,
+    pendingCount: pending.length,
   })
 
   return id

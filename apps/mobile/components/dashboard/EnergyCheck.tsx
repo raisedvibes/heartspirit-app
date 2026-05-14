@@ -12,6 +12,7 @@ import TranslucentCard from "@/components/ui/TranslucentCard"
 import { ThemedText } from "@/components/themed-text"
 import { IconSymbol } from "@/components/ui/icon-symbol"
 import { getSupabaseClient } from "@/lib/supabaseClient"
+import { ANDROID_SCROLL_PRESS_DELAY } from "@/lib/androidScrollPress"
 import { useAuth } from "@/lib/auth"
 import { getOfflineCacheData, OfflineCacheKeys, setOfflineCache } from "@/lib/offlineCache"
 
@@ -355,6 +356,7 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
                 {feelingTones.slice(rowIndex * 3, rowIndex * 3 + 3).map((feeling) => (
                   <View key={feeling.id} style={styles.cell}>
                     <Pressable
+                      delayPressIn={ANDROID_SCROLL_PRESS_DELAY}
                       onPress={() => handleFeelingSelect(feeling.id)}
                       style={({ pressed }) => [
                         styles.feelingButton,
@@ -416,6 +418,7 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
                 <Pressable
                   key={mode.slug}
                   accessibilityRole="button"
+                  delayPressIn={ANDROID_SCROLL_PRESS_DELAY}
                   // NativeWind uses react-native-css-interop jsxImportSource; Pressable is wrapped so
                   // `className` maps to `style`. That wrapper can fail to pick up StyleSheet/Fast Refresh
                   // updates to `style` while children still update — opt into the raw RN Pressable.
