@@ -385,19 +385,17 @@ export default function SettingsScreen() {
 </ThemedText>
 
                   <ThemedText type="muted" style={styles.aboutText}>
-                    — Created by Gabriel
-                  </ThemedText>
-                  <Pressable
-                    accessibilityRole="link"
-                    accessibilityLabel="Open WellnessRanger.com"
-                    onPress={() => Linking.openURL("https://wellnessranger.com")}
-                    style={styles.aboutLinkHit}
-                  >
-                    <ThemedText type="defaultSemiBold" style={styles.aboutLinkText}>
+                    — Created by Gabriel{"\n"}
+                    <ThemedText
+                      type="defaultSemiBold"
+                      style={styles.aboutLinkText}
+                      accessibilityRole="link"
+                      onPress={() => Linking.openURL("https://wellnessranger.com")}
+                    >
                       WellnessRanger.com
                       <ThemedText style={styles.aboutLinkGlyph}> ↗</ThemedText>
                     </ThemedText>
-                  </Pressable>
+                  </ThemedText>
                   </View>
                 </View>
               )}
@@ -772,11 +770,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16 },
   aboutBody: { gap: 10 },
   aboutText: { fontSize: 14, lineHeight: 21 },
-  aboutLinkHit: {
-    alignSelf: "flex-start",
-    marginTop: 6,
-    paddingVertical: 2,
-  },
   aboutLinkText: {
     fontSize: 14,
     lineHeight: 21,

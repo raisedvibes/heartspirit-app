@@ -15,6 +15,9 @@ import BottomFade from "@/components/ui/BottomFade"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 
+/** Extra scroll tail on Home only so the last card clears the tab dock with a bit more air than other tabs. */
+const HOME_SCROLL_EXTRA_BOTTOM = 20
+
 type WeeklyReflectionRow = {
   title: string | null
   reflection: string
@@ -98,7 +101,8 @@ export default function HomeScreen() {
           contentContainerStyle={[
             styles.content,
             {
-              paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 8,
+              paddingBottom:
+                TAB_BAR_HEIGHT + insets.bottom + 8 + HOME_SCROLL_EXTRA_BOTTOM,
               flexGrow: 1,
             },
           ]}

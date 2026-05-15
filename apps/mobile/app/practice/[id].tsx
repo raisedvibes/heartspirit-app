@@ -111,6 +111,7 @@ export default function PracticeDetailScreen() {
   const silentLoopStartedByTimerRef = useRef(false)
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerNotificationIdRef = useRef<string | null>(null)
+  const timerCompletionHandledRef = useRef(false)
 
   const contentMinHeight = Math.max(420, windowHeight - insets.top - 96)
 
@@ -277,6 +278,7 @@ export default function PracticeDetailScreen() {
     }
 
     try {
+      await ensureAudioMode()
       const { sound } = await Audio.Sound.createAsync(
         CHIME_SOURCE,
         { shouldPlay: false, progressUpdateIntervalMillis: 250, volume: 1 }
@@ -288,7 +290,7 @@ export default function PracticeDetailScreen() {
       console.log("[practice chime] failed to load", error)
       return null
     }
-  }, [hasChime])
+  }, [ensureAudioMode, hasChime])
 
   const playChime = useCallback(async () => {
     if (!hasChime) return
@@ -400,8 +402,47 @@ export default function PracticeDetailScreen() {
     }
   }, [])
 
+  const finalizeTimerCompletion = useCallback(
+    async (reason: string) => {
+      if (timerCompletionHandledRef.current) {
+        console.log("[practice timer] finalize skipped (already handled)", { reason })
+        return
+      }
+      timerCompletionHandledRef.current = true
+
+      stopTimerInterval()
+      setTimerEndAt(null)
+      setIsTimerRunning(false)
+      setTimeLeft(0)
+
+      const appState = AppState.currentState
+      console.log("[practice timer] completed", { reason, appState })
+
+      await stopSilentLoopForTimer()
+
+      if (appState === "active") {
+        console.log("[practice timer] cancel scheduled notification (foreground completion)")
+        await cancelTimerNotification()
+        if (hasChime) {
+          console.log("[practice chime] playChime after completion", { reason, appState })
+          await playChime()
+        } else {
+          console.log("[practice chime] skip playChime (has_chime false)", { reason })
+        }
+      } else {
+        console.log(
+          "[practice timer] keep scheduled notification; skip in-app chime (non-active)",
+          { reason, appState }
+        )
+      }
+    },
+    [cancelTimerNotification, hasChime, playChime, stopSilentLoopForTimer, stopTimerInterval]
+  )
+
   const runTimerStart = useCallback(async () => {
     if (!timerMinutes) return
+
+    timerCompletionHandledRef.current = false
 
     const baseSeconds = timeLeft > 0 ? timeLeft : timerMinutes * 60
     const endAt = Date.now() + baseSeconds * 1000
@@ -410,6 +451,12 @@ export default function PracticeDetailScreen() {
 
     setHasTimerStarted(true)
     setIsTimerRunning(true)
+
+    await ensureAudioMode()
+    if (hasChime && AppState.currentState === "active") {
+      console.log("[practice chime] start tap feedback (foreground)")
+      await playChime()
+    }
 
     await ensureSilentLoopForTimer()
     await cancelTimerNotification()
@@ -424,10 +471,14 @@ export default function PracticeDetailScreen() {
       baseSeconds,
       notificationId: timerNotificationIdRef.current,
       appState: AppState.currentState,
+      hasChime,
     })
   }, [
     cancelTimerNotification,
+    ensureAudioMode,
     ensureSilentLoopForTimer,
+    hasChime,
+    playChime,
     practice?.title,
     timeLeft,
     timerMinutes,
@@ -436,6 +487,7 @@ export default function PracticeDetailScreen() {
   const handleStartTimerPress = useCallback(async () => {
     if (!timerMinutes) return
     const granted = await isNotificationPermissionGranted()
+    console.log("[practice timer] start pressed", { granted, appState: AppState.currentState })
     if (granted) {
       await runTimerStart()
       return
@@ -551,6 +603,7 @@ export default function PracticeDetailScreen() {
     setTimeLeft(
       allowed && timerMinutes ? timerMinutes * 60 : 0
     )
+    timerCompletionHandledRef.current = false
     void cancelTimerNotification()
   }, [cancelTimerNotification, timerMinutes, practice?.timer_enabled])
 
@@ -591,16 +644,7 @@ export default function PracticeDetailScreen() {
       const remaining = getRemainingFromEndAt(timerEndAt)
       setTimeLeft(remaining)
       if (remaining <= 0) {
-        stopTimerInterval()
-        setTimerEndAt(null)
-        setIsTimerRunning(false)
-        void stopSilentLoopForTimer()
-        const appState = AppState.currentState
-        console.log("[practice timer] completed", { appState })
-        if (appState === "active") {
-          void cancelTimerNotification()
-          void playChime()
-        }
+        void finalizeTimerCompletion("interval")
       }
     }
 
@@ -611,11 +655,9 @@ export default function PracticeDetailScreen() {
       stopTimerInterval()
     }
   }, [
-    cancelTimerNotification,
+    finalizeTimerCompletion,
     getRemainingFromEndAt,
     isTimerRunning,
-    playChime,
-    stopSilentLoopForTimer,
     stopTimerInterval,
     timerEndAt,
   ])
@@ -627,15 +669,12 @@ export default function PracticeDetailScreen() {
         const remaining = getRemainingFromEndAt(timerEndAt)
         setTimeLeft(remaining)
         if (remaining <= 0) {
-          setTimerEndAt(null)
-          setIsTimerRunning(false)
-          void stopSilentLoopForTimer()
-          void cancelTimerNotification()
+          void finalizeTimerCompletion("app-active-resync")
         }
       }
     })
     return () => sub.remove()
-  }, [cancelTimerNotification, getRemainingFromEndAt, isTimerRunning, stopSilentLoopForTimer, timerEndAt])
+  }, [finalizeTimerCompletion, getRemainingFromEndAt, isTimerRunning, timerEndAt])
 
   useEffect(() => {
     return () => {

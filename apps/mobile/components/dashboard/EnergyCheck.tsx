@@ -210,29 +210,35 @@ export function EnergyCheck({ userName }: EnergyCheckProps) {
 
   useFocusEffect(
     useCallback(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 120,
-        useNativeDriver: true,
-      }).start(() => {
-        resetFlow()
-
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 140,
-          useNativeDriver: true,
-        }).start()
-      })
+      // Reset flow when the host screen is focused (e.g. returning from another tab) without
+      // a fade cycle — opacity flicker on every tab switch felt jumpy on Home + Energy.
+      fadeAnim.stopAnimation()
+      fadeAnim.setValue(1)
+      resetFlow()
     }, [fadeAnim, resetFlow])
   )
 
   const handleBack = useCallback(() => {
+    fadeAnim.stopAnimation()
     setStep("feeling")
     setSelectedFeeling(null)
     setSelectedSupportMode(null)
     setRecommendedPractice(null)
     setLoading(false)
-  }, [])
+    fadeAnim.setValue(1)
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 0.9,
+        duration: 70,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }, [fadeAnim])
 
   useEffect(() => {
     if (step !== "supportMode" || !feelingSlug || !selectedSupportMode) return

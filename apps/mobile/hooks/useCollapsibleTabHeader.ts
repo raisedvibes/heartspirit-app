@@ -1,4 +1,5 @@
 import { useCallback } from "react"
+import { Platform } from "react-native"
 import { useFocusEffect } from "@react-navigation/native"
 import {
   Extrapolation,
@@ -13,6 +14,15 @@ import {
   TAB_SCREEN_TOP_INSET_COLLAPSED,
 } from "@/components/layout/ScreenContent"
 import { HOME_HEADER_SCROLL_RANGE, useTabHeaderScroll } from "@/contexts/TabHeaderScrollContext"
+
+const IS_ANDROID = Platform.OS === "android"
+
+/** Android: tiny contentOffset oscillations while a finger rests on the list update scrollY and move this screen's translateY parent, which fights ScrollView layout and reads as jump/dance. Quantize scroll samples. */
+function tabScrollYForCollapse(rawY: number): number {
+  "worklet"
+  if (!IS_ANDROID) return rawY
+  return Math.round(rawY)
+}
 
 export type CollapsibleTabHeaderId =
   | "home"
@@ -50,9 +60,10 @@ export function useCollapsibleTabHeader(tabId: CollapsibleTabHeaderId) {
       activeDriverId.value = tabId
     },
     onScroll: (e) => {
-      localTabScrollY.value = e.contentOffset.y
+      const y = tabScrollYForCollapse(e.contentOffset.y)
+      localTabScrollY.value = y
       if (activeDriverId.value === tabId) {
-        scrollY.value = e.contentOffset.y
+        scrollY.value = y
       }
     },
   })
@@ -65,10 +76,11 @@ export function useCollapsibleTabHeader(tabId: CollapsibleTabHeaderId) {
       activeDriverId.value === tabId ? scrollY.value : localTabScrollY.value
     const y = Math.min(Math.max(activeY, 0), HOME_HEADER_SCROLL_RANGE)
     const t = interpolate(y, [0, HOME_HEADER_SCROLL_RANGE], [0, 1], Extrapolation.CLAMP)
+    const translateY = interpolate(t, [0, 1], [collapseDelta, 0], Extrapolation.CLAMP)
     return {
       transform: [
         {
-          translateY: interpolate(t, [0, 1], [collapseDelta, 0], Extrapolation.CLAMP),
+          translateY: IS_ANDROID ? Math.round(translateY) : translateY,
         },
       ],
     }

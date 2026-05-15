@@ -18,6 +18,7 @@ import { ThemedText } from "@/components/themed-text"
 import { IconSymbol } from "@/components/ui/icon-symbol"
 
 const HOME_LOGO_TRANSLATE_UP = -14
+const IS_ANDROID = Platform.OS === "android"
 
 export default function TabLayout() {
   return (
@@ -40,9 +41,12 @@ function TabLayoutContent() {
     }
     const y = Math.min(Math.max(scrollY.value, 0), HOME_HEADER_SCROLL_RANGE)
     const t = interpolate(y, [0, HOME_HEADER_SCROLL_RANGE], [0, 1], Extrapolation.CLAMP)
+    const logoY = interpolate(t, [0, 1], [0, HOME_LOGO_TRANSLATE_UP], Extrapolation.CLAMP)
     return {
       opacity: interpolate(t, [0, 1], [0.95, 0]),
-      transform: [{ translateY: interpolate(t, [0, 1], [0, HOME_LOGO_TRANSLATE_UP]) }],
+      transform: [
+        { translateY: IS_ANDROID ? Math.round(logoY) : logoY },
+      ],
     }
   })
 
