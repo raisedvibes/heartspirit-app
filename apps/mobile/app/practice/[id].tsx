@@ -7,7 +7,6 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  useWindowDimensions,
   AppState,
   Platform,
 } from "react-native"
@@ -78,7 +77,6 @@ function formatClock(totalSeconds: number) {
 
 export default function PracticeDetailScreen() {
   const insets = useSafeAreaInsets()
-  const { height: windowHeight } = useWindowDimensions()
   const { id } = useLocalSearchParams<{ id: string }>()
 
   const [practice, setPractice] = useState<PracticeRecord | null>(null)
@@ -113,8 +111,6 @@ export default function PracticeDetailScreen() {
   const timerNotificationIdRef = useRef<string | null>(null)
   const timerCompletionHandledRef = useRef(false)
 
-  const contentMinHeight = Math.max(420, windowHeight - insets.top - 96)
-
   const titleParts = practice ? splitTitleAndDescription(practice.title) : null
   const mediaUrl = practice?.media_url?.trim() || null
   const audioUrl = practice?.audio_url?.trim() || null
@@ -133,17 +129,6 @@ export default function PracticeDetailScreen() {
     practice != null && practice.timer_enabled !== false && timerMinutes != null
 
   const hasChime = practice?.has_chime ?? true
-
-  const handlePlayVideo = useCallback(() => {
-    showVideoRef.current = true
-    setShowVideo(true)
-    if (videoReadyForDisplayRef.current) {
-      setVideoRevealed(true)
-      setVideoLoading(false)
-      return
-    }
-    setVideoLoading(true)
-  }, [])
 
   const revealVideoIfRequested = useCallback(() => {
     if (!showVideoRef.current) return
@@ -224,6 +209,23 @@ export default function PracticeDetailScreen() {
       console.log("[practice audio] setAudioModeAsync failed", error)
     }
   }, [])
+
+  const handlePlayVideo = useCallback(async () => {
+    showVideoRef.current = true
+    // Android: native SurfaceView renders through opacity:0; mount player only after tap.
+    if (Platform.OS === "android") {
+      videoReadyForDisplayRef.current = false
+      setVideoRevealed(false)
+    }
+    await ensureAudioMode()
+    setShowVideo(true)
+    if (videoReadyForDisplayRef.current) {
+      setVideoRevealed(true)
+      setVideoLoading(false)
+      return
+    }
+    setVideoLoading(true)
+  }, [ensureAudioMode])
 
   const ensureSilentLoopForTimer = useCallback(async () => {
     if (isAudioPlaying || isVideoPlaying) return
@@ -701,7 +703,10 @@ export default function PracticeDetailScreen() {
         style={styles.bg}
         resizeMode="cover"
       >
-        <ScreenContent bottomPaddingOverride={0}>
+        <ScreenContent
+          bottomPaddingOverride={0}
+          style={{ marginTop: insets.top + 12 }}
+        >
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={[
@@ -710,7 +715,7 @@ export default function PracticeDetailScreen() {
             ]}
             showsVerticalScrollIndicator={false}
           >
-            <View style={[styles.contentWrap, { minHeight: contentMinHeight }]}>
+            <View style={styles.contentWrap}>
               <View style={styles.topRow}>
                 <Pressable onPress={() => router.back()} style={styles.backButton}>
                   <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.9)" />
@@ -778,29 +783,35 @@ export default function PracticeDetailScreen() {
 
                     {videoUrl && (
                       <View style={styles.mediaBlock}>
-                        <Video
-                          source={{ uri: videoUrl }}
-                          useNativeControls={videoRevealed}
-                          resizeMode={ResizeMode.COVER}
-                          style={[
-                            styles.video,
-                            videoRevealed ? styles.videoVisible : styles.videoHidden,
-                          ]}
-                          isLooping={false}
-                          shouldPlay={showVideo}
-                          isMuted={false}
-                          volume={1}
-                          usePoster={false}
-                          onReadyForDisplay={() => {
-                            videoReadyForDisplayRef.current = true
-                            revealVideoIfRequested()
-                          }}
-                          onPlaybackStatusUpdate={handleVideoPlaybackStatus}
-                          onError={(error) => {
-                            console.log("[practice video] failed", error)
-                            setVideoLoading(false)
-                          }}
-                        />
+                        {(Platform.OS === "ios" || showVideo) ? (
+                          <Video
+                            source={{ uri: videoUrl }}
+                            useNativeControls={videoRevealed}
+                            resizeMode={ResizeMode.COVER}
+                            style={[
+                              styles.video,
+                              videoRevealed ? styles.videoVisible : styles.videoHidden,
+                            ]}
+                            isLooping={false}
+                            shouldPlay={showVideo}
+                            isMuted={false}
+                            volume={1}
+                            usePoster={false}
+                            onReadyForDisplay={() => {
+                              videoReadyForDisplayRef.current = true
+                              revealVideoIfRequested()
+                            }}
+                            onPlaybackStatusUpdate={handleVideoPlaybackStatus}
+                            onError={(error) => {
+                              console.log("[practice video] failed", error)
+                              setVideoLoading(false)
+                              showVideoRef.current = false
+                              videoReadyForDisplayRef.current = false
+                              setShowVideo(false)
+                              setVideoRevealed(false)
+                            }}
+                          />
+                        ) : null}
                         {!videoRevealed ? (
                           <View style={styles.videoPosterOverlay} pointerEvents="auto">
                             <Pressable
@@ -1100,7 +1111,6 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    flex: 1,
     padding: 18,
     justifyContent: "flex-start",
   },
