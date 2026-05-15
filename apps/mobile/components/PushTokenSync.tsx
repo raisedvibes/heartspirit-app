@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { AppState } from "react-native"
 import { useAuth } from "@/lib/auth"
-import { registerPushTokenIfGranted } from "@/lib/pushTokenRegistration"
+import { syncPushToken } from "@/lib/pushTokenRegistration"
 
 /**
  * Registers Expo push token after auth session is ready and on foreground resume.
@@ -13,7 +13,7 @@ export function PushTokenSync() {
 
   useEffect(() => {
     if (loading || !userId) return
-    void registerPushTokenIfGranted({ reason: "session-ready", force: true })
+    void syncPushToken({ reason: "session-ready", force: true })
   }, [loading, userId])
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export function PushTokenSync() {
 
     const sub = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
-        void registerPushTokenIfGranted({ reason: "app-foreground" })
+        void syncPushToken({ reason: "app-foreground", force: true })
       }
     })
 

@@ -17,7 +17,10 @@ import { HOME_HEADER_SCROLL_RANGE, useTabHeaderScroll } from "@/contexts/TabHead
 
 const IS_ANDROID = Platform.OS === "android"
 
-/** Android: tiny contentOffset oscillations while a finger rests on the list update scrollY and move this screen's translateY parent, which fights ScrollView layout and reads as jump/dance. Quantize scroll samples. */
+/** Android: ignore sub-2px scroll delta so micro oscillations while the finger rests do not drive parent translateY (finger-hold jitter). */
+const ANDROID_SCROLL_DEADBAND_PX = 2
+
+/** Android: tiny contentOffset noise still rounds; deadband is the main stabilizer. */
 function tabScrollYForCollapse(rawY: number): number {
   "worklet"
   if (!IS_ANDROID) return rawY
@@ -39,11 +42,16 @@ export function useCollapsibleTabHeader(tabId: CollapsibleTabHeaderId) {
   const insets = useSafeAreaInsets()
   const { scrollY, activeDriverId } = useTabHeaderScroll()
   const localTabScrollY = useSharedValue(0)
+  /** Android: last Y committed to scrollY / localTabScrollY; blocks hold-time micro deltas. */
+  const lastCommittedY = useSharedValue(0)
 
   useFocusEffect(
     useCallback(() => {
       // Attach header animation to the active tab immediately on focus.
       scrollY.value = localTabScrollY.value
+      if (IS_ANDROID) {
+        lastCommittedY.value = localTabScrollY.value
+      }
       activeDriverId.value = tabId
       return () => {
         // Prevent blur from a previous tab clobbering a newly-focused tab.
@@ -51,16 +59,27 @@ export function useCollapsibleTabHeader(tabId: CollapsibleTabHeaderId) {
           activeDriverId.value = ""
         }
       }
-    }, [activeDriverId, localTabScrollY, scrollY, tabId])
+    }, [activeDriverId, lastCommittedY, localTabScrollY, scrollY, tabId])
   )
 
   const scrollHandler = useAnimatedScrollHandler({
     onBeginDrag: () => {
       // Re-assert active driver at interaction start (helps with delayed focus state on devices).
       activeDriverId.value = tabId
+      if (IS_ANDROID) {
+        // Align deadband baseline with last committed offset when a new gesture starts.
+        lastCommittedY.value = localTabScrollY.value
+      }
     },
     onScroll: (e) => {
       const y = tabScrollYForCollapse(e.contentOffset.y)
+      if (IS_ANDROID) {
+        const prev = lastCommittedY.value
+        if (Math.abs(y - prev) < ANDROID_SCROLL_DEADBAND_PX) {
+          return
+        }
+        lastCommittedY.value = y
+      }
       localTabScrollY.value = y
       if (activeDriverId.value === tabId) {
         scrollY.value = y

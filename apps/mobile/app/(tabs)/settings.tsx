@@ -12,8 +12,11 @@ import { ThemedText } from "@/components/themed-text"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import {
   loadCircleReminderPrefs,
-  registerPushTokenIfGranted,
+  loadPushTokenSyncSnapshot,
+  showPushTokenDiagnostics,
+  syncPushToken,
   updateCircleReminderPrefs,
+  type PushTokenSyncSnapshot,
 } from "@/lib/pushTokenRegistration"
 import { cancelRitualReminderNotifications } from "@/lib/ritualNotifications"
 import {
@@ -43,11 +46,36 @@ export default function SettingsScreen() {
   // Notifications
   const [communityCircles, setCommunityCircles] = useState(false)
   const [osNotifGranted, setOsNotifGranted] = useState<boolean | null>(null)
+  const [pushSyncSnapshot, setPushSyncSnapshot] = useState<PushTokenSyncSnapshot | null>(null)
+  const [pushSyncLoading, setPushSyncLoading] = useState(false)
+  const pushDiagnosticsVisible = showPushTokenDiagnostics()
 
   const refreshOsNotificationPermission = useCallback(async () => {
     const granted = await isNotificationPermissionGranted()
     setOsNotifGranted(granted)
   }, [])
+
+  const refreshPushRegistration = useCallback(async (force: boolean) => {
+    if (pushDiagnosticsVisible) {
+      setPushSyncLoading(true)
+    }
+    try {
+      if (await isNotificationPermissionGranted()) {
+        await syncPushToken({
+          reason: force ? "settings-force-sync" : "settings-check",
+          force,
+        })
+      }
+      if (pushDiagnosticsVisible) {
+        const snapshot = await loadPushTokenSyncSnapshot()
+        setPushSyncSnapshot(snapshot)
+      }
+    } finally {
+      if (pushDiagnosticsVisible) {
+        setPushSyncLoading(false)
+      }
+    }
+  }, [pushDiagnosticsVisible])
 
   // Auth & profile
   const [authUser, setAuthUser] = useState<{ id: string; email?: string } | null>(null)
@@ -159,30 +187,16 @@ export default function SettingsScreen() {
     useCallback(() => {
       void refreshOsNotificationPermission()
       if (!openSections.notifications) return
-      void (async () => {
-        if (await isNotificationPermissionGranted()) {
-          await registerPushTokenIfGranted({
-            reason: "settings-focus-notifications",
-            force: true,
-          })
-        }
-      })()
-    }, [openSections.notifications, refreshOsNotificationPermission])
+      void refreshPushRegistration(true)
+    }, [openSections.notifications, refreshOsNotificationPermission, refreshPushRegistration])
   )
 
   useEffect(() => {
     if (!openSections.notifications) return
 
     void refreshOsNotificationPermission()
-    void (async () => {
-      if (await isNotificationPermissionGranted()) {
-        await registerPushTokenIfGranted({
-          reason: "settings-notifications-open",
-          force: true,
-        })
-      }
-    })()
-  }, [openSections.notifications, refreshOsNotificationPermission])
+    void refreshPushRegistration(true)
+  }, [openSections.notifications, refreshOsNotificationPermission, refreshPushRegistration])
 
   const toggleSection = (section: SectionKey) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
@@ -637,13 +651,63 @@ export default function SettingsScreen() {
 
                   {osNotifGranted !== null ? (
                     <View style={styles.permissionStatusBlock}>
-                      <ThemedText type="muted" style={styles.permissionStatusText}>
-                        {osNotifGranted
-                          ? "Phone notifications: Enabled"
-                          : communityCircles
-                            ? "Circle reminders are on in Heartspirit, but your phone is currently blocking notifications."
-                            : "Phone notifications are disabled on this device."}
-                      </ThemedText>
+                      {pushDiagnosticsVisible ? (
+                        <>
+                          <ThemedText type="muted" style={styles.permissionStatusText}>
+                            OS permission: {osNotifGranted ? "Granted" : "Denied"}
+                          </ThemedText>
+                          <ThemedText
+                            type="muted"
+                            style={[
+                              styles.permissionStatusText,
+                              osNotifGranted &&
+                              pushSyncSnapshot?.ok &&
+                              pushSyncSnapshot.dbRegistered
+                                ? styles.pushStatusOk
+                                : osNotifGranted
+                                  ? styles.pushStatusWarn
+                                  : null,
+                            ]}
+                          >
+                            Push token registered:{" "}
+                            {pushSyncLoading
+                              ? "Checking…"
+                              : pushSyncSnapshot?.ok && pushSyncSnapshot.dbRegistered
+                                ? "Yes"
+                                : "No"}
+                          </ThemedText>
+                          {pushSyncSnapshot?.tokenPrefix ? (
+                            <ThemedText type="muted" style={styles.permissionHelperText}>
+                              Token: {pushSyncSnapshot.tokenPrefix}
+                            </ThemedText>
+                          ) : null}
+                          {pushSyncSnapshot?.at ? (
+                            <ThemedText type="muted" style={styles.permissionHelperText}>
+                              Last sync: {new Date(pushSyncSnapshot.at).toLocaleString()}
+                            </ThemedText>
+                          ) : null}
+                          {pushSyncSnapshot?.errorMessage ? (
+                            <ThemedText style={styles.pushSyncErrorText}>
+                              Last sync error: {pushSyncSnapshot.errorMessage}
+                            </ThemedText>
+                          ) : null}
+                          {osNotifGranted &&
+                          (!pushSyncSnapshot?.ok || !pushSyncSnapshot.dbRegistered) ? (
+                            <ThemedText type="muted" style={styles.permissionHelperText}>
+                              System notifications are on, but this device is not registered for
+                              remote circle alerts.
+                            </ThemedText>
+                          ) : null}
+                        </>
+                      ) : (
+                        <ThemedText type="muted" style={styles.permissionStatusText}>
+                          {osNotifGranted
+                            ? "Phone notifications: Enabled"
+                            : communityCircles
+                              ? "Circle reminders are on in Heartspirit, but your phone is currently blocking notifications."
+                              : "Phone notifications are disabled on this device."}
+                        </ThemedText>
+                      )}
                       {!osNotifGranted ? (
                         <ThemedText type="muted" style={styles.permissionHelperText}>
                           {PRACTICE_TIMER_CHIME_HELPER}
@@ -656,11 +720,24 @@ export default function SettingsScreen() {
                             void (async () => {
                               await enableNotificationsFromPrompt()
                               await refreshOsNotificationPermission()
+                              await refreshPushRegistration(true)
                             })()
                           }}
                         >
                           <ThemedText type="defaultSemiBold" style={styles.enableNotifButtonText}>
                             Enable Notifications
+                          </ThemedText>
+                        </Pressable>
+                      ) : pushDiagnosticsVisible ? (
+                        <Pressable
+                          style={styles.enableNotifButton}
+                          disabled={pushSyncLoading}
+                          onPress={() => {
+                            void refreshPushRegistration(true)
+                          }}
+                        >
+                          <ThemedText type="defaultSemiBold" style={styles.enableNotifButtonText}>
+                            {pushSyncLoading ? "Syncing…" : "Sync push token"}
                           </ThemedText>
                         </Pressable>
                       ) : null}
@@ -879,6 +956,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     opacity: 0.72,
+  },
+  pushStatusOk: {
+    color: "rgba(140, 220, 170, 0.95)",
+  },
+  pushStatusWarn: {
+    color: "rgba(255, 200, 120, 0.95)",
+  },
+  pushSyncErrorText: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: "rgba(255, 140, 140, 0.95)",
   },
   enableNotifButton: {
     alignSelf: "flex-start",

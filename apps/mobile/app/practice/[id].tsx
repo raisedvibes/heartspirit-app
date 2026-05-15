@@ -593,6 +593,20 @@ export default function PracticeDetailScreen() {
   }, [id])
 
   useEffect(() => {
+    if (typeof __DEV__ !== "undefined" && __DEV__ && videoUrl) {
+      console.log("[practice video] render state", {
+        platform: Platform.OS,
+        mediaType,
+        hasVideoUrl: Boolean(videoUrl),
+        hasThumbnail: Boolean(videoThumbnailUrl),
+        showVideo,
+        videoRevealed,
+        videoLoading,
+      })
+    }
+  }, [videoUrl, mediaType, videoThumbnailUrl, showVideo, videoRevealed, videoLoading])
+
+  useEffect(() => {
     setShowVideo(false)
     setVideoLoading(false)
     setVideoRevealed(false)
@@ -714,10 +728,7 @@ export default function PracticeDetailScreen() {
         style={styles.bg}
         resizeMode="cover"
       >
-        <ScreenContent
-          bottomPaddingOverride={0}
-          style={{ marginTop: insets.top + 12 }}
-        >
+        <ScreenContent bottomPaddingOverride={0}>
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={[
@@ -1210,6 +1221,8 @@ const styles = StyleSheet.create({
 
   mediaBlock: {
     position: "relative",
+    width: "100%",
+    aspectRatio: 16 / 9,
     marginVertical: 16,
     borderRadius: 16,
     overflow: "hidden",
