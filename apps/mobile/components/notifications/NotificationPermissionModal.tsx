@@ -7,6 +7,8 @@ type NotificationPermissionModalProps = {
   visible: boolean
   title: string
   body: string
+  /** Optional small support line (e.g. volume + notifications reminder). */
+  helperText?: string
   primaryLabel: string
   secondaryLabel: string
   onPrimary: () => void
@@ -18,6 +20,7 @@ export function NotificationPermissionModal({
   visible,
   title,
   body,
+  helperText,
   primaryLabel,
   secondaryLabel,
   onPrimary,
@@ -42,6 +45,11 @@ export function NotificationPermissionModal({
               <ThemedText type="muted" style={styles.body}>
                 {body}
               </ThemedText>
+              {helperText ? (
+                <ThemedText type="muted" style={styles.helper}>
+                  {helperText}
+                </ThemedText>
+              ) : null}
               <Pressable onPress={onPrimary} style={styles.primaryButton}>
                 <ThemedText type="defaultSemiBold" style={styles.primaryButtonText}>
                   {primaryLabel}
@@ -72,6 +80,13 @@ const styles = StyleSheet.create({
   card: { padding: 20, gap: 14 },
   title: { fontSize: 22, textAlign: "center" },
   body: { fontSize: 15, lineHeight: 22, textAlign: "center" },
+  helper: {
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "center",
+    opacity: 0.72,
+    marginTop: -2,
+  },
   primaryButton: {
     marginTop: 4,
     paddingVertical: 12,

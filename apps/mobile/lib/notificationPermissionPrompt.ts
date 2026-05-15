@@ -38,7 +38,11 @@ export const STAY_IN_RHYTHM_PROMPT = {
   secondaryLabel: "Not Now",
 } as const
 
-export async function openNotificationSettings(): Promise<void> {
+/** Helper for practice timer / locked-screen completion chime permission contexts. */
+export const PRACTICE_TIMER_CHIME_HELPER =
+  "To hear your completion chime while your phone is resting, ensure your device volume and notifications are turned on."
+
+export async function openNotificationSettings(): Promise<void>
   try {
     await Linking.openSettings()
   } catch {

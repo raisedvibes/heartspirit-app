@@ -22,6 +22,7 @@ import {
 import {
   enableNotificationsFromPrompt,
   isNotificationPermissionGranted,
+  PRACTICE_TIMER_CHIME_HELPER,
 } from "@/lib/notificationPermissionPrompt"
 
 type SectionKey = "about" | "profile" | "notifications" | "privacy" | "support"
@@ -626,6 +627,11 @@ export default function SettingsScreen() {
                             : "Phone notifications are disabled on this device."}
                       </ThemedText>
                       {!osNotifGranted ? (
+                        <ThemedText type="muted" style={styles.permissionHelperText}>
+                          {PRACTICE_TIMER_CHIME_HELPER}
+                        </ThemedText>
+                      ) : null}
+                      {!osNotifGranted ? (
                         <Pressable
                           style={styles.enableNotifButton}
                           onPress={() => {
@@ -850,6 +856,11 @@ const styles = StyleSheet.create({
   permissionStatusText: {
     fontSize: 12,
     lineHeight: 18,
+  },
+  permissionHelperText: {
+    fontSize: 11,
+    lineHeight: 16,
+    opacity: 0.72,
   },
   enableNotifButton: {
     alignSelf: "flex-start",

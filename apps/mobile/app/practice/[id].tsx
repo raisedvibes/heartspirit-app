@@ -20,6 +20,7 @@ import {
   ResizeMode,
   Video,
 } from "expo-av"
+import { LinearGradient } from "expo-linear-gradient"
 
 import ScreenContent, { getStackScrollContentBottomPadding } from "@/components/layout/ScreenContent"
 import TranslucentCard from "@/components/ui/TranslucentCard"
@@ -36,6 +37,7 @@ import { NotificationPermissionModal } from "@/components/notifications/Notifica
 import {
   enableNotificationsFromPrompt,
   isNotificationPermissionGranted,
+  PRACTICE_TIMER_CHIME_HELPER,
 } from "@/lib/notificationPermissionPrompt"
 
 const CHIME_SOURCE = require("@/assets/audio/heartspirit_chime.mp3")
@@ -707,31 +709,32 @@ export default function PracticeDetailScreen() {
           bottomPaddingOverride={0}
           style={{ marginTop: insets.top + 12 }}
         >
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={[
-              styles.scrollContent,
-              { paddingBottom: getStackScrollContentBottomPadding(insets) },
-            ]}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.contentWrap}>
-              <View style={styles.topRow}>
-                <Pressable onPress={() => router.back()} style={styles.backButton}>
-                  <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.9)" />
-                  <ThemedText type="defaultSemiBold" style={styles.backText}>
-                    Back
-                  </ThemedText>
-                </Pressable>
+          <View style={styles.scrollStage}>
+            <View style={styles.topRow}>
+              <Pressable onPress={() => router.back()} style={styles.backButton}>
+                <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.9)" />
+                <ThemedText type="defaultSemiBold" style={styles.backText}>
+                  Back
+                </ThemedText>
+              </Pressable>
 
-                <View style={styles.headerBlock}>
-                  <ThemedText type="title" style={styles.recommendedHeader}>
-                    Recommended
-                  </ThemedText>
-                </View>
+              <View style={styles.headerBlock}>
+                <ThemedText type="title" style={styles.recommendedHeader}>
+                  Recommended
+                </ThemedText>
               </View>
+            </View>
 
-              <TranslucentCard style={styles.card}>
+            <View style={styles.scrollClip}>
+              <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={[
+                  styles.scrollContent,
+                  { paddingBottom: getStackScrollContentBottomPadding(insets) },
+                ]}
+                showsVerticalScrollIndicator={false}
+              >
+                <TranslucentCard style={styles.card}>
                 {loading ? (
                   <View style={styles.centerBlock}>
                     <ActivityIndicator size="small" color="rgba(255,255,255,0.8)" />
@@ -1035,8 +1038,18 @@ export default function PracticeDetailScreen() {
                   </>
                 )}
               </TranslucentCard>
+              </ScrollView>
+              <LinearGradient
+                pointerEvents="none"
+                colors={[
+                  "rgba(10, 20, 16, 0.9)",
+                  "rgba(10, 20, 16, 0.4)",
+                  "rgba(10, 20, 16, 0)",
+                ]}
+                style={styles.topScrollFade}
+              />
             </View>
-          </ScrollView>
+          </View>
         </ScreenContent>
       </ImageBackground>
 
@@ -1046,6 +1059,7 @@ export default function PracticeDetailScreen() {
         visible={showTimerNotifPrompt}
         title="Completion chime"
         body="Enable notifications to receive your completion chime and practice reminders while your device is locked."
+        helperText={PRACTICE_TIMER_CHIME_HELPER}
         primaryLabel="Enable Notifications"
         secondaryLabel="Continue Without Locked-Screen Alerts"
         onPrimary={() => {
@@ -1069,25 +1083,39 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   bg: { flex: 1 },
 
+  scrollStage: {
+    flex: 1,
+  },
+
+  scrollClip: {
+    flex: 1,
+    position: "relative",
+  },
+
   scrollView: {
     flex: 1,
   },
 
-  scrollContent: {
-    flexGrow: 1,
-    paddingTop: 8,
+  topScrollFade: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 48,
+    zIndex: 2,
   },
 
-  contentWrap: {
+  scrollContent: {
     flexGrow: 1,
-    gap: 16,
+    paddingTop: 4,
   },
 
   topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
+    zIndex: 3,
   },
 
   backButton: {
