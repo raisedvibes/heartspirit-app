@@ -1,4 +1,5 @@
 import * as Notifications from "expo-notifications"
+import Constants from "expo-constants"
 import { Platform } from "react-native"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { getSupabaseClient } from "./supabaseClient"
@@ -7,13 +8,26 @@ const CIRCLES_PREFS_KEY = "heartspirit.push.circles_prefs"
 /** Matches expo-notifications `defaultChannel` in app.json — used for remote FCM push. */
 export const DEFAULT_PUSH_CHANNEL_ID = "default"
 
+const REGISTER_ATTEMPT_COOLDOWN_MS = 15_000
+const REGISTER_SUCCESS_SKIP_MS = 5 * 60_000
+
 export type CircleReminderPrefs = { weekBefore: boolean; dayBefore: boolean }
+
+export type RegisterPushTokenOptions = {
+  /** Dev log label for why registration ran. */
+  reason?: string
+  /** Bypass cooldown / recent-success skip (e.g. Settings notifications open). */
+  force?: boolean
+}
 
 /** In-app circle reminder opt-in defaults (OS permission is separate). */
 export const DEFAULT_CIRCLE_REMINDER_PREFS: CircleReminderPrefs = {
   weekBefore: true,
   dayBefore: true,
 }
+
+let lastRegisterAttemptAt = 0
+let lastRegisterSuccess: { userId: string; token: string; at: number } | null = null
 
 function resolveCircleReminderPrefs(
   weekBefore: boolean | null | undefined,
@@ -23,6 +37,51 @@ function resolveCircleReminderPrefs(
     weekBefore: weekBefore ?? true,
     dayBefore: dayBefore ?? true,
   }
+}
+
+function logPushDev(message: string, details?: Record<string, unknown>): void {
+  if (typeof __DEV__ === "undefined" || !__DEV__) return
+  if (details) {
+    console.log(`[Push] ${message}`, details)
+  } else {
+    console.log(`[Push] ${message}`)
+  }
+}
+
+function tokenPrefix(token: string): string {
+  return token.length > 28 ? `${token.slice(0, 28)}…` : token
+}
+
+function resolveEasProjectId(): string | undefined {
+  const fromExtra = Constants.expoConfig?.extra?.eas?.projectId
+  const fromEasConfig = Constants.easConfig?.projectId
+  return (typeof fromExtra === "string" && fromExtra) || (typeof fromEasConfig === "string" && fromEasConfig) || undefined
+}
+
+function shouldSkipRegisterAttempt(
+  userId: string,
+  token: string,
+  options?: RegisterPushTokenOptions
+): boolean {
+  if (options?.force) return false
+
+  const now = Date.now()
+  if (now - lastRegisterAttemptAt < REGISTER_ATTEMPT_COOLDOWN_MS) {
+    logPushDev("register skipped (cooldown)", { reason: options?.reason })
+    return true
+  }
+
+  if (
+    lastRegisterSuccess &&
+    lastRegisterSuccess.userId === userId &&
+    lastRegisterSuccess.token === token &&
+    now - lastRegisterSuccess.at < REGISTER_SUCCESS_SKIP_MS
+  ) {
+    logPushDev("register skipped (recent success, same token)", { reason: options?.reason })
+    return true
+  }
+
+  return false
 }
 
 /** Load circle reminder prefs from profiles (if authenticated) or local fallback. */
@@ -82,22 +141,37 @@ async function fetchExpoPushTokenWhenGranted(): Promise<string | null> {
   if (Platform.OS === "web") return null
 
   const { status } = await Notifications.getPermissionsAsync()
+  logPushDev("permission status", { status, platform: Platform.OS })
   if (status !== "granted") return null
 
   await ensureDefaultPushChannel()
 
-  let projectId: string | undefined
-  try {
-    const Constants = await import("expo-constants")
-    projectId = Constants.default?.expoConfig?.extra?.eas?.projectId
-  } catch {
-    projectId = undefined
-  }
-
-  const { data: token } = await Notifications.getExpoPushTokenAsync({
-    projectId: projectId ?? undefined,
+  const projectId = resolveEasProjectId()
+  logPushDev("resolved EAS projectId", {
+    projectId: projectId ?? "(missing)",
+    platform: Platform.OS,
   })
-  return token ?? null
+
+  try {
+    const { data } = await Notifications.getExpoPushTokenAsync({
+      projectId: projectId ?? undefined,
+    })
+    const token = data ?? null
+    if (token) {
+      logPushDev("Expo push token fetched", {
+        platform: Platform.OS,
+        tokenPrefix: tokenPrefix(token),
+      })
+    } else {
+      logPushDev("Expo push token empty", { platform: Platform.OS })
+    }
+    return token
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    console.warn("[Push] getExpoPushTokenAsync failed:", message)
+    logPushDev("getExpoPushTokenAsync error", { message, platform: Platform.OS, projectId })
+    return null
+  }
 }
 
 /** Request OS permission, then return Expo push token, or null if denied. */
@@ -127,23 +201,63 @@ function getDeviceId(token: string): string {
   return token
 }
 
-/** Upsert push token when OS permission is already granted (no native prompt). */
-export async function registerPushTokenIfGranted(): Promise<boolean> {
+function pushPlatform(): "ios" | "android" | "web" {
+  if (Platform.OS === "ios") return "ios"
+  if (Platform.OS === "android") return "android"
+  return "web"
+}
+
+async function removeStalePlatformTokens(
+  userId: string,
+  platform: "ios" | "android",
+  currentToken: string
+): Promise<void> {
   const supabase = getSupabaseClient()
-  if (!supabase) return false
+  if (!supabase) return
 
-  const { data: auth } = await supabase.auth.getUser()
-  if (!auth?.user) return false
+  const { error } = await supabase
+    .from("user_push_tokens")
+    .delete()
+    .eq("user_id", userId)
+    .eq("platform", platform)
+    .neq("expo_push_token", currentToken)
 
-  const token = await fetchExpoPushTokenWhenGranted()
-  if (!token) return false
+  if (error) {
+    logPushDev("stale token cleanup failed", { message: error.message, platform })
+  }
+}
 
-  const platform = Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "web"
+async function upsertPushTokenForUser(
+  userId: string,
+  token: string,
+  options?: RegisterPushTokenOptions
+): Promise<boolean> {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    logPushDev("upsert skipped (no supabase client)", { reason: options?.reason })
+    return false
+  }
+
+  if (shouldSkipRegisterAttempt(userId, token, options)) {
+    return false
+  }
+
+  lastRegisterAttemptAt = Date.now()
+
+  const platform = pushPlatform()
   const deviceId = getDeviceId(token)
+
+  logPushDev("upserting push token", {
+    reason: options?.reason,
+    userId,
+    platform,
+    tokenPrefix: tokenPrefix(token),
+    deviceIdPrefix: tokenPrefix(deviceId),
+  })
 
   const { error } = await supabase.from("user_push_tokens").upsert(
     {
-      user_id: auth.user.id,
+      user_id: userId,
       expo_push_token: token,
       platform,
       device_id: deviceId,
@@ -154,13 +268,69 @@ export async function registerPushTokenIfGranted(): Promise<boolean> {
 
   if (error) {
     console.warn("[Push] Failed to register token:", error.message)
+    logPushDev("Supabase upsert error", {
+      message: error.message,
+      userId,
+      platform,
+      reason: options?.reason,
+    })
     return false
   }
+
+  if (platform === "ios" || platform === "android") {
+    await removeStalePlatformTokens(userId, platform, token)
+  }
+
+  lastRegisterSuccess = { userId, token, at: Date.now() }
+  logPushDev("Supabase upsert success", {
+    userId,
+    platform,
+    tokenPrefix: tokenPrefix(token),
+    reason: options?.reason,
+  })
   return true
 }
 
+/** Upsert push token when OS permission is already granted (no native prompt). */
+export async function registerPushTokenIfGranted(
+  options?: RegisterPushTokenOptions
+): Promise<boolean> {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    logPushDev("register aborted (no supabase)", { reason: options?.reason })
+    return false
+  }
+
+  const { data: auth, error: authError } = await supabase.auth.getUser()
+  if (authError) {
+    logPushDev("register aborted (auth error)", {
+      reason: options?.reason,
+      message: authError.message,
+    })
+    return false
+  }
+  if (!auth?.user) {
+    logPushDev("register aborted (no user)", { reason: options?.reason })
+    return false
+  }
+
+  const token = await fetchExpoPushTokenWhenGranted()
+  if (!token) {
+    logPushDev("register aborted (no token)", {
+      reason: options?.reason,
+      userId: auth.user.id,
+      platform: Platform.OS,
+    })
+    return false
+  }
+
+  return upsertPushTokenForUser(auth.user.id, token, options)
+}
+
 /** Request OS permission (if needed), then register push token with Supabase. */
-export async function requestNotificationPermissionAndRegister(): Promise<boolean> {
+export async function requestNotificationPermissionAndRegister(
+  options?: RegisterPushTokenOptions
+): Promise<boolean> {
   const token = await getExpoPushToken()
   if (!token) return false
 
@@ -170,25 +340,11 @@ export async function requestNotificationPermissionAndRegister(): Promise<boolea
   const { data: auth } = await supabase.auth.getUser()
   if (!auth?.user) return false
 
-  const platform = Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "web"
-  const deviceId = getDeviceId(token)
-
-  const { error } = await supabase.from("user_push_tokens").upsert(
-    {
-      user_id: auth.user.id,
-      expo_push_token: token,
-      platform,
-      device_id: deviceId,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,device_id" }
-  )
-
-  if (error) {
-    console.warn("[Push] Failed to register token:", error.message)
-    return false
-  }
-  return true
+  return upsertPushTokenForUser(auth.user.id, token, {
+    ...options,
+    force: true,
+    reason: options?.reason ?? "permission-request",
+  })
 }
 
 /** @deprecated Prefer registerPushTokenIfGranted or requestNotificationPermissionAndRegister. */

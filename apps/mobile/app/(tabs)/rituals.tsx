@@ -983,7 +983,14 @@ const styles = StyleSheet.create({
   },
   ritualFormModalDim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(9, 18, 14, 0.44)",
+    ...Platform.select({
+      android: {
+        backgroundColor: "rgba(0, 0, 0, 0.72)",
+      },
+      default: {
+        backgroundColor: "rgba(9, 18, 14, 0.44)",
+      },
+    }),
   },
   ritualFormModalCenter: {
     flex: 1,

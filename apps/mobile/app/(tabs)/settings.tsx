@@ -12,6 +12,7 @@ import { ThemedText } from "@/components/themed-text"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import {
   loadCircleReminderPrefs,
+  registerPushTokenIfGranted,
   updateCircleReminderPrefs,
 } from "@/lib/pushTokenRegistration"
 import { cancelRitualReminderNotifications } from "@/lib/ritualNotifications"
@@ -157,13 +158,30 @@ export default function SettingsScreen() {
   useFocusEffect(
     useCallback(() => {
       void refreshOsNotificationPermission()
-    }, [refreshOsNotificationPermission])
+      if (!openSections.notifications) return
+      void (async () => {
+        if (await isNotificationPermissionGranted()) {
+          await registerPushTokenIfGranted({
+            reason: "settings-focus-notifications",
+            force: true,
+          })
+        }
+      })()
+    }, [openSections.notifications, refreshOsNotificationPermission])
   )
 
   useEffect(() => {
-    if (openSections.notifications) {
-      void refreshOsNotificationPermission()
-    }
+    if (!openSections.notifications) return
+
+    void refreshOsNotificationPermission()
+    void (async () => {
+      if (await isNotificationPermissionGranted()) {
+        await registerPushTokenIfGranted({
+          reason: "settings-notifications-open",
+          force: true,
+        })
+      }
+    })()
   }, [openSections.notifications, refreshOsNotificationPermission])
 
   const toggleSection = (section: SectionKey) => {

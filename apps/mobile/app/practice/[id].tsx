@@ -20,7 +20,6 @@ import {
   ResizeMode,
   Video,
 } from "expo-av"
-import { LinearGradient } from "expo-linear-gradient"
 
 import ScreenContent, { getStackScrollContentBottomPadding } from "@/components/layout/ScreenContent"
 import TranslucentCard from "@/components/ui/TranslucentCard"
@@ -134,8 +133,18 @@ export default function PracticeDetailScreen() {
 
   const revealVideoIfRequested = useCallback(() => {
     if (!showVideoRef.current) return
-    setVideoRevealed(true)
-    setVideoLoading(false)
+    const reveal = () => {
+      setVideoRevealed(true)
+      setVideoLoading(false)
+    }
+    // Android TextureView can flash a partial frame after onReadyForDisplay; wait one paint.
+    if (Platform.OS === "android") {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(reveal)
+      })
+      return
+    }
+    reveal()
   }, [])
 
   const handleVideoPlaybackStatus = useCallback((status: AVPlaybackStatus) => {
@@ -214,7 +223,7 @@ export default function PracticeDetailScreen() {
 
   const handlePlayVideo = useCallback(async () => {
     showVideoRef.current = true
-    // Android: native SurfaceView renders through opacity:0; mount player only after tap.
+    // Android: TextureView ignores opacity/zIndex over poster; mount only after tap, reveal when ready.
     if (Platform.OS === "android") {
       videoReadyForDisplayRef.current = false
       setVideoRevealed(false)
@@ -709,32 +718,31 @@ export default function PracticeDetailScreen() {
           bottomPaddingOverride={0}
           style={{ marginTop: insets.top + 12 }}
         >
-          <View style={styles.scrollStage}>
-            <View style={styles.topRow}>
-              <Pressable onPress={() => router.back()} style={styles.backButton}>
-                <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.9)" />
-                <ThemedText type="defaultSemiBold" style={styles.backText}>
-                  Back
-                </ThemedText>
-              </Pressable>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: getStackScrollContentBottomPadding(insets) },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.contentWrap}>
+              <View style={styles.topRow}>
+                <Pressable onPress={() => router.back()} style={styles.backButton}>
+                  <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.9)" />
+                  <ThemedText type="defaultSemiBold" style={styles.backText}>
+                    Back
+                  </ThemedText>
+                </Pressable>
 
-              <View style={styles.headerBlock}>
-                <ThemedText type="title" style={styles.recommendedHeader}>
-                  Recommended
-                </ThemedText>
+                <View style={styles.headerBlock}>
+                  <ThemedText type="title" style={styles.recommendedHeader}>
+                    Recommended
+                  </ThemedText>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.scrollClip}>
-              <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={[
-                  styles.scrollContent,
-                  { paddingBottom: getStackScrollContentBottomPadding(insets) },
-                ]}
-                showsVerticalScrollIndicator={false}
-              >
-                <TranslucentCard style={styles.card}>
+              <TranslucentCard style={styles.card}>
                 {loading ? (
                   <View style={styles.centerBlock}>
                     <ActivityIndicator size="small" color="rgba(255,255,255,0.8)" />
@@ -787,33 +795,57 @@ export default function PracticeDetailScreen() {
                     {videoUrl && (
                       <View style={styles.mediaBlock}>
                         {(Platform.OS === "ios" || showVideo) ? (
-                          <Video
-                            source={{ uri: videoUrl }}
-                            useNativeControls={videoRevealed}
-                            resizeMode={ResizeMode.COVER}
+                          <View
                             style={[
-                              styles.video,
-                              videoRevealed ? styles.videoVisible : styles.videoHidden,
+                              styles.videoNativeHost,
+                              Platform.OS === "android" &&
+                                !videoRevealed &&
+                                styles.videoNativeHostAndroidPrewarm,
                             ]}
-                            isLooping={false}
-                            shouldPlay={showVideo}
-                            isMuted={false}
-                            volume={1}
-                            usePoster={false}
-                            onReadyForDisplay={() => {
-                              videoReadyForDisplayRef.current = true
-                              revealVideoIfRequested()
-                            }}
-                            onPlaybackStatusUpdate={handleVideoPlaybackStatus}
-                            onError={(error) => {
-                              console.log("[practice video] failed", error)
-                              setVideoLoading(false)
-                              showVideoRef.current = false
-                              videoReadyForDisplayRef.current = false
-                              setShowVideo(false)
-                              setVideoRevealed(false)
-                            }}
-                          />
+                            pointerEvents={
+                              Platform.OS === "android" && !videoRevealed ? "none" : "auto"
+                            }
+                            collapsable={false}
+                          >
+                            <Video
+                              source={{ uri: videoUrl }}
+                              useNativeControls={videoRevealed}
+                              resizeMode={ResizeMode.COVER}
+                              style={[
+                                styles.video,
+                                Platform.OS === "ios"
+                                  ? videoRevealed
+                                    ? styles.videoVisible
+                                    : styles.videoHidden
+                                  : videoRevealed
+                                    ? styles.videoVisible
+                                    : null,
+                              ]}
+                              videoStyle={
+                                Platform.OS === "android" && !videoRevealed
+                                  ? styles.videoAndroidNativePrewarm
+                                  : undefined
+                              }
+                              isLooping={false}
+                              shouldPlay={showVideo}
+                              isMuted={false}
+                              volume={1}
+                              usePoster={false}
+                              onReadyForDisplay={() => {
+                                videoReadyForDisplayRef.current = true
+                                revealVideoIfRequested()
+                              }}
+                              onPlaybackStatusUpdate={handleVideoPlaybackStatus}
+                              onError={(error) => {
+                                console.log("[practice video] failed", error)
+                                setVideoLoading(false)
+                                showVideoRef.current = false
+                                videoReadyForDisplayRef.current = false
+                                setShowVideo(false)
+                                setVideoRevealed(false)
+                              }}
+                            />
+                          </View>
                         ) : null}
                         {!videoRevealed ? (
                           <View style={styles.videoPosterOverlay} pointerEvents="auto">
@@ -1038,18 +1070,8 @@ export default function PracticeDetailScreen() {
                   </>
                 )}
               </TranslucentCard>
-              </ScrollView>
-              <LinearGradient
-                pointerEvents="none"
-                colors={[
-                  "rgba(10, 20, 16, 0.9)",
-                  "rgba(10, 20, 16, 0.4)",
-                  "rgba(10, 20, 16, 0)",
-                ]}
-                style={styles.topScrollFade}
-              />
             </View>
-          </View>
+          </ScrollView>
         </ScreenContent>
       </ImageBackground>
 
@@ -1083,39 +1105,24 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   bg: { flex: 1 },
 
-  scrollStage: {
-    flex: 1,
-  },
-
-  scrollClip: {
-    flex: 1,
-    position: "relative",
-  },
-
   scrollView: {
     flex: 1,
   },
 
-  topScrollFade: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 48,
-    zIndex: 2,
-  },
-
   scrollContent: {
     flexGrow: 1,
-    paddingTop: 4,
+    paddingTop: 8,
+  },
+
+  contentWrap: {
+    gap: 16,
   },
 
   topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
-    zIndex: 3,
+    marginBottom: 16,
   },
 
   backButton: {
@@ -1211,6 +1218,28 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.28)",
   },
 
+  videoNativeHost: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+  },
+
+  /** Off-screen prewarm: TextureView composites above RN siblings and ignores opacity. */
+  videoNativeHostAndroidPrewarm: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: -1,
+    elevation: -1,
+    opacity: 0,
+    overflow: "hidden",
+    transform: [{ translateX: -5000 }],
+  },
+
+  videoAndroidNativePrewarm: {
+    opacity: 0,
+  },
+
   video: {
     width: "100%",
     aspectRatio: 16 / 9,
@@ -1231,8 +1260,14 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+    bottom: 0,
     zIndex: 2,
-    ...(Platform.OS === "android" ? { elevation: 4 } : {}),
+    ...(Platform.OS === "android"
+      ? {
+          elevation: 16,
+          backgroundColor: "#000",
+        }
+      : {}),
   },
 
   videoPosterWrap: {

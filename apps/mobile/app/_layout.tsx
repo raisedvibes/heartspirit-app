@@ -11,9 +11,8 @@ import "../global.css"
 
 import { useColorScheme } from "@/hooks/use-color-scheme"
 import { AuthProvider, useAuth } from "@/lib/auth"
-import { registerPushTokenIfGranted } from "@/lib/pushTokenRegistration"
+import { PushTokenSync } from "@/components/PushTokenSync"
 import { NotificationTapHandler } from "@/lib/notificationTapRouting"
-import { getSupabaseClient } from "@/lib/supabaseClient"
 import * as SystemUI from "expo-system-ui"
 
 import {
@@ -163,20 +162,6 @@ export default function RootLayout() {
   const navTheme = appNavigationTheme(colorScheme)
 
   useEffect(() => {
-    registerPushTokenIfGranted().catch(() => {})
-
-    const supabase = getSupabaseClient()
-    if (!supabase) return
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        registerPushTokenIfGranted().catch(() => {})
-      }
-    })
-    return () => subscription.unsubscribe()
-  }, [])
-
-  useEffect(() => {
     SystemUI.setBackgroundColorAsync(APP_SURFACE).catch((e) => {
       console.warn("[system-ui] setBackgroundColorAsync failed", e)
     })
@@ -220,6 +205,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={navTheme}>
       <AuthProvider>
+        <PushTokenSync />
         <RootAppShell />
       </AuthProvider>
     </ThemeProvider>

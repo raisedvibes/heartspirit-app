@@ -42,7 +42,7 @@ export const STAY_IN_RHYTHM_PROMPT = {
 export const PRACTICE_TIMER_CHIME_HELPER =
   "To hear your completion chime while your phone is resting, ensure your device volume and notifications are turned on."
 
-export async function openNotificationSettings(): Promise<void>
+export async function openNotificationSettings(): Promise<void> {
   try {
     await Linking.openSettings()
   } catch {
@@ -57,7 +57,10 @@ export async function openNotificationSettings(): Promise<void>
 export async function enableNotificationsFromPrompt(): Promise<boolean> {
   const before = await Notifications.getPermissionsAsync()
   if (before.status === "granted") {
-    return registerPushTokenIfGranted()
+    return registerPushTokenIfGranted({
+      reason: "enable-notifications-prompt",
+      force: true,
+    })
   }
 
   if (!before.canAskAgain) {
@@ -69,7 +72,9 @@ export async function enableNotificationsFromPrompt(): Promise<boolean> {
     return false
   }
 
-  const granted = await requestNotificationPermissionAndRegister()
+  const granted = await requestNotificationPermissionAndRegister({
+    reason: "enable-notifications-prompt",
+  })
   if (!granted) {
     const after = await Notifications.getPermissionsAsync()
     if (!after.canAskAgain) {
