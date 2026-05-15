@@ -20,9 +20,29 @@ export function getTabScreenContentTopMargin(insets: { top: number }): number {
 export const TAB_BAR_HEIGHT = 56
 export const TAB_BAR_GAP = 5
 
-/** Bottom padding for tab screens: clears tab bar + safe area + small gap. Use for ScreenContent and scroll contentContainerStyle. */
+/**
+ * Premium scroll tail below the last item when the tab root uses `bottomPaddingOverride={0}`.
+ * Tab bar + home indicator + calm gap so content never feels trapped behind the dock.
+ * Do not combine with ScreenContent `paddingBottom` in that pattern (single source).
+ */
+export const PREMIUM_TAB_SCROLL_END_PADDING = 28
+
+/** Stack screens (e.g. practice) sit above the tab bar — only safe area + breathing room below content. */
+export const PREMIUM_STACK_SCROLL_BOTTOM_PADDING = 28
+
+/** Bottom padding for ScreenContent when not using scroll `contentContainerStyle` clearance (e.g. non-tab). */
 export function getTabBarBottomPadding(insets: { bottom: number }): number {
   return TAB_BAR_HEIGHT + insets.bottom + TAB_BAR_GAP
+}
+
+/** Use on ScrollView/FlatList `contentContainerStyle` for authenticated tab roots with `bottomPaddingOverride={0}`. */
+export function getTabScrollContentBottomPadding(insets: { bottom: number }): number {
+  return TAB_BAR_HEIGHT + insets.bottom + PREMIUM_TAB_SCROLL_END_PADDING
+}
+
+/** Use on stack/modal scroll roots (no tab bar). */
+export function getStackScrollContentBottomPadding(insets: { bottom: number }): number {
+  return insets.bottom + PREMIUM_STACK_SCROLL_BOTTOM_PADDING
 }
 
 export default function ScreenContent({

@@ -11,7 +11,7 @@ import { Image } from "expo-image"
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { router } from "expo-router"
-import ScreenContent, { TAB_BAR_HEIGHT } from "@/components/layout/ScreenContent"
+import ScreenContent, { getTabScrollContentBottomPadding } from "@/components/layout/ScreenContent"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import { ThemedText } from "@/components/themed-text"
@@ -570,7 +570,7 @@ export default function EnergyCheckScreen() {
           style={styles.mainScroll}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 8, flexGrow: 1 },
+            { paddingBottom: getTabScrollContentBottomPadding(insets), flexGrow: 1 },
           ]}
           showsVerticalScrollIndicator={false}
           onScroll={scrollHandler}

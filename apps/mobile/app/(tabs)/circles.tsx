@@ -6,7 +6,7 @@ import { useFocusEffect } from "expo-router"
 import { Image } from "expo-image"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import ScreenContent, { TAB_BAR_HEIGHT } from "@/components/layout/ScreenContent"
+import ScreenContent, { getTabScrollContentBottomPadding } from "@/components/layout/ScreenContent"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
@@ -234,7 +234,7 @@ export default function CirclesScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 8 },
+            { paddingBottom: getTabScrollContentBottomPadding(insets) },
           ]}
           showsVerticalScrollIndicator={false}
           onScroll={scrollHandler}

@@ -4,7 +4,7 @@ import { View, StyleSheet, Pressable, Switch, Linking, TextInput, Alert } from "
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
-import ScreenContent, { TAB_BAR_HEIGHT } from "@/components/layout/ScreenContent"
+import ScreenContent, { getTabScrollContentBottomPadding } from "@/components/layout/ScreenContent"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
@@ -352,7 +352,7 @@ export default function SettingsScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 8 },
+            { paddingBottom: getTabScrollContentBottomPadding(insets) },
           ]}
           showsVerticalScrollIndicator={false}
           onScroll={scrollHandler}

@@ -22,7 +22,7 @@ import {
   Video,
 } from "expo-av"
 
-import ScreenContent from "@/components/layout/ScreenContent"
+import ScreenContent, { getStackScrollContentBottomPadding } from "@/components/layout/ScreenContent"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
 import { GLASS } from "@/components/ui/glass"
@@ -706,7 +706,7 @@ export default function PracticeDetailScreen() {
             style={styles.scrollView}
             contentContainerStyle={[
               styles.scrollContent,
-              { paddingBottom: insets.bottom + 20 },
+              { paddingBottom: getStackScrollContentBottomPadding(insets) },
             ]}
             showsVerticalScrollIndicator={false}
           >

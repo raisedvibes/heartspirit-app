@@ -2,7 +2,7 @@ import { router } from "expo-router"
 import { View, StyleSheet, ImageBackground, Pressable, Linking, ScrollView } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
-import ScreenContent from "@/components/layout/ScreenContent"
+import ScreenContent, { getStackScrollContentBottomPadding } from "@/components/layout/ScreenContent"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import { ThemedText } from "@/components/themed-text"
 
@@ -19,7 +19,7 @@ export default function PrivacyScreen() {
         <ScreenContent bottomPaddingOverride={0}>
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: getStackScrollContentBottomPadding(insets) }]}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.header}>

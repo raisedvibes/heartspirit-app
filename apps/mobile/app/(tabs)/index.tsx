@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { View, StyleSheet } from "react-native"
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import ScreenContent, { TAB_BAR_HEIGHT } from "@/components/layout/ScreenContent"
+import ScreenContent, { getTabScrollContentBottomPadding } from "@/components/layout/ScreenContent"
 import { CirclesWidget } from "@/components/dashboard/Circles"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import {
@@ -14,9 +14,6 @@ import { WeeklyReflectionCard } from "@/components/dashboard/WeeklyReflectionCar
 import BottomFade from "@/components/ui/BottomFade"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import { getSupabaseClient } from "@/lib/supabaseClient"
-
-/** Extra scroll tail on Home only so the last card clears the tab dock with a bit more air than other tabs. */
-const HOME_SCROLL_EXTRA_BOTTOM = 20
 
 type WeeklyReflectionRow = {
   title: string | null
@@ -101,8 +98,7 @@ export default function HomeScreen() {
           contentContainerStyle={[
             styles.content,
             {
-              paddingBottom:
-                TAB_BAR_HEIGHT + insets.bottom + 8 + HOME_SCROLL_EXTRA_BOTTOM,
+              paddingBottom: getTabScrollContentBottomPadding(insets),
               flexGrow: 1,
             },
           ]}

@@ -20,7 +20,7 @@ import DateTimePicker, {
   DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import ScreenContent, { TAB_BAR_HEIGHT } from "@/components/layout/ScreenContent"
+import ScreenContent, { getTabScrollContentBottomPadding } from "@/components/layout/ScreenContent"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import { ANDROID_SCROLL_PRESS_DELAY } from "@/lib/androidScrollPress"
 import BottomFade from "@/components/ui/BottomFade"
@@ -273,7 +273,7 @@ export default function RitualsScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
               styles.listContent,
-              { paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 8 },
+              { paddingBottom: getTabScrollContentBottomPadding(insets) },
             ]}
             stickyHeaderIndices={[1]}
             onScroll={scrollHandler}
@@ -899,7 +899,7 @@ const styles = StyleSheet.create({
   weekDate: { marginTop: 2, fontSize: 12, lineHeight: 14, opacity: 0.85 },
   weekLabelToday: { opacity: 1, fontWeight: "600" },
   list: { flex: 1 },
-  listContent: { paddingBottom: 24, gap: 12 },
+  listContent: { gap: 12 },
   ritualRow: { padding: 12 },
   ritualHeaderRow: {
     flexDirection: "row",
