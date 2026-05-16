@@ -33,6 +33,24 @@ export type CircleNotificationRecipients = {
 }
 
 const LOOKBACK_HOURS = 26
+const CIRCLE_PUSH_TIMEZONE = "America/Los_Angeles"
+
+function formatCircleStartsAtForPush(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ""
+
+  const formatted = new Intl.DateTimeFormat("en-US", {
+    timeZone: CIRCLE_PUSH_TIMEZONE,
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZoneName: "short",
+  }).format(date)
+
+  return formatted.replace(", ", " at ")
+}
 
 function iso(d: Date): string {
   return d.toISOString()
@@ -294,7 +312,7 @@ export async function sendCircleActivityNotification(
 
     const body =
       after.starts_at
-        ? `Latest details available. Starts ${new Date(after.starts_at).toLocaleString()}.`
+        ? `Latest details available. Starts ${formatCircleStartsAtForPush(after.starts_at)}.`
         : "Latest details are now available."
 
     const result = await sendExpoPushMessages(
@@ -392,7 +410,7 @@ export async function sendManualCirclePushNow(
   let skippedNoTokens = 0
   let skippedDuplicate = 0
 
-  const when = circle.starts_at ? new Date(circle.starts_at).toLocaleString() : ""
+  const when = circle.starts_at ? formatCircleStartsAtForPush(circle.starts_at) : ""
   const body = when.trim() ? `${circle.name} — ${when}` : circle.name
 
   for (const userId of userIds) {

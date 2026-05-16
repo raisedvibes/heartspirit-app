@@ -12,6 +12,9 @@ export const TAB_SCREEN_TOP_INSET = 64
  */
 export const TAB_SCREEN_TOP_INSET_COLLAPSED = 2
 
+/** Android tab scroll: raise clip edge without shifting resting content (paired inner paddingTop). */
+const ANDROID_SCROLL_TOP_CLIP_TRIM = 12
+
 export function getTabScreenContentTopMargin(insets: { top: number }): number {
   return insets.top + TAB_SCREEN_TOP_INSET
 }
@@ -84,8 +87,18 @@ export default function ScreenContent({
    */
   if (animatedOuterStyle && Platform.OS === "android") {
     return (
-      <View style={[base, { marginTop: contentTop }, style]}>
-        <View style={{ flex: 1 }}>{children}</View>
+      <View
+        style={[base, { marginTop: contentTop - ANDROID_SCROLL_TOP_CLIP_TRIM }, style]}
+      >
+        <View
+          style={{
+            flex: 1,
+            paddingTop: ANDROID_SCROLL_TOP_CLIP_TRIM,
+            overflow: "hidden",
+          }}
+        >
+          {children}
+        </View>
       </View>
     )
   }

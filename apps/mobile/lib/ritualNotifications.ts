@@ -3,7 +3,7 @@ import { Platform } from "react-native"
 import type { Ritual } from "./ritualsStore"
 
 const RITUAL_CHANNEL_ID = "ritual-reminders"
-const PRACTICE_TIMER_CHANNEL_ID = "practice_timer"
+const PRACTICE_TIMER_CHANNEL_ID = "practice_timer_v2"
 const PRACTICE_TIMER_SOUND = "heartspirit_chime"
 const PRACTICE_TIMER_NOTIFICATION_TYPE = "practice_timer_complete"
 const RITUAL_NOTIFICATION_TYPE = "ritual_reminder"
