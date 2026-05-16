@@ -1,5 +1,5 @@
 import * as React from "react"
-import { View, type ViewStyle } from "react-native"
+import { Platform, View, type ViewStyle } from "react-native"
 import Animated, { type AnimatedStyle } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -75,6 +75,19 @@ export default function ScreenContent({
     backgroundColor: "transparent" as const,
     paddingHorizontal: 16,
     paddingBottom,
+  }
+
+  /**
+   * Android: do not wrap the tab scroller in a translateY-driven Animated.View — that fights
+   * ScrollView during touch-hold and causes jitter. Use the same top inset as at-rest iOS
+   * (full `contentTop`); logo collapse still runs from scrollY in tab layout.
+   */
+  if (animatedOuterStyle && Platform.OS === "android") {
+    return (
+      <View style={[base, { marginTop: contentTop }, style]}>
+        <View style={{ flex: 1 }}>{children}</View>
+      </View>
+    )
   }
 
   if (animatedOuterStyle) {

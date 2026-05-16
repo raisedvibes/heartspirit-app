@@ -19,7 +19,10 @@ import {
   InterruptionModeIOS,
   ResizeMode,
   Video,
+  VideoFullscreenUpdate,
+  type VideoFullscreenUpdateEvent,
 } from "expo-av"
+import * as ScreenOrientation from "expo-screen-orientation"
 
 import ScreenContent, { getStackScrollContentBottomPadding } from "@/components/layout/ScreenContent"
 import TranslucentCard from "@/components/ui/TranslucentCard"
@@ -237,6 +240,31 @@ export default function PracticeDetailScreen() {
     }
     setVideoLoading(true)
   }, [ensureAudioMode])
+
+  /** Android: allow landscape in native fullscreen while rotation is unlocked; restore portrait after dismiss. */
+  const handlePracticeVideoFullscreenOrientation = useCallback(
+    (event: VideoFullscreenUpdateEvent) => {
+      if (Platform.OS !== "android") return
+      const { fullscreenUpdate } = event
+      if (fullscreenUpdate === VideoFullscreenUpdate.PLAYER_WILL_PRESENT) {
+        void ScreenOrientation.unlockAsync().catch((e) => {
+          console.warn("[practice video] orientation unlock failed", e)
+        })
+        return
+      }
+      if (
+        fullscreenUpdate === VideoFullscreenUpdate.PLAYER_WILL_DISMISS ||
+        fullscreenUpdate === VideoFullscreenUpdate.PLAYER_DID_DISMISS
+      ) {
+        void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(
+          (e) => {
+            console.warn("[practice video] orientation lock portrait failed", e)
+          }
+        )
+      }
+    },
+    []
+  )
 
   const ensureSilentLoopForTimer = useCallback(async () => {
     if (isAudioPlaying || isVideoPlaying) return
@@ -615,6 +643,13 @@ export default function PracticeDetailScreen() {
   }, [id])
 
   useEffect(() => {
+    return () => {
+      if (Platform.OS !== "android") return
+      void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {})
+    }
+  }, [id])
+
+  useEffect(() => {
     showVideoRef.current = showVideo
   }, [showVideo])
 
@@ -847,6 +882,7 @@ export default function PracticeDetailScreen() {
                                 revealVideoIfRequested()
                               }}
                               onPlaybackStatusUpdate={handleVideoPlaybackStatus}
+                              onFullscreenUpdate={handlePracticeVideoFullscreenOrientation}
                               onError={(error) => {
                                 console.log("[practice video] failed", error)
                                 setVideoLoading(false)
@@ -854,6 +890,11 @@ export default function PracticeDetailScreen() {
                                 videoReadyForDisplayRef.current = false
                                 setShowVideo(false)
                                 setVideoRevealed(false)
+                                if (Platform.OS === "android") {
+                                  void ScreenOrientation.lockAsync(
+                                    ScreenOrientation.OrientationLock.PORTRAIT_UP
+                                  ).catch(() => {})
+                                }
                               }}
                             />
                           </View>
