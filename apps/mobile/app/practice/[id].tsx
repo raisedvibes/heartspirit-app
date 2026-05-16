@@ -241,14 +241,14 @@ export default function PracticeDetailScreen() {
     setVideoLoading(true)
   }, [ensureAudioMode])
 
-  /** Android: allow landscape in native fullscreen while rotation is unlocked; restore portrait after dismiss. */
+  /** Android: allow rotation in native fullscreen; restore portrait after dismiss. */
   const handlePracticeVideoFullscreenOrientation = useCallback(
     (event: VideoFullscreenUpdateEvent) => {
       if (Platform.OS !== "android") return
       const { fullscreenUpdate } = event
       if (fullscreenUpdate === VideoFullscreenUpdate.PLAYER_WILL_PRESENT) {
-        void ScreenOrientation.unlockAsync().catch((e) => {
-          console.warn("[practice video] orientation unlock failed", e)
+        void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.ALL).catch((e) => {
+          console.warn("[practice video] orientation lock all failed", e)
         })
         return
       }
