@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "702706884873",
+    "project_id": "raisedvibes-heartspirit",
+    "storage_bucket": "raisedvibes-heartspirit.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:702706884873:android:af7d6de66e28a0e9f7b3d8",
+        "android_client_info": {
+          "package_name": "com.raised_vibes.heartspirit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgSW3kAYZDTb5HEX7rvJ5awzvhjmrltDE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
