@@ -4,7 +4,8 @@ import type { Ritual } from "./ritualsStore"
 
 const RITUAL_CHANNEL_ID = "ritual-reminders"
 const PRACTICE_TIMER_CHANNEL_ID = "practice_timer_v2"
-const PRACTICE_TIMER_SOUND = "heartspirit_chime"
+const PRACTICE_TIMER_SOUND_ANDROID = "heartspirit_chime"
+const PRACTICE_TIMER_SOUND_IOS = "heartspirit_chime.mp3"
 const PRACTICE_TIMER_NOTIFICATION_TYPE = "practice_timer_complete"
 const RITUAL_NOTIFICATION_TYPE = "ritual_reminder"
 
@@ -99,7 +100,7 @@ async function ensurePracticeTimerChannel() {
     await Notifications.setNotificationChannelAsync(PRACTICE_TIMER_CHANNEL_ID, {
       name: "Practice timer",
       importance: Notifications.AndroidImportance.HIGH,
-      sound: PRACTICE_TIMER_SOUND,
+      sound: PRACTICE_TIMER_SOUND_ANDROID,
       audioAttributes: {
         usage: Notifications.AndroidAudioUsage.NOTIFICATION,
         contentType: Notifications.AndroidAudioContentType.SONIFICATION,
@@ -170,7 +171,7 @@ export async function schedulePracticeTimerCompletion(
     content: {
       title,
       body,
-      sound: PRACTICE_TIMER_SOUND,
+      sound: Platform.OS === "ios" ? PRACTICE_TIMER_SOUND_IOS : PRACTICE_TIMER_SOUND_ANDROID,
       data: { type: PRACTICE_TIMER_NOTIFICATION_TYPE },
       ...(Platform.OS === "android" ? { channelId: PRACTICE_TIMER_CHANNEL_ID } : {}),
     },
@@ -185,7 +186,7 @@ export async function schedulePracticeTimerCompletion(
   console.log("[practice timer notif] scheduled", {
     id,
     channelId: PRACTICE_TIMER_CHANNEL_ID,
-    sound: PRACTICE_TIMER_SOUND,
+    sound: Platform.OS === "ios" ? PRACTICE_TIMER_SOUND_IOS : PRACTICE_TIMER_SOUND_ANDROID,
     fireDate: fireDate.toISOString(),
     secondsUntilEnd: safeSeconds,
     pendingCount: pending.length,

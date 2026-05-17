@@ -462,8 +462,10 @@ export default function PracticeDetailScreen() {
       await stopSilentLoopForTimer()
 
       if (appState === "active") {
-        console.log("[practice timer] cancel scheduled notification (foreground completion)")
-        await cancelTimerNotification()
+        if (Platform.OS !== "android") {
+          console.log("[practice timer] cancel scheduled notification (foreground completion)")
+          await cancelTimerNotification()
+        }
         if (hasChime) {
           console.log("[practice chime] playChime after completion", { reason, appState })
           await playChime()
