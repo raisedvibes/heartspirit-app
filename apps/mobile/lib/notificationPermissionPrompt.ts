@@ -30,7 +30,7 @@ export async function getNotificationPermissionState(): Promise<{
   }
 }
 
-/** Shared soft-prompt copy for contextual notification asks. */
+/** Shared soft-prompt copy for ritual and general notification enablement. */
 export const STAY_IN_RHYTHM_PROMPT = {
   title: "Stay in rhythm",
   body: "Heartspirit will remind you of your rituals, practice completions, and upcoming circles.",
@@ -38,9 +38,21 @@ export const STAY_IN_RHYTHM_PROMPT = {
   secondaryLabel: "Not Now",
 } as const
 
-/** Helper for practice timer / locked-screen completion chime permission contexts. */
-export const PRACTICE_TIMER_CHIME_HELPER =
-  "To hear your completion chime while your phone is resting, ensure your device volume and notifications are turned on."
+/** Practice timer — locked-screen completion chime only. */
+export const PRACTICE_TIMER_CHIME_PROMPT = {
+  title: "Enable locked-screen chime?",
+  body: "To hear the completion chime when your phone is locked, allow notifications for Heartspirit. You can still practice without it.",
+  primaryLabel: "Enable Chime",
+  secondaryLabel: "Continue Without Chime",
+} as const
+
+/** Circle reserve / circle reminder permission context. */
+export const CIRCLE_REMINDERS_PROMPT = {
+  title: "Enable circle reminders?",
+  body: "Allow notifications so Heartspirit can remind you before upcoming circles. You can still reserve your place without reminders.",
+  primaryLabel: "Enable Reminders",
+  secondaryLabel: "Not Now",
+} as const
 
 export async function openNotificationSettings(): Promise<void> {
   try {

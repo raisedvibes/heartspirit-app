@@ -26,7 +26,7 @@ import {
 import {
   enableNotificationsFromPrompt,
   isNotificationPermissionGranted,
-  PRACTICE_TIMER_CHIME_HELPER,
+  STAY_IN_RHYTHM_PROMPT,
 } from "@/lib/notificationPermissionPrompt"
 
 type SectionKey = "about" | "profile" | "notifications" | "privacy" | "support"
@@ -710,7 +710,7 @@ export default function SettingsScreen() {
                       )}
                       {!osNotifGranted ? (
                         <ThemedText type="muted" style={styles.permissionHelperText}>
-                          {PRACTICE_TIMER_CHIME_HELPER}
+                          {STAY_IN_RHYTHM_PROMPT.body}
                         </ThemedText>
                       ) : null}
                       {!osNotifGranted ? (

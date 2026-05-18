@@ -15,6 +15,7 @@ import { ThemedText } from "@/components/themed-text"
 import { getSupabaseClient } from "@/lib/supabaseClient"
 import { NotificationPermissionModal } from "@/components/notifications/NotificationPermissionModal"
 import {
+  CIRCLE_REMINDERS_PROMPT,
   enableNotificationsFromPrompt,
   isNotificationPermissionGranted,
   markCirclesSoftPromptShownThisSession,
@@ -110,6 +111,9 @@ export default function CirclesScreen() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [notifPromptSource, setNotifPromptSource] = useState<"tab" | "reserve" | null>(null)
   const pendingReserveCircleRef = useRef<CircleRow | null>(null)
+
+  const circlesNotifPrompt =
+    notifPromptSource === "reserve" ? CIRCLE_REMINDERS_PROMPT : STAY_IN_RHYTHM_PROMPT
 
   const fetchCircles = useCallback(async () => {
     if (!supabase) {
@@ -329,10 +333,10 @@ export default function CirclesScreen() {
 
       <NotificationPermissionModal
         visible={notifPromptSource !== null}
-        title={STAY_IN_RHYTHM_PROMPT.title}
-        body={STAY_IN_RHYTHM_PROMPT.body}
-        primaryLabel={STAY_IN_RHYTHM_PROMPT.primaryLabel}
-        secondaryLabel={STAY_IN_RHYTHM_PROMPT.secondaryLabel}
+        title={circlesNotifPrompt.title}
+        body={circlesNotifPrompt.body}
+        primaryLabel={circlesNotifPrompt.primaryLabel}
+        secondaryLabel={circlesNotifPrompt.secondaryLabel}
         onPrimary={() => {
           const source = notifPromptSource
           const pending = pendingReserveCircleRef.current

@@ -39,7 +39,7 @@ import { NotificationPermissionModal } from "@/components/notifications/Notifica
 import {
   enableNotificationsFromPrompt,
   isNotificationPermissionGranted,
-  PRACTICE_TIMER_CHIME_HELPER,
+  PRACTICE_TIMER_CHIME_PROMPT,
 } from "@/lib/notificationPermissionPrompt"
 
 const CHIME_SOURCE = require("@/assets/audio/heartspirit_chime.mp3")
@@ -1133,11 +1133,10 @@ export default function PracticeDetailScreen() {
 
       <NotificationPermissionModal
         visible={showTimerNotifPrompt}
-        title="Completion chime"
-        body="Enable notifications to receive your completion chime and practice reminders while your device is locked."
-        helperText={PRACTICE_TIMER_CHIME_HELPER}
-        primaryLabel="Enable Notifications"
-        secondaryLabel="Continue Without Locked-Screen Alerts"
+        title={PRACTICE_TIMER_CHIME_PROMPT.title}
+        body={PRACTICE_TIMER_CHIME_PROMPT.body}
+        primaryLabel={PRACTICE_TIMER_CHIME_PROMPT.primaryLabel}
+        secondaryLabel={PRACTICE_TIMER_CHIME_PROMPT.secondaryLabel}
         onPrimary={() => {
           setShowTimerNotifPrompt(false)
           void (async () => {
