@@ -1115,6 +1115,10 @@ export default function PracticeDetailScreen() {
                           </Pressable>
                         </View>
 
+                        <ThemedText type="muted" style={styles.timerSoundHint}>
+                          For the full experience, make sure your sound is on so you can hear the completion chime.
+                        </ThemedText>
+
                         <ThemedText type="muted" style={styles.timerHint}>
                           After this practice, check in with your energy.
                           {"\n"}How has it shifted?
@@ -1589,6 +1593,13 @@ const styles = StyleSheet.create({
   timerResetButtonText: {
     color: "#111",
     fontSize: 14,
+  },
+
+  timerSoundHint: {
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
+    opacity: 0.72,
   },
 
   timerHint: {
