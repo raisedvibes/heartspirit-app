@@ -4,7 +4,10 @@ import { View, StyleSheet, Pressable, Switch, Linking, TextInput, Alert } from "
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
-import ScreenContent, { getTabScrollContentBottomPadding } from "@/components/layout/ScreenContent"
+import ScreenContent, {
+  getTabScrollContentBottomPadding,
+  getTabScrollContentTopPadding,
+} from "@/components/layout/ScreenContent"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
@@ -33,7 +36,7 @@ type SectionKey = "about" | "profile" | "notifications" | "privacy" | "support"
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
-  const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("settings")
+  const { scrollHandler } = useCollapsibleTabHeader("settings")
 
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     about: false,
@@ -377,15 +380,15 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenContent
-        animatedOuterStyle={animatedScreenOuterStyle}
-        bottomPaddingOverride={0}
-      >
+      <ScreenContent edgeToEdgeScroll bottomPaddingOverride={0}>
         <Animated.ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: getTabScrollContentBottomPadding(insets) },
+            {
+              paddingTop: getTabScrollContentTopPadding(insets),
+              paddingBottom: getTabScrollContentBottomPadding(insets),
+            },
           ]}
           showsVerticalScrollIndicator={false}
           onScroll={scrollHandler}

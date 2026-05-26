@@ -11,7 +11,10 @@ import { Image } from "expo-image"
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { router } from "expo-router"
-import ScreenContent, { getTabScrollContentBottomPadding } from "@/components/layout/ScreenContent"
+import ScreenContent, {
+  getTabScrollContentBottomPadding,
+  getTabScrollContentTopPadding,
+} from "@/components/layout/ScreenContent"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import { ThemedText } from "@/components/themed-text"
@@ -310,7 +313,7 @@ function SeasonalPracticeCard({
 
 export default function EnergyCheckScreen() {
   const insets = useSafeAreaInsets()
-  const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("energy")
+  const { scrollHandler } = useCollapsibleTabHeader("energy")
   const [userName] = useState<string | undefined>(undefined)
   const [todayPlacements, setTodayPlacements] = useState<PlacementRow[]>([])
   const [seasonalPlacements, setSeasonalPlacements] = useState<PlacementRow[]>([])
@@ -562,15 +565,16 @@ export default function EnergyCheckScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenContent
-        animatedOuterStyle={animatedScreenOuterStyle}
-        bottomPaddingOverride={0}
-      >
+      <ScreenContent edgeToEdgeScroll bottomPaddingOverride={0}>
         <Animated.ScrollView
           style={styles.mainScroll}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: getTabScrollContentBottomPadding(insets), flexGrow: 1 },
+            {
+              paddingTop: getTabScrollContentTopPadding(insets),
+              paddingBottom: getTabScrollContentBottomPadding(insets),
+              flexGrow: 1,
+            },
           ]}
           showsVerticalScrollIndicator={false}
           onScroll={scrollHandler}

@@ -25,8 +25,9 @@ export type CollapsibleTabHeaderId =
   | "settings"
 
 /**
- * Shared collapsible tab header: drives logo fade/slide + (iOS only) ScreenContent translateY
- * from this tab’s primary vertical scroll. Android skips parent translate — see ScreenContent.
+ * Shared collapsible tab header: drives logo fade/slide from this tab’s primary vertical scroll.
+ * Edge-to-edge pilot screens (e.g. Energy) use scrollHandler only + scroll content paddingTop;
+ * legacy tabs still pass animatedScreenOuterStyle for iOS wrapper translateY — see ScreenContent.
  */
 export function useCollapsibleTabHeader(tabId: CollapsibleTabHeaderId) {
   const insets = useSafeAreaInsets()

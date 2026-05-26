@@ -20,7 +20,10 @@ import DateTimePicker, {
   DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import ScreenContent, { getTabScrollContentBottomPadding } from "@/components/layout/ScreenContent"
+import ScreenContent, {
+  getTabScrollContentBottomPadding,
+  getTabScrollContentTopPadding,
+} from "@/components/layout/ScreenContent"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import { ANDROID_SCROLL_PRESS_DELAY } from "@/lib/androidScrollPress"
 import BottomFade from "@/components/ui/BottomFade"
@@ -95,7 +98,7 @@ export default function RitualsScreen() {
   const insets = useSafeAreaInsets()
   const { width: windowWidth } = useWindowDimensions()
   const deleteConfirmNarrowLayout = windowWidth < 360
-  const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("rituals")
+  const { scrollHandler } = useCollapsibleTabHeader("rituals")
   const rituals = useRitualsStore((s) => s.rituals)
   const hasHydrated = useRitualsStore((s) => s.hasHydrated)
   const upsert = useRitualsStore((s) => s.upsert)
@@ -260,10 +263,7 @@ export default function RitualsScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenContent
-        animatedOuterStyle={animatedScreenOuterStyle}
-        bottomPaddingOverride={0}
-      >
+      <ScreenContent edgeToEdgeScroll bottomPaddingOverride={0}>
         <View style={styles.inner}>
           <Animated.FlatList<RitualsListRow>
             ref={flatListRef}
@@ -273,7 +273,10 @@ export default function RitualsScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
               styles.listContent,
-              { paddingBottom: getTabScrollContentBottomPadding(insets) },
+              {
+                paddingTop: getTabScrollContentTopPadding(insets),
+                paddingBottom: getTabScrollContentBottomPadding(insets),
+              },
             ]}
             stickyHeaderIndices={[1]}
             onScroll={scrollHandler}

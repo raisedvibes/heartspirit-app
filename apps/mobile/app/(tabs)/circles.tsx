@@ -6,7 +6,10 @@ import { useFocusEffect } from "expo-router"
 import { Image } from "expo-image"
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import ScreenContent, { getTabScrollContentBottomPadding } from "@/components/layout/ScreenContent"
+import ScreenContent, {
+  getTabScrollContentBottomPadding,
+  getTabScrollContentTopPadding,
+} from "@/components/layout/ScreenContent"
 import { useCollapsibleTabHeader } from "@/hooks/useCollapsibleTabHeader"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
@@ -103,7 +106,7 @@ function CircleCardImage({
 
 export default function CirclesScreen() {
   const insets = useSafeAreaInsets()
-  const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("circles")
+  const { scrollHandler } = useCollapsibleTabHeader("circles")
   const supabase = getSupabaseClient()
 
   const [circles, setCircles] = useState<CircleRow[]>([])
@@ -230,15 +233,15 @@ export default function CirclesScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenContent
-        animatedOuterStyle={animatedScreenOuterStyle}
-        bottomPaddingOverride={0}
-      >
+      <ScreenContent edgeToEdgeScroll bottomPaddingOverride={0}>
         <Animated.ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: getTabScrollContentBottomPadding(insets) },
+            {
+              paddingTop: getTabScrollContentTopPadding(insets),
+              paddingBottom: getTabScrollContentBottomPadding(insets),
+            },
           ]}
           showsVerticalScrollIndicator={false}
           onScroll={scrollHandler}

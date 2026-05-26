@@ -2,7 +2,10 @@ import { useEffect, useState } from "react"
 import { View, StyleSheet } from "react-native"
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import ScreenContent, { getTabScrollContentBottomPadding } from "@/components/layout/ScreenContent"
+import ScreenContent, {
+  getTabScrollContentBottomPadding,
+  getTabScrollContentTopPadding,
+} from "@/components/layout/ScreenContent"
 import { CirclesWidget } from "@/components/dashboard/Circles"
 import { EnergyCheck } from "@/components/dashboard/EnergyCheck"
 import {
@@ -22,7 +25,7 @@ type WeeklyReflectionRow = {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets()
-  const { animatedScreenOuterStyle, scrollHandler } = useCollapsibleTabHeader("home")
+  const { scrollHandler } = useCollapsibleTabHeader("home")
   const [weeklyReflection, setWeeklyReflection] = useState<WeeklyReflectionRow | null>(null)
   const [homePromo, setHomePromo] = useState<HomePromoRow | null>(null)
 
@@ -89,15 +92,13 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenContent
-        animatedOuterStyle={animatedScreenOuterStyle}
-        bottomPaddingOverride={0}
-      >
+      <ScreenContent edgeToEdgeScroll bottomPaddingOverride={0}>
         <Animated.ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.content,
             {
+              paddingTop: getTabScrollContentTopPadding(insets),
               paddingBottom: getTabScrollContentBottomPadding(insets),
               flexGrow: 1,
             },
@@ -131,6 +132,6 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { gap: 16, paddingTop: 14 },
+  content: { gap: 16 },
   grid: { gap: 14 },
 })

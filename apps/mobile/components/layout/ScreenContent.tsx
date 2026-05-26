@@ -48,11 +48,21 @@ export function getStackScrollContentBottomPadding(insets: { bottom: number }): 
   return insets.bottom + PREMIUM_STACK_SCROLL_BOTTOM_PADDING
 }
 
+/**
+ * Scroll content top inset for edge-to-edge tab screens (Calm-like pilot).
+ * Apply on ScrollView/FlatList `contentContainerStyle`; pair with `edgeToEdgeScroll` on ScreenContent.
+ */
+export function getTabScrollContentTopPadding(insets: { top: number }): number {
+  return insets.top + TAB_SCREEN_TOP_INSET
+}
+
 export default function ScreenContent({
   children,
   style,
   noTabPadding,
   bottomPaddingOverride,
+  /** Edge-to-edge scroller under transparent logo overlay; top clearance via scroll content padding. */
+  edgeToEdgeScroll,
   /** When set, inner wrapper animates translateY for header collapse; outer uses collapsed top inset. */
   animatedOuterStyle,
 }: {
@@ -60,6 +70,7 @@ export default function ScreenContent({
   style?: any
   noTabPadding?: boolean
   bottomPaddingOverride?: number
+  edgeToEdgeScroll?: boolean
   animatedOuterStyle?: AnimatedStyle<ViewStyle>
 }) {
   const insets = useSafeAreaInsets()
@@ -78,6 +89,10 @@ export default function ScreenContent({
     backgroundColor: "transparent" as const,
     paddingHorizontal: 16,
     paddingBottom,
+  }
+
+  if (edgeToEdgeScroll) {
+    return <View style={[base, style]}>{children}</View>
   }
 
   /**
