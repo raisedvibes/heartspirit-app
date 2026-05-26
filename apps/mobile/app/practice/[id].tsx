@@ -24,7 +24,10 @@ import {
 } from "expo-av"
 import * as ScreenOrientation from "expo-screen-orientation"
 
-import ScreenContent, { getStackScrollContentBottomPadding } from "@/components/layout/ScreenContent"
+import ScreenContent, {
+  getStackScrollContentBottomPadding,
+  getStackScrollContentTopPadding,
+} from "@/components/layout/ScreenContent"
 import TranslucentCard from "@/components/ui/TranslucentCard"
 import BottomFade from "@/components/ui/BottomFade"
 import { GLASS } from "@/components/ui/glass"
@@ -765,12 +768,15 @@ export default function PracticeDetailScreen() {
         style={styles.bg}
         resizeMode="cover"
       >
-        <ScreenContent bottomPaddingOverride={0}>
+        <ScreenContent edgeToEdgeScroll bottomPaddingOverride={0}>
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={[
               styles.scrollContent,
-              { paddingBottom: getStackScrollContentBottomPadding(insets) },
+              {
+                paddingTop: getStackScrollContentTopPadding(insets),
+                paddingBottom: getStackScrollContentBottomPadding(insets),
+              },
             ]}
             showsVerticalScrollIndicator={false}
           >
@@ -1168,7 +1174,6 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     flexGrow: 1,
-    paddingTop: 8,
   },
 
   contentWrap: {

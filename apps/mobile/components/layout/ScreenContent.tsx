@@ -33,6 +33,9 @@ export const PREMIUM_TAB_SCROLL_END_PADDING = 28
 /** Stack screens (e.g. practice) sit above the tab bar — only safe area + breathing room below content. */
 export const PREMIUM_STACK_SCROLL_BOTTOM_PADDING = 28
 
+/** Breathing room below safe area on stack scroll roots (no tab logo overlay). */
+export const PREMIUM_STACK_SCROLL_TOP_PADDING = 16
+
 /** Bottom padding for ScreenContent when not using scroll `contentContainerStyle` clearance (e.g. non-tab). */
 export function getTabBarBottomPadding(insets: { bottom: number }): number {
   return TAB_BAR_HEIGHT + insets.bottom + TAB_BAR_GAP
@@ -54,6 +57,14 @@ export function getStackScrollContentBottomPadding(insets: { bottom: number }): 
  */
 export function getTabScrollContentTopPadding(insets: { top: number }): number {
   return insets.top + TAB_SCREEN_TOP_INSET
+}
+
+/**
+ * Scroll content top inset for edge-to-edge stack screens (no tab logo overlay).
+ * Pair with `edgeToEdgeScroll` on ScreenContent.
+ */
+export function getStackScrollContentTopPadding(insets: { top: number }): number {
+  return insets.top + PREMIUM_STACK_SCROLL_TOP_PADDING
 }
 
 export default function ScreenContent({
