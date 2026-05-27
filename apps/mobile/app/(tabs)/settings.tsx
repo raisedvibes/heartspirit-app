@@ -409,7 +409,7 @@ export default function SettingsScreen() {
                 <View style={styles.sectionBody}>
                   <View style={styles.aboutBody}>
                   <ThemedText type="muted" style={styles.aboutText}>
-  Heartspirit (verb): to integrate the heart and spirit— a return to your natural rhythm, a remembering of the wisdom within.
+  heartspirit (verb): to integrate the heart and spirit; a return to your natural rhythm, a remembering of the wisdom within.
 </ThemedText>
 
 <ThemedText type="muted" style={styles.aboutText}>
@@ -417,20 +417,11 @@ export default function SettingsScreen() {
 </ThemedText>
 
 <ThemedText type="muted" style={styles.aboutText}>
-  A portal—where awareness opens and power returns.
+  A portal: where awareness opens and power returns.
 </ThemedText>
 
                   <ThemedText type="muted" style={styles.aboutText}>
-                    — Created by Gabriel{"\n"}
-                    <ThemedText
-                      type="defaultSemiBold"
-                      style={styles.aboutLinkText}
-                      accessibilityRole="link"
-                      onPress={() => Linking.openURL("https://wellnessranger.com")}
-                    >
-                      WellnessRanger.com
-                      <ThemedText style={styles.aboutLinkGlyph}> ↗</ThemedText>
-                    </ThemedText>
+                    Created by Gabriel
                   </ThemedText>
                   </View>
                 </View>
