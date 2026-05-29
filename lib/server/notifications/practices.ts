@@ -8,7 +8,6 @@ const PUSH_TITLE = "New practice available"
 type PracticeRow = {
   id: string
   title: string | null
-  short_summary: string | null
 }
 
 type PracticeProfilePref = {
@@ -29,20 +28,9 @@ export type ManualPracticePushResult = {
   skippedDuplicate: number
 }
 
-const PRACTICE_PUSH_BODY_MAX_LENGTH = 120
-
-function truncatePushBody(text: string, maxLength: number): string {
-  const trimmed = text.trim()
-  if (trimmed.length <= maxLength) return trimmed
-  return `${trimmed.slice(0, maxLength - 1).trimEnd()}…`
-}
-
 function practicePushBody(practice: PracticeRow): string {
-  const summary = practice.short_summary?.trim()
-  if (summary) return truncatePushBody(summary, PRACTICE_PUSH_BODY_MAX_LENGTH)
-
   const title = practice.title?.trim()
-  if (title) return `Return to presence with ${title}.`
+  if (title) return title
 
   return "A new practice is ready for you."
 }
@@ -82,7 +70,7 @@ export async function sendManualPracticePushNow(
 
   const { data: practiceRow, error: practiceErr } = await supabase
     .from("practices")
-    .select("id, title, short_summary")
+    .select("id, title")
     .eq("id", practiceId)
     .maybeSingle()
 
