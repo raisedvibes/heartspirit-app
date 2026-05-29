@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { requireAdmin } from "@/lib/admin/requireAdmin"
+import { normalizeCircleFrequencyInput } from "@/lib/circles/frequency"
 import { mapCircleDbRowToApi } from "@/lib/circles/mapCircleJoinUrl"
 import { sendCircleActivityNotification } from "@/lib/server/notifications/circles"
 
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
     const insertRow: Record<string, unknown> = {
       name,
       description,
-      frequency: body.frequency ?? "Weekly",
+      frequency: normalizeCircleFrequencyInput(body.frequency),
       image_url: body.image_url ?? null,
       tags: body.tags ?? null,
       is_published: body.is_published ?? true,

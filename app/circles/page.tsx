@@ -13,7 +13,7 @@ type CircleRow = {
   id: string
   name: string
   description: string | null
-  frequency: "Weekly" | "Monthly"
+  frequency: string | null
   image_url: string | null
   tags: string[] | null
   is_published: boolean
@@ -118,7 +118,7 @@ export default function CirclesPage() {
                         id: circle.id,
                         name: circle.name,
                         description: circle.description ?? "",
-                        frequency: circle.frequency,
+                        frequency: circle.frequency ?? "",
                         image: circle.image_url ?? "/placeholder.svg",
                         tags: circle.tags ?? [],
                       }}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Users } from "lucide-react"
+import { formatCircleDateAndFrequency } from "@/lib/circles/frequency"
 import { createClient } from "@/lib/supabase/client"
 
 type NextCircle = {
@@ -11,7 +12,7 @@ type NextCircle = {
   name: string
   description: string | null
   starts_at: string | null
-  frequency: "Weekly" | "Monthly"
+  frequency: string | null
 }
 
 export function Circles() {
@@ -61,16 +62,21 @@ export function Circles() {
           <div className="space-y-1">
             <p className="text-sm font-medium text-white">Next: {nextCircle.name}</p>
 
-            {nextCircle.starts_at && (
-              <p className="text-xs text-white/80">
-                {new Date(nextCircle.starts_at).toLocaleDateString(undefined, {
-                  weekday: "long",
-                  month: "short",
-                  day: "numeric",
-                })}{" "}
-                • {nextCircle.frequency}
-              </p>
-            )}
+            {(() => {
+              const dateLine = formatCircleDateAndFrequency(
+                nextCircle.starts_at,
+                nextCircle.frequency,
+                (startsAt) => {
+                  if (!startsAt) return ""
+                  return new Date(startsAt).toLocaleDateString(undefined, {
+                    weekday: "long",
+                    month: "short",
+                    day: "numeric",
+                  })
+                }
+              )
+              return dateLine ? <p className="text-xs text-white/80">{dateLine}</p> : null
+            })()}
 
             {nextCircle.description && (
               <p className="text-xs text-white/80 line-clamp-2 mt-1">{nextCircle.description}</p>

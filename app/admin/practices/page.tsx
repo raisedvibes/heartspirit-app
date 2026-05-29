@@ -12,6 +12,7 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  Send,
   Trash2,
   X,
 } from "lucide-react"
@@ -178,6 +179,9 @@ export default function AdminPracticesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState<Draft | null>(null)
 
+  const [pushSendingId, setPushSendingId] = useState<string | null>(null)
+  const [notifyBanner, setNotifyBanner] = useState<{ tone: "success" | "error"; text: string } | null>(null)
+
   async function fetchPractices() {
     setLoading(true)
     setError(null)
@@ -334,6 +338,47 @@ export default function AdminPracticesPage() {
     }
   }
 
+  function formatManualPushResult(r: Record<string, unknown>) {
+    if (r.ok === false && typeof r.error === "string") return r.error
+    const usersScanned = Number(r.usersScanned ?? 0)
+    const tokensFound = Number(r.tokensFound ?? 0)
+    const sent = Number(r.sent ?? 0)
+    const skipped = Number(r.skipped ?? 0)
+    const failed = Number(r.failed ?? 0)
+    const skippedNoPrefs = Number(r.skippedNoPrefs ?? 0)
+    const skippedNoTokens = Number(r.skippedNoTokens ?? 0)
+    const skippedDuplicate = Number(r.skippedDuplicate ?? 0)
+    return (
+      `Manual push: users ${usersScanned}, token rows ${tokensFound}, sent ${sent}, skipped ${skipped}, failed ${failed}. ` +
+      `(Prefs off / no profile: ${skippedNoPrefs}, no token: ${skippedNoTokens}, duplicate reserve: ${skippedDuplicate})`
+    )
+  }
+
+  async function sendPracticeNotificationNow(practiceId: string) {
+    setPushSendingId(practiceId)
+    setNotifyBanner(null)
+    setError(null)
+    try {
+      const res = await fetch("/api/admin/notifications/practices/send-now", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ practice_id: practiceId }),
+      })
+      const json = (await res.json()) as Record<string, unknown>
+      if (!res.ok) {
+        const msg =
+          typeof json.error === "string" ? json.error : formatManualPushResult(json)
+        throw new Error(msg)
+      }
+      setNotifyBanner({ tone: "success", text: formatManualPushResult(json) })
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Manual push failed"
+      setNotifyBanner({ tone: "error", text: msg })
+    } finally {
+      setPushSendingId(null)
+    }
+  }
+
   async function deletePractice(practice: Practice) {
     const ok = confirm(`Delete practice "${practice.title}"? This cannot be undone.`)
     if (!ok) return
@@ -399,6 +444,19 @@ export default function AdminPracticesPage() {
             {error}
           </div>
         )}
+
+        {notifyBanner ? (
+          <div
+            className={`glass-card mb-6 p-4 text-sm ${
+              notifyBanner.tone === "success"
+                ? "border-green-500/30 bg-green-500/10 text-green-200"
+                : "border-amber-500/30 bg-amber-500/10 text-amber-100"
+            }`}
+          >
+            <span className="font-medium">{notifyBanner.tone === "success" ? "Done:" : "Notify error:"}</span>{" "}
+            {notifyBanner.text}
+          </div>
+        ) : null}
 
         {creating && (
           <div className="glass-card mb-6 p-4">
@@ -544,6 +602,16 @@ export default function AdminPracticesPage() {
                           >
                             <X className="size-4" />
                             Cancel
+                          </button>
+
+                          <button
+                            onClick={() => sendPracticeNotificationNow(practice.id)}
+                            disabled={saving || pushSendingId === practice.id}
+                            title='Sends “New practice available” to all users with push tokens. Does not run on Save.'
+                            className="glass-btn flex items-center gap-2 px-3 py-2 text-sm disabled:opacity-50"
+                          >
+                            <Send className="size-4" />
+                            {pushSendingId === practice.id ? "Sending…" : "Send notification now"}
                           </button>
                         </div>
                       </div>

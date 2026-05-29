@@ -28,13 +28,13 @@ const GLASS_CARD =
   "rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md " +
   "shadow-[0_14px_60px_-35px_rgba(0,0,0,0.75)]"
 
-type Frequency = "Weekly" | "Monthly"
+type Frequency = "Weekly" | "Monthly" | ""
 
 type Circle = {
   id: string
   name: string
   description: string | null
-  frequency: Frequency
+  frequency: Frequency | null
   member_count: number
   join_url: string | null
   image_url: string | null
@@ -77,7 +77,7 @@ export default function AdminCirclesPage() {
   const [createDraft, setCreateDraft] = useState<Draft>({
     name: "",
     description: "",
-    frequency: "Weekly",
+    frequency: "",
     join_url: "",
     image_url: "",
     tags: "",
@@ -149,7 +149,7 @@ export default function AdminCirclesPage() {
     setEditDraft({
       name: circle.name ?? "",
       description: circle.description ?? "",
-      frequency: circle.frequency ?? "Weekly",
+      frequency: circle.frequency ?? "",
       join_url: circle.join_url ?? "",
       image_url: circle.image_url ?? "",
       tags: (circle.tags ?? []).join(", "),
@@ -178,7 +178,7 @@ export default function AdminCirclesPage() {
         body: JSON.stringify({
           name: createDraft.name.trim(),
           description: createDraft.description.trim() || null,
-          frequency: createDraft.frequency,
+          frequency: createDraft.frequency || null,
           join_url: createDraft.join_url.trim() || null,
           image_url: createDraft.image_url.trim() || null,
           tags: parseTags(createDraft.tags),
@@ -195,7 +195,7 @@ export default function AdminCirclesPage() {
       setCreateDraft({
         name: "",
         description: "",
-        frequency: "Weekly",
+        frequency: "",
         join_url: "",
         image_url: "",
         tags: "",
@@ -226,7 +226,7 @@ export default function AdminCirclesPage() {
           id,
           name: editDraft.name.trim(),
           description: editDraft.description.trim() || null,
-          frequency: editDraft.frequency,
+          frequency: editDraft.frequency || null,
           join_url: editDraft.join_url.trim() || null,
           image_url: editDraft.image_url.trim() || null,
           tags: parseTags(editDraft.tags),
@@ -501,6 +501,7 @@ export default function AdminCirclesPage() {
                     onChange={(e) => setCreateDraft((d) => ({ ...d, frequency: e.target.value as Frequency }))}
                     className="mt-1 w-full rounded-xl bg-black/20 border border-white/20 text-white px-4 py-2 outline-none focus:border-white/35"
                   >
+                    <option value="">None</option>
                     <option value="Weekly">Weekly</option>
                     <option value="Monthly">Monthly</option>
                   </select>
@@ -596,7 +597,8 @@ export default function AdminCirclesPage() {
                             <div className="flex items-center gap-2">
                               <div className="font-semibold text-white truncate">{c.name}</div>
                               <span className="text-xs text-white/60">
-                                • {c.frequency} • {c.is_published ? "Published" : "Draft"}
+                                {c.frequency ? `• ${c.frequency} •` : "•"}{" "}
+                                {c.is_published ? "Published" : "Draft"}
                               </span>
                             </div>
 
@@ -708,10 +710,11 @@ export default function AdminCirclesPage() {
                           <div>
                             <label className="text-xs text-white/70">Frequency</label>
                             <select
-                              value={editDraft?.frequency ?? "Weekly"}
+                              value={editDraft?.frequency ?? ""}
                               onChange={(e) => setEditDraft((d) => (d ? { ...d, frequency: e.target.value as Frequency } : d))}
                               className="mt-1 w-full rounded-xl bg-black/20 border border-white/20 text-white px-4 py-2 outline-none focus:border-white/35"
                             >
+                              <option value="">None</option>
                               <option value="Weekly">Weekly</option>
                               <option value="Monthly">Monthly</option>
                             </select>

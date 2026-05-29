@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { requireAdmin } from "@/lib/admin/requireAdmin"
+import { normalizeCircleFrequencyInput } from "@/lib/circles/frequency"
 import { mapCircleDbRowToApi } from "@/lib/circles/mapCircleJoinUrl"
 import { sendCircleActivityNotification } from "@/lib/server/notifications/circles"
 
@@ -8,8 +9,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-
-type Frequency = "Weekly" | "Monthly"
 
 export async function POST(req: Request) {
   const admin = await requireAdmin()
@@ -47,7 +46,15 @@ export async function POST(req: Request) {
       updates.description = trimmed || null
     }
 
-    if (typeof body.frequency === "string") updates.frequency = body.frequency as Frequency
+    if (body.frequency === null || body.frequency === "") {
+      updates.frequency = null
+    } else if (typeof body.frequency === "string") {
+      const normalized = normalizeCircleFrequencyInput(body.frequency)
+      if (!normalized) {
+        return NextResponse.json({ error: "Invalid frequency" }, { status: 400 })
+      }
+      updates.frequency = normalized
+    }
     if (typeof body.image_url === "string") updates.image_url = body.image_url.trim() || null
     if (Array.isArray(body.tags)) updates.tags = body.tags.length ? body.tags : null
     if (typeof body.is_published === "boolean") updates.is_published = body.is_published
