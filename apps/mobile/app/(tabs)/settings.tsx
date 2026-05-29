@@ -19,6 +19,7 @@ import {
   showPushTokenDiagnostics,
   syncPushToken,
   updateCircleReminderPrefs,
+  updatePracticeUpdatesPref,
   type PushTokenSyncSnapshot,
 } from "@/lib/pushTokenRegistration"
 import { cancelRitualReminderNotifications } from "@/lib/ritualNotifications"
@@ -48,6 +49,7 @@ export default function SettingsScreen() {
 
   // Notifications
   const [communityCircles, setCommunityCircles] = useState(false)
+  const [practiceUpdates, setPracticeUpdates] = useState(true)
   const [osNotifGranted, setOsNotifGranted] = useState<boolean | null>(null)
   const [pushSyncSnapshot, setPushSyncSnapshot] = useState<PushTokenSyncSnapshot | null>(null)
   const [pushSyncLoading, setPushSyncLoading] = useState(false)
@@ -116,7 +118,9 @@ export default function SettingsScreen() {
       if (user) {
         const { data: prof } = await supabase
           .from("profiles")
-          .select("display_name, full_name, email, notif_rituals_enabled, notif_circles_week_before, notif_circles_day_before")
+          .select(
+            "display_name, full_name, email, notif_circles_week_before, notif_circles_day_before, notif_practice_updates"
+          )
           .eq("id", user.id)
           .maybeSingle()
 
@@ -129,6 +133,7 @@ export default function SettingsScreen() {
           const weekBefore = prof.notif_circles_week_before ?? true
           const dayBefore = prof.notif_circles_day_before ?? true
           setCommunityCircles(weekBefore || dayBefore)
+          setPracticeUpdates(prof.notif_practice_updates ?? true)
         } else {
           const metadataDisplayName =
             (user.user_metadata?.display_name as string | undefined)?.trim() || ""
@@ -143,6 +148,7 @@ export default function SettingsScreen() {
             email: user.email ?? "",
           })
           setCommunityCircles(true)
+          setPracticeUpdates(true)
 
           const { error: upsertErr } = await supabase.from("profiles").upsert({
             id: user.id,
@@ -151,6 +157,7 @@ export default function SettingsScreen() {
             email: user.email ?? null,
             notif_circles_week_before: true,
             notif_circles_day_before: true,
+            notif_practice_updates: true,
           })
           if (upsertErr) {
             console.log("[Settings] profile upsert on init:", upsertErr.message)
@@ -162,6 +169,7 @@ export default function SettingsScreen() {
 
         const prefs = await loadCircleReminderPrefs()
         setCommunityCircles(prefs.weekBefore || prefs.dayBefore)
+        setPracticeUpdates(true)
       }
 
       setProfileLoading(false)
@@ -413,11 +421,11 @@ export default function SettingsScreen() {
 </ThemedText>
 
 <ThemedText type="muted" style={styles.aboutText}>
-  practice of ritual: choosing presence, deepening connection, and listening inward.
+  Practice of ritual: choosing presence, deepening connection, and listening inward.
 </ThemedText>
 
 <ThemedText type="muted" style={styles.aboutText}>
-  portal: where awareness opens and power returns.
+  Portal: where awareness opens and power returns.
 </ThemedText>
 
                   <ThemedText type="muted" style={styles.aboutText}>
@@ -634,6 +642,14 @@ export default function SettingsScreen() {
               <SectionHeader section="notifications" iconName="notifications" title="Notifications" />
               {openSections.notifications && (
                 <View style={styles.sectionBody}>
+                  {osNotifGranted !== null ? (
+                    <View style={styles.permissionStatusBlock}>
+                      <ThemedText type="muted" style={styles.permissionStatusText}>
+                        Phone notifications: {osNotifGranted ? "Enabled" : "Disabled"}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+
                   <View style={styles.toggleRow}>
                     <View style={styles.toggleLabel}>
                       <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
@@ -648,6 +664,24 @@ export default function SettingsScreen() {
                       onValueChange={async (v: boolean) => {
                         setCommunityCircles(v)
                         await updateCircleReminderPrefs(v, v)
+                      }}
+                    />
+                  </View>
+
+                  <View style={styles.toggleRow}>
+                    <View style={styles.toggleLabel}>
+                      <ThemedText type="defaultSemiBold" style={styles.toggleTitle}>
+                        Practice Updates
+                      </ThemedText>
+                      <ThemedText type="muted" style={styles.toggleSubtitle}>
+                        New practices and app content updates
+                      </ThemedText>
+                    </View>
+                    <Switch
+                      value={practiceUpdates}
+                      onValueChange={async (v: boolean) => {
+                        setPracticeUpdates(v)
+                        await updatePracticeUpdatesPref(v)
                       }}
                     />
                   </View>
@@ -702,15 +736,7 @@ export default function SettingsScreen() {
                             </ThemedText>
                           ) : null}
                         </>
-                      ) : (
-                        <ThemedText type="muted" style={styles.permissionStatusText}>
-                          {osNotifGranted
-                            ? "Phone notifications: Enabled"
-                            : communityCircles
-                              ? "Circle reminders are on in Heartspirit, but your phone is currently blocking notifications."
-                              : "Phone notifications are disabled on this device."}
-                        </ThemedText>
-                      )}
+                      ) : null}
                       {!osNotifGranted ? (
                         <ThemedText type="muted" style={styles.permissionHelperText}>
                           {STAY_IN_RHYTHM_PROMPT.body}
@@ -721,8 +747,12 @@ export default function SettingsScreen() {
                           style={styles.enableNotifButton}
                           onPress={() => {
                             void (async () => {
-                              await enableNotificationsFromPrompt()
+                              const granted = await enableNotificationsFromPrompt()
                               await refreshOsNotificationPermission()
+                              if (granted) {
+                                setCommunityCircles(true)
+                                setPracticeUpdates(true)
+                              }
                               await refreshPushRegistration(true)
                             })()
                           }}

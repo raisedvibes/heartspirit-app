@@ -11,6 +11,11 @@ type PracticeRow = {
   short_summary: string | null
 }
 
+type PracticeProfilePref = {
+  id: string
+  notif_practice_updates: boolean | null
+}
+
 export type ManualPracticePushResult = {
   ok: boolean
   error?: string
@@ -32,6 +37,24 @@ function practicePushBody(practice: PracticeRow): string {
   if (summary) return summary
 
   return "A new practice is ready for you."
+}
+
+function wantsPracticeUpdates(profile: PracticeProfilePref | undefined): boolean {
+  if (!profile) return false
+  return profile.notif_practice_updates !== false
+}
+
+async function getPracticePushProfiles(
+  supabase: SupabaseClient,
+  userIds: string[]
+): Promise<Map<string, PracticeProfilePref>> {
+  if (!userIds.length) return new Map()
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, notif_practice_updates")
+    .in("id", userIds)
+  if (error) throw new Error(`profiles query failed: ${error.message}`)
+  return new Map(((data ?? []) as PracticeProfilePref[]).map((r) => [r.id, r]))
 }
 
 export async function sendManualPracticePushNow(
@@ -75,14 +98,23 @@ export async function sendManualPracticePushNow(
     }
   }
 
+  const profiles = await getPracticePushProfiles(supabase, userIds)
   const body = practicePushBody(practice)
 
   let sent = 0
   let failed = 0
+  let skippedNoPrefs = 0
   let skippedNoTokens = 0
 
   for (const userId of userIds) {
+    const profile = profiles.get(userId)
     const tokens = tokensByUser.get(userId) ?? []
+
+    if (!wantsPracticeUpdates(profile)) {
+      skippedNoPrefs += 1
+      continue
+    }
+
     if (!tokens.length) {
       skippedNoTokens += 1
       continue
@@ -106,7 +138,7 @@ export async function sendManualPracticePushNow(
     failed += result.failed
   }
 
-  const skipped = skippedNoTokens
+  const skipped = skippedNoPrefs + skippedNoTokens
 
   return {
     ok: true,
@@ -115,7 +147,7 @@ export async function sendManualPracticePushNow(
     sent,
     failed,
     skipped,
-    skippedNoPrefs: 0,
+    skippedNoPrefs,
     skippedNoTokens,
     skippedDuplicate: 0,
   }

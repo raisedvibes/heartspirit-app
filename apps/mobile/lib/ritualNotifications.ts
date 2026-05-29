@@ -1,5 +1,6 @@
 import * as Notifications from "expo-notifications"
 import { Platform } from "react-native"
+import { configureGlobalNotificationHandler } from "./notificationHandler"
 import type { Ritual } from "./ritualsStore"
 
 const RITUAL_CHANNEL_ID = "ritual-reminders"
@@ -8,20 +9,6 @@ const PRACTICE_TIMER_SOUND_ANDROID = "heartspirit_chime"
 const PRACTICE_TIMER_SOUND_IOS = "heartspirit_chime.mp3"
 const PRACTICE_TIMER_NOTIFICATION_TYPE = "practice_timer_complete"
 const RITUAL_NOTIFICATION_TYPE = "ritual_reminder"
-
-let notificationHandlerConfigured = false
-
-function ensureNotificationHandlerConfigured() {
-  if (notificationHandlerConfigured) return
-  notificationHandlerConfigured = true
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
-  })
-}
 
 type ReminderData = {
   type?: string
@@ -146,7 +133,7 @@ export async function schedulePracticeTimerCompletion(
   secondsUntilEnd: number,
   endAtMs?: number
 ): Promise<string | null> {
-  ensureNotificationHandlerConfigured()
+  configureGlobalNotificationHandler()
 
   const permission = await Notifications.getPermissionsAsync()
   console.log("[practice timer notif] permission", {

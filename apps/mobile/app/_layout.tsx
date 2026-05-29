@@ -13,6 +13,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme"
 import { AuthProvider, useAuth } from "@/lib/auth"
 import { PushTokenSync } from "@/components/PushTokenSync"
 import { NotificationTapHandler } from "@/lib/notificationTapRouting"
+import { configureGlobalNotificationHandler } from "@/lib/notificationHandler"
 import * as SystemUI from "expo-system-ui"
 
 import {
@@ -23,6 +24,7 @@ import {
 import IntroScreen from "@/components/IntroScreen"
 
 void SplashScreen.preventAutoHideAsync()
+configureGlobalNotificationHandler()
 
 const APP_SURFACE = "#0a1410"
 const INTRO_BG = require("@/assets/images/redwoods_trail1.png")

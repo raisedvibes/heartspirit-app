@@ -554,6 +554,7 @@ export async function requestNotificationPermissionAndRegister(
     if (!canAskAgain) return false
     const { status } = await Notifications.requestPermissionsAsync()
     if (status !== "granted") return false
+    await enableRemoteNotificationPrefsOnGrant()
   }
 
   const result = await syncPushToken({
@@ -589,6 +590,52 @@ export async function updateCircleReminderPrefs(weekBefore: boolean, dayBefore: 
 
   if (error) {
     console.warn("[Push] Failed to update circle prefs:", error.message)
+    return false
+  }
+  return true
+}
+
+/** Turn on remote notification categories after the user newly grants OS permission. */
+export async function enableRemoteNotificationPrefsOnGrant(): Promise<boolean> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return false
+
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth?.user) return false
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      notif_circles_week_before: true,
+      notif_circles_day_before: true,
+      notif_practice_updates: true,
+    })
+    .eq("id", auth.user.id)
+
+  if (error) {
+    console.warn("[Push] Failed to enable remote prefs on grant:", error.message)
+    return false
+  }
+
+  saveLocalPrefs({ weekBefore: true, dayBefore: true })
+  return true
+}
+
+/** Update practice update push preference in profiles. */
+export async function updatePracticeUpdatesPref(enabled: boolean): Promise<boolean> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return true
+
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth?.user) return true
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ notif_practice_updates: enabled })
+    .eq("id", auth.user.id)
+
+  if (error) {
+    console.warn("[Push] Failed to update practice updates pref:", error.message)
     return false
   }
   return true
