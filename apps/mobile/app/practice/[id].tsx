@@ -835,11 +835,24 @@ export default function PracticeDetailScreen() {
                       {titleParts?.mainTitle ?? practice.title}
                     </ThemedText>
 
-                    <ThemedText type="muted" style={styles.practiceGuideText}>
-                      {showPracticeTimer
-                        ? "Start with guidance here, then continue with the practice timer below."
-                        : "Start with guidance here."}
-                    </ThemedText>
+                    {!!titleParts?.titleDescription && (
+                      <ThemedText type="muted" style={styles.description}>
+                        {titleParts.titleDescription}
+                      </ThemedText>
+                    )}
+
+                    {!!practice.short_summary && (
+                      <ThemedText type="muted" style={styles.description}>
+                        {practice.short_summary}
+                      </ThemedText>
+                    )}
+
+                    {!!practice.description && (
+                      <ThemedText type="muted" style={styles.description}>
+                        {practice.description}
+                      </ThemedText>
+                    )}
+
                     {usingCachedPractice ? (
                       <ThemedText type="muted" style={styles.cachedNotice}>
                         Offline mode - showing saved practice from this device.
@@ -1038,23 +1051,11 @@ export default function PracticeDetailScreen() {
                       </View>
                     )}
 
-                    {!!titleParts?.titleDescription && (
-                      <ThemedText type="muted" style={styles.description}>
-                        {titleParts.titleDescription}
-                      </ThemedText>
-                    )}
-
-                    {!!practice.short_summary && (
-                      <ThemedText type="muted" style={styles.description}>
-                        {practice.short_summary}
-                      </ThemedText>
-                    )}
-
-                    {!!practice.description && (
-                      <ThemedText type="muted" style={styles.description}>
-                        {practice.description}
-                      </ThemedText>
-                    )}
+                    <ThemedText type="muted" style={styles.practiceGuideText}>
+                      {showPracticeTimer
+                        ? "Start with guidance here, then continue with the practice timer below."
+                        : "Start with guidance here."}
+                    </ThemedText>
 
                     {practice.instruction_bullets && practice.instruction_bullets.length > 0 && (
                       <View style={styles.instructionsBlock}>
@@ -1262,6 +1263,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 17,
     opacity: 0.9,
+    marginTop: 6,
     marginBottom: 6,
   },
   cachedNotice: {
@@ -1274,7 +1276,8 @@ const styles = StyleSheet.create({
     position: "relative",
     width: "100%",
     aspectRatio: 16 / 9,
-    marginVertical: 16,
+    marginTop: 16,
+    marginBottom: 20,
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
@@ -1365,7 +1368,8 @@ const styles = StyleSheet.create({
   },
 
   audioCard: {
-    marginVertical: 16,
+    marginTop: 16,
+    marginBottom: 20,
     padding: 14,
     borderRadius: 16,
     backgroundColor: GLASS.bgDark,
@@ -1456,12 +1460,12 @@ const styles = StyleSheet.create({
 
   description: {
     fontSize: 14,
-    lineHeight: 21,
-    marginBottom: 10,
+    lineHeight: 23,
+    marginBottom: 12,
   },
 
   instructionsBlock: {
-    marginTop: 8,
+    marginTop: 12,
     gap: 12,
   },
 

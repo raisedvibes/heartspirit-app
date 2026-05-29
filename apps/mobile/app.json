@@ -3,7 +3,7 @@
     "name": "Heartspirit",
     "slug": "heartspirit",
     "backgroundColor": "#0a1410",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
@@ -13,10 +13,11 @@
       "supportsTablet": true,
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.raised-vibes.heartspirit",
+      "buildNumber": "2",
       "splash": {
         "backgroundColor": "#0a1410",
-        "resizeMode": "contain",
-        "image": "./assets/images/splash_icon.png",
+        "resizeMode": "cover",
+        "image": "./assets/images/heartspirit_intro.png",
         "dark": {
           "backgroundColor": "#0a1410"
         }
@@ -35,8 +36,8 @@
       },
       "splash": {
         "backgroundColor": "#0a1410",
-        "resizeMode": "contain",
-        "image": "./assets/images/splash_icon.png",
+        "resizeMode": "cover",
+        "image": "./assets/images/heartspirit_intro.png",
         "dark": {
           "backgroundColor": "#0a1410"
         }
@@ -65,8 +66,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash_icon.png",
-          "resizeMode": "contain",
+          "image": "./assets/images/heartspirit_intro.png",
+          "resizeMode": "cover",
           "backgroundColor": "#0a1410",
           "enableFullScreenImage_legacy": true,
           "dark": {

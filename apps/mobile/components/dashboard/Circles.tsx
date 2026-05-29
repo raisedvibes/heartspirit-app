@@ -17,7 +17,7 @@ type NextCircle = {
   name: string
   description: string | null
   starts_at: string | null
-  frequency: "Weekly" | "Monthly"
+  frequency: string | null
 }
 
 /** Format starts_at in local time for display. */
@@ -131,18 +131,20 @@ export function CirclesWidget() {
     }
 
     if (nextCircle) {
-      const dateFreq = formatStartsAt(nextCircle.starts_at)
+      const dateLine = [formatStartsAt(nextCircle.starts_at), nextCircle.frequency?.trim()]
+        .filter(Boolean)
+        .join(" • ")
       return (
         <>
           <View>
             <ThemedText type="defaultSemiBold" style={styles.nextTitle}>
               Next: {nextCircle.name}
             </ThemedText>
-            {dateFreq && (
+            {dateLine ? (
               <ThemedText type="muted" style={styles.dateLine}>
-                {dateFreq} • {nextCircle.frequency ?? ""}
+                {dateLine}
               </ThemedText>
-            )}
+            ) : null}
           </View>
           <View style={styles.footerRow}>
             <Pressable
