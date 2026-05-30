@@ -63,15 +63,19 @@
           "defaultChannel": "default"
         }
       ],
+      "./plugins/withAndroidFullBleedSplash",
+      "./plugins/withAndroidFullBleedSplashStyles",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/heartspirit_intro.png",
-          "resizeMode": "cover",
-          "backgroundColor": "#0a1410",
-          "enableFullScreenImage_legacy": true,
-          "dark": {
-            "backgroundColor": "#0a1410"
+          "ios": {
+            "image": "./assets/images/heartspirit_intro.png",
+            "resizeMode": "cover",
+            "backgroundColor": "#0a1410",
+            "enableFullScreenImage_legacy": true,
+            "dark": {
+              "backgroundColor": "#0a1410"
+            }
           }
         }
       ],

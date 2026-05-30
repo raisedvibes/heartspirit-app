@@ -33,7 +33,7 @@ type CircleRow = {
   name: string
   description: string | null
   starts_at: string | null
-  frequency: string
+  frequency: string | null
   image_url: string | null
   tags: string[] | null
   member_count: number | null
@@ -280,9 +280,9 @@ export default function CirclesScreen() {
                         {circle.name}
                       </ThemedText>
 
-                      {(formatStartsAt(circle.starts_at) || circle.frequency) && (
+                      {(formatStartsAt(circle.starts_at) || circle.frequency?.trim()) && (
                         <ThemedText type="muted" style={styles.dateLine}>
-                          {[formatStartsAt(circle.starts_at), circle.frequency]
+                          {[formatStartsAt(circle.starts_at), circle.frequency?.trim()]
                             .filter(Boolean)
                             .join(" • ")}
                         </ThemedText>
