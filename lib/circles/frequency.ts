@@ -1,8 +1,12 @@
 export type CircleFrequency = "Weekly" | "Monthly"
 
 export function normalizeCircleFrequencyInput(value: unknown): CircleFrequency | null {
-  if (value === null || value === undefined || value === "") return null
-  if (value === "Weekly" || value === "Monthly") return value
+  if (value === null || value === undefined) return null
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    if (trimmed === "" || trimmed.toLowerCase() === "none") return null
+    if (trimmed === "Weekly" || trimmed === "Monthly") return trimmed
+  }
   return null
 }
 

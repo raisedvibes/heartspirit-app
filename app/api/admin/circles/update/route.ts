@@ -49,11 +49,16 @@ export async function POST(req: Request) {
     if (body.frequency === null || body.frequency === "") {
       updates.frequency = null
     } else if (typeof body.frequency === "string") {
-      const normalized = normalizeCircleFrequencyInput(body.frequency)
-      if (!normalized) {
-        return NextResponse.json({ error: "Invalid frequency" }, { status: 400 })
+      const trimmed = body.frequency.trim()
+      if (trimmed === "" || trimmed.toLowerCase() === "none") {
+        updates.frequency = null
+      } else {
+        const normalized = normalizeCircleFrequencyInput(body.frequency)
+        if (!normalized) {
+          return NextResponse.json({ error: "Invalid frequency" }, { status: 400 })
+        }
+        updates.frequency = normalized
       }
-      updates.frequency = normalized
     }
     if (typeof body.image_url === "string") updates.image_url = body.image_url.trim() || null
     if (Array.isArray(body.tags)) updates.tags = body.tags.length ? body.tags : null
