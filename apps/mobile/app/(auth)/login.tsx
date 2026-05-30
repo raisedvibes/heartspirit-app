@@ -201,6 +201,16 @@ export default function LoginScreen() {
                 </Pressable>
               </View>
 
+              <Pressable
+                style={styles.forgotLink}
+                onPress={() => router.push("/(auth)/forgot-password")}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <ThemedText type="muted" style={styles.forgotLinkText}>
+                  {LOGIN_COPY.forgotPasswordLink}
+                </ThemedText>
+              </Pressable>
+
               {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
 
               <Pressable
@@ -383,6 +393,17 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: "center",
+  },
+
+  forgotLink: {
+    alignSelf: "flex-end",
+    marginTop: 8,
+  },
+
+  forgotLinkText: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.75)",
+    textDecorationLine: "underline",
   },
 
   errorText: {

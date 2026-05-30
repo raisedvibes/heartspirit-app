@@ -38,8 +38,29 @@ export const LOGIN_COPY = {
   ctaLoading: "Signing in…",
   signupPrompt: "Don't have an account?",
   signupLink: "Create account",
+  forgotPasswordLink: "Forgot password?",
   unconfirmedNotice: "Your portal isn't activated yet. Confirm your email, then sign in.",
   spamHint: "If you don't see the message, check spam/promotions.",
+} as const
+
+export const FORGOT_PASSWORD_COPY = {
+  headline: "Reset Password",
+  body: "Enter your email and we'll send you a link to reset your password.",
+  cta: "Send Reset Link",
+  ctaLoading: "Sending...",
+  confirmationBody: "Check your email for a password reset link.",
+  confirmationSentTo: "Sent to",
+  confirmationCta: "Back to Login",
+  confirmationHint: "If you don't see it, check spam/promotions folder.",
+  backToLogin: "Back to Login",
+} as const
+
+export const RESET_PASSWORD_COPY = {
+  headline: "Choose New Password",
+  body: "Enter and confirm your new password.",
+  cta: "Update Password",
+  ctaLoading: "Updating...",
+  successCta: "Continue",
 } as const
 
 const SITE_URL = "https://heartspirit.app"

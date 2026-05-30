@@ -11,6 +11,7 @@ import "../global.css"
 
 import { useColorScheme } from "@/hooks/use-color-scheme"
 import { AuthProvider, useAuth } from "@/lib/auth"
+import { AuthRecoveryHandler } from "@/lib/authRecoveryHandler"
 import { PushTokenSync } from "@/components/PushTokenSync"
 import { NotificationTapHandler } from "@/lib/notificationTapRouting"
 import { configureGlobalNotificationHandler } from "@/lib/notificationHandler"
@@ -27,7 +28,8 @@ void SplashScreen.preventAutoHideAsync()
 configureGlobalNotificationHandler()
 
 const APP_SURFACE = "#0a1410"
-const INTRO_BG = require("@/assets/images/redwoods_trail1.png")
+/** Prefetch + JS intro use the same asset as native splash for a seamless handoff. */
+const INTRO_SPLASH = require("@/assets/images/heartspirit_intro.png")
 
 /** Guest / first-time auth entry — full intro length. */
 const INTRO_TOTAL_MS_GUEST = 5500
@@ -88,7 +90,7 @@ function AmbientFadeAfterAppEntry({ showIntro }: { showIntro: boolean }) {
 }
 
 function RootLayoutNav() {
-  const { session, loading } = useAuth()
+  const { session, loading, pendingPasswordRecovery } = useAuth()
 
   if (loading) {
     return (
@@ -99,15 +101,20 @@ function RootLayoutNav() {
   }
 
   const isAuthenticated = !!session
+  const showMainApp = isAuthenticated && !pendingPasswordRecovery
 
   return (
     <>
-      {isAuthenticated ? <NotificationTapHandler /> : null}
+      <AuthRecoveryHandler />
+      {showMainApp ? <NotificationTapHandler /> : null}
       <Stack screenOptions={{ contentStyle: { backgroundColor: APP_SURFACE } }}>
         <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         </Stack.Protected>
-        <Stack.Protected guard={isAuthenticated}>
+        <Stack.Protected guard={isAuthenticated && pendingPasswordRecovery}>
+          <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={showMainApp}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
           <Stack.Screen name="support" options={{ headerShown: false }} />
@@ -122,24 +129,6 @@ function RootLayoutNav() {
 function RootAppShell() {
   const [showIntro, setShowIntro] = useState(true)
   const { session, loading } = useAuth()
-  const splashHiddenRef = useRef(false)
-
-  useEffect(() => {
-    if (loading || !showIntro || splashHiddenRef.current) return
-
-    let raf2 = 0
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        if (splashHiddenRef.current) return
-        splashHiddenRef.current = true
-        SplashScreen.hideAsync().catch(() => {})
-      })
-    })
-    return () => {
-      cancelAnimationFrame(raf1)
-      if (raf2) cancelAnimationFrame(raf2)
-    }
-  }, [loading, showIntro])
 
   const introTotalMs = session ? INTRO_TOTAL_MS_RETURNING : INTRO_TOTAL_MS_GUEST
 
@@ -150,8 +139,12 @@ function RootAppShell() {
       <View style={{ flex: 1, backgroundColor: APP_SURFACE }}>
         <RootLayoutNav />
         <StatusBar style="auto" />
-        {!loading && showIntro ? (
-          <IntroScreen totalDurationMs={introTotalMs} onFinish={() => setShowIntro(false)} />
+        {showIntro ? (
+          <IntroScreen
+            canReveal={!loading}
+            totalDurationMs={introTotalMs}
+            onFinish={() => setShowIntro(false)}
+          />
         ) : null}
       </View>
     </>
@@ -181,7 +174,7 @@ export default function RootLayout() {
 
     ;(async () => {
       try {
-        const src = Image.resolveAssetSource(INTRO_BG)
+        const src = Image.resolveAssetSource(INTRO_SPLASH)
         if (src?.uri) {
           await Image.prefetch(src.uri)
         }
