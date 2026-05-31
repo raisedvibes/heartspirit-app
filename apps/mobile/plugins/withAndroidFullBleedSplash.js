@@ -60,6 +60,21 @@ function withAndroidFullBleedSplash(config) {
         },
       })
 
+      const transparentIconPath = path.join(resRoot, "drawable/splashscreen_transparent_icon.xml")
+      await XML.writeXMLAsync({
+        path: transparentIconPath,
+        xml: {
+          shape: {
+            $: {
+              "xmlns:android": "http://schemas.android.com/apk/res/android",
+              "android:shape": "rectangle",
+            },
+            solid: [{ $: { "android:color": "@android:color/transparent" } }],
+            size: [{ $: { "android:width": "1dp", "android:height": "1dp" } }],
+          },
+        },
+      })
+
       return config
     },
   ])
