@@ -3,7 +3,6 @@ import { createClient } from "@supabase/supabase-js"
 import { requireAdmin } from "@/lib/admin/requireAdmin"
 import { normalizeCircleFrequencyInput } from "@/lib/circles/frequency"
 import { mapCircleDbRowToApi } from "@/lib/circles/mapCircleJoinUrl"
-import { sendCircleActivityNotification } from "@/lib/server/notifications/circles"
 
 export async function POST(req: Request) {
   const admin = await requireAdmin()
@@ -50,16 +49,6 @@ export async function POST(req: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    try {
-      await sendCircleActivityNotification(supabase, {
-        circleBefore: null,
-        circleAfter: data,
-        changedFields: ["name", "description", "starts_at", "is_published"],
-      })
-    } catch (notifyErr: any) {
-      console.warn("[Circles] create activity notification skipped:", notifyErr?.message ?? notifyErr)
     }
 
     return NextResponse.json({ circle: mapCircleDbRowToApi(data as Record<string, unknown>) }, { status: 200 })

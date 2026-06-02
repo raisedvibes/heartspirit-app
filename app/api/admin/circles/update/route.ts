@@ -3,7 +3,6 @@ import { createClient } from "@supabase/supabase-js"
 import { requireAdmin } from "@/lib/admin/requireAdmin"
 import { normalizeCircleFrequencyInput } from "@/lib/circles/frequency"
 import { mapCircleDbRowToApi } from "@/lib/circles/mapCircleJoinUrl"
-import { sendCircleActivityNotification } from "@/lib/server/notifications/circles"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -78,12 +77,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No fields provided to update" }, { status: 400 })
     }
 
-    const changedFields = Object.keys(updates).filter((key) => {
-      const prev = (existing as Record<string, unknown>)[key]
-      const next = updates[key]
-      return prev !== next
-    })
-
     const { data, error } = await supabase
       .from("circles")
       .update(updates)
@@ -95,18 +88,6 @@ export async function POST(req: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    if (changedFields.length > 0) {
-      try {
-        await sendCircleActivityNotification(supabase, {
-          circleBefore: existing,
-          circleAfter: data,
-          changedFields,
-        })
-      } catch (notifyErr: any) {
-        console.warn("[Circles] update activity notification skipped:", notifyErr?.message ?? notifyErr)
-      }
     }
 
     return NextResponse.json({ circle: mapCircleDbRowToApi(data as Record<string, unknown>) }, { status: 200 })
