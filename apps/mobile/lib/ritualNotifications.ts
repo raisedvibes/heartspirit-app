@@ -46,27 +46,41 @@ export async function scheduleDailyReminder(
     })
   }
 
-  const id = await Notifications.scheduleNotificationAsync({
-    content: {
-      title,
-      body,
-      data: data ?? { type: RITUAL_NOTIFICATION_TYPE },
-      ...(Platform.OS === "android" ? { channelId: RITUAL_CHANNEL_ID } : {}),
+  const trigger = Platform.select({
+    ios: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute,
     },
-    trigger: Platform.select({
-      ios: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour,
-        minute,
-      },
-      android: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        channelId: RITUAL_CHANNEL_ID,
-        hour,
-        minute,
-      },
-      default: null,
-    })!,
+    android: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      channelId: RITUAL_CHANNEL_ID,
+      hour,
+      minute,
+    },
+    default: null,
+  })!
+
+  const content = {
+    title,
+    body,
+    sound: "default" as const,
+    data: data ?? { type: RITUAL_NOTIFICATION_TYPE },
+    ...(Platform.OS === "android" ? { channelId: RITUAL_CHANNEL_ID } : {}),
+  }
+
+  console.log("[ritual reminder notif] scheduled", {
+    title,
+    body,
+    sound: "default",
+    data: content.data,
+    ...(Platform.OS === "android" ? { channelId: RITUAL_CHANNEL_ID } : {}),
+    trigger,
+  })
+
+  const id = await Notifications.scheduleNotificationAsync({
+    content,
+    trigger,
   })
 
   return id
