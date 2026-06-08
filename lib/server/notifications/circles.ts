@@ -35,6 +35,42 @@ export type CircleNotificationRecipients = {
 const LOOKBACK_HOURS = 26
 const CIRCLE_PUSH_TIMEZONE = "America/Los_Angeles"
 
+function formatCircleReminderTime(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ""
+
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: CIRCLE_PUSH_TIMEZONE,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date)
+}
+
+function formatCircleReminderWeekBeforeBody(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ""
+
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: CIRCLE_PUSH_TIMEZONE,
+    weekday: "long",
+  }).format(date)
+  const monthDay = new Intl.DateTimeFormat("en-US", {
+    timeZone: CIRCLE_PUSH_TIMEZONE,
+    month: "long",
+    day: "numeric",
+  }).format(date)
+  const time = formatCircleReminderTime(iso)
+  if (!time) return `${weekday}, ${monthDay}`
+  return `${weekday}, ${monthDay} • ${time} Pacific`
+}
+
+function formatCircleReminderDayBeforeBody(iso: string): string {
+  const time = formatCircleReminderTime(iso)
+  if (!time) return "Tomorrow"
+  return `Tomorrow at ${time} Pacific`
+}
+
 function formatCircleStartsAtForPush(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ""
@@ -225,12 +261,15 @@ export async function sendCircleRemindersNow(supabase: SupabaseClient): Promise<
           continue
         }
 
-        const label = kind === "week_before" ? "in 7 days" : "tomorrow"
+        const body =
+          kind === "week_before"
+            ? formatCircleReminderWeekBeforeBody(startsAt)
+            : formatCircleReminderDayBeforeBody(startsAt)
         const result = await sendExpoPushMessages(
           tokens.map((to) => ({
             to,
-            title: `Upcoming Circle: ${circle.name}`,
-            body: `Your circle starts ${label}.`,
+            title: circle.name,
+            body,
             sound: "default",
             channelId: ANDROID_PUSH_CHANNEL_ID,
             data: {
