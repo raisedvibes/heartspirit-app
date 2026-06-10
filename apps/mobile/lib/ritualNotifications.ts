@@ -69,21 +69,26 @@ export async function scheduleDailyReminder(
     ...(Platform.OS === "android" ? { channelId: RITUAL_CHANNEL_ID } : {}),
   }
 
-  console.log("[ritual reminder notif] scheduled", {
+  console.log("[ritual reminder notif] before scheduleNotificationAsync", {
     title,
     body,
-    sound: "default",
-    data: content.data,
-    ...(Platform.OS === "android" ? { channelId: RITUAL_CHANNEL_ID } : {}),
+    hour,
+    minute,
+    platform: Platform.OS,
     trigger,
   })
 
-  const id = await Notifications.scheduleNotificationAsync({
-    content,
-    trigger,
-  })
-
-  return id
+  try {
+    const id = await Notifications.scheduleNotificationAsync({
+      content,
+      trigger,
+    })
+    console.log("[ritual reminder notif] after scheduleNotificationAsync", { id })
+    return id
+  } catch (error) {
+    console.error("[ritual reminder notif] scheduleNotificationAsync error", error)
+    throw error
+  }
 }
 
 async function ensureRitualChannel() {

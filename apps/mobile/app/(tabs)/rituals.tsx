@@ -89,6 +89,55 @@ function displayTime(d: Date) {
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"]
 
+const RITUAL_REMINDER_SCHEDULE_FAILED_MESSAGE =
+  "Your ritual was saved, but the daily reminder could not be scheduled. Check notification settings and try editing the ritual."
+
+async function tryScheduleRitualDailyReminder(params: {
+  ritualId: string
+  ritualName: string
+  reminderTime: Date
+}): Promise<{ notificationId?: string; scheduleFailed: boolean }> {
+  const { ritualId, ritualName, reminderTime } = params
+  const timeValid = !Number.isNaN(reminderTime.getTime())
+
+  console.log("[ritual save] tryScheduleRitualDailyReminder", {
+    ritualId,
+    ritualName,
+    reminderTime: timeValid ? reminderTime.toISOString() : "invalid",
+    hour: timeValid ? reminderTime.getHours() : null,
+    minute: timeValid ? reminderTime.getMinutes() : null,
+    timeValid,
+  })
+
+  const permitted = await hasNotifPermissions()
+  console.log("[ritual save] hasNotifPermissions", { permitted })
+
+  if (!permitted) {
+    console.warn("[ritual save] reminder skipped — permission not granted")
+    return { scheduleFailed: false }
+  }
+
+  if (!timeValid) {
+    console.error("[ritual save] reminder skipped — invalid reminderTime")
+    return { scheduleFailed: true }
+  }
+
+  try {
+    console.log("[ritual save] before scheduleDailyReminder")
+    const notificationId = await scheduleDailyReminder(
+      `Ritual: ${ritualName}`,
+      "",
+      reminderTime,
+      { type: "ritual_reminder", ritualId }
+    )
+    console.log("[ritual save] after scheduleDailyReminder", { notificationId })
+    return { notificationId, scheduleFailed: false }
+  } catch (error) {
+    console.error("[ritual save] scheduleDailyReminder error", error)
+    return { scheduleFailed: true }
+  }
+}
+
 type RitualsListRow =
   | { _type: "headerTitle"; id: string }
   | { _type: "headerWeek"; id: string }
@@ -159,10 +208,30 @@ export default function RitualsScreen() {
   const [activeISO, setActiveISO] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Ritual | null>(null)
   const [showReminderNotifPrompt, setShowReminderNotifPrompt] = useState(false)
-  const addNotifPromptBypassRef = useRef(false)
   const pendingFormSaveAfterNotifRef = useRef(false)
 
+  const hideAddRitualModal = useCallback(() => {
+    console.log("[ritual save] closing add modal")
+    setShowAdd(false)
+  }, [])
+
+  const presentReminderNotifPrompt = useCallback(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        console.log("[ritual save] showing notification prompt")
+        setShowReminderNotifPrompt(true)
+      }, 100)
+    })
+  }, [])
+
+  const dismissReminderNotifPrompt = useCallback(() => {
+    console.log("[ritual save] prompt dismissed")
+    setShowReminderNotifPrompt(false)
+    pendingFormSaveAfterNotifRef.current = false
+  }, [])
+
   const closeAddRitualModal = useCallback(() => {
+    console.log("[ritual save] closeAddRitualModal")
     setShowAdd(false)
     setShowReminderNotifPrompt(false)
     pendingFormSaveAfterNotifRef.current = false
@@ -173,7 +242,7 @@ export default function RitualsScreen() {
     setReminderTime(new Date())
   }, [])
 
-  const openAddRitualModalDirect = useCallback(() => {
+  const openAddRitualModal = useCallback(() => {
     setEditRitualId(null)
     setName("")
     setIntention("")
@@ -184,25 +253,11 @@ export default function RitualsScreen() {
     setShowAdd(true)
   }, [])
 
-  const openAddRitualModal = useCallback(async () => {
-    const granted = await isNotificationPermissionGranted()
-    if (!granted && !addNotifPromptBypassRef.current) {
-      closeAddRitualModal()
-      pendingFormSaveAfterNotifRef.current = false
-      setShowReminderNotifPrompt(true)
-      return
-    }
-    openAddRitualModalDirect()
-  }, [closeAddRitualModal, openAddRitualModalDirect])
-
-  const dismissAddNotifPrompt = useCallback(() => {
-    setShowReminderNotifPrompt(false)
-    addNotifPromptBypassRef.current = true
-  }, [])
-
   const commitRitualSave = async () => {
     if (!name.trim()) return
     const now = new Date().toISOString()
+    const trimmedName = name.trim()
+    let reminderScheduleFailed = false
 
     if (editRitualId) {
       const existing = rituals.find((x) => x.id === editRitualId)
@@ -218,31 +273,48 @@ export default function RitualsScreen() {
           await cancelScheduledNotification(notificationId)
           notificationId = undefined
         }
-
-        if (newReminder) {
-          const ok = await hasNotifPermissions()
-          if (ok) {
-            notificationId = await scheduleDailyReminder(
-              `Ritual: ${name.trim()}`,
-              "",
-              reminderTime,
-              { type: "ritual_reminder", ritualId: existing.id }
-            )
-          } else {
-            console.warn("Notifications not granted; reminder will not fire.")
-          }
-        }
       }
 
-      upsert({
+      const ritualDraft: Ritual = {
         ...existing,
-        name: name.trim(),
+        name: trimmedName,
         intention: intention.trim() ? intention.trim() : undefined,
         tags: existing.tags ?? [],
         reminder: newReminder,
         notificationId,
         updatedAt: now,
+      }
+
+      console.log("[ritual save] before upsert (edit)", {
+        id: ritualDraft.id,
+        reminder: ritualDraft.reminder,
+        notificationId: ritualDraft.notificationId,
       })
+      upsert(ritualDraft)
+      console.log("[ritual save] after upsert (edit)")
+
+      if (oldReminder !== newReminder && newReminder) {
+        const scheduleResult = await tryScheduleRitualDailyReminder({
+          ritualId: existing.id,
+          ritualName: trimmedName,
+          reminderTime,
+        })
+        reminderScheduleFailed = scheduleResult.scheduleFailed
+        if (scheduleResult.notificationId) {
+          console.log("[ritual save] before upsert notificationId patch (edit)", {
+            notificationId: scheduleResult.notificationId,
+          })
+          upsert({
+            ...ritualDraft,
+            notificationId: scheduleResult.notificationId,
+          })
+          console.log("[ritual save] after upsert notificationId patch (edit)")
+        }
+      }
+
+      if (reminderScheduleFailed) {
+        Alert.alert("Reminder not scheduled", RITUAL_REMINDER_SCHEDULE_FAILED_MESSAGE)
+      }
 
       closeAddRitualModal()
       return
@@ -253,76 +325,111 @@ export default function RitualsScreen() {
         ? globalThis.crypto.randomUUID()
         : String(Date.now())
 
-    let notificationId: string | undefined = undefined
-    if (reminderEnabled) {
-      const ok = await hasNotifPermissions()
-      if (ok) {
-        notificationId = await scheduleDailyReminder(
-          `Ritual: ${name.trim()}`,
-          "",
-          reminderTime,
-          { type: "ritual_reminder", ritualId: id }
-        )
-      } else {
-        console.warn("Notifications not granted; reminder will not fire.")
-      }
-    }
-
-    upsert({
+    const ritualDraft: Ritual = {
       id,
-      name: name.trim(),
+      name: trimmedName,
       intention: intention.trim() ? intention.trim() : undefined,
       tags: [],
       reminder: reminderEnabled ? hhmm(reminderTime) : undefined,
-      notificationId,
+      notificationId: undefined,
       history: {},
       createdAt: now,
       updatedAt: now,
+    }
+
+    console.log("[ritual save] before upsert (create)", {
+      id: ritualDraft.id,
+      reminder: ritualDraft.reminder,
+      reminderEnabled,
     })
+    upsert(ritualDraft)
+    console.log("[ritual save] after upsert (create)")
+
+    if (reminderEnabled) {
+      const scheduleResult = await tryScheduleRitualDailyReminder({
+        ritualId: id,
+        ritualName: trimmedName,
+        reminderTime,
+      })
+      reminderScheduleFailed = scheduleResult.scheduleFailed
+      if (scheduleResult.notificationId) {
+        console.log("[ritual save] before upsert notificationId patch (create)", {
+          notificationId: scheduleResult.notificationId,
+        })
+        upsert({
+          ...ritualDraft,
+          notificationId: scheduleResult.notificationId,
+        })
+        console.log("[ritual save] after upsert notificationId patch (create)")
+      }
+    }
+
+    if (reminderScheduleFailed) {
+      Alert.alert("Reminder not scheduled", RITUAL_REMINDER_SCHEDULE_FAILED_MESSAGE)
+    }
+
     requestAnimationFrame(() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true }))
     closeAddRitualModal()
   }
 
   const addRitual = async () => {
+    console.log("[ritual save] Add pressed", {
+      name: name.trim(),
+      reminderEnabled,
+      reminderTime: reminderTime.toISOString(),
+      reminderTimeValid: !Number.isNaN(reminderTime.getTime()),
+    })
+
     if (!name.trim()) {
       Alert.alert("Name required", "Give your ritual a name before saving.")
       return
     }
-    if (reminderEnabled && !(await isNotificationPermissionGranted())) {
-      setShowAdd(false)
+
+    const permissionGranted = await isNotificationPermissionGranted()
+    console.log("[ritual save] permission granted?", { permissionGranted })
+
+    if (reminderEnabled && !permissionGranted) {
       pendingFormSaveAfterNotifRef.current = true
-      setShowReminderNotifPrompt(true)
+      hideAddRitualModal()
+      presentReminderNotifPrompt()
       return
     }
-    await commitRitualSave()
+
+    try {
+      await commitRitualSave()
+    } catch (error) {
+      console.error("[ritual save] commitRitualSave error", error)
+      Alert.alert("Couldn't save ritual", "Something went wrong. Please try again.")
+    }
   }
 
   const handleAddNotifPromptPrimary = async () => {
     const pendingSave = pendingFormSaveAfterNotifRef.current
     pendingFormSaveAfterNotifRef.current = false
-    dismissAddNotifPrompt()
+    dismissReminderNotifPrompt()
     await enableNotificationsFromPrompt()
-    if (pendingSave) {
-      await commitRitualSave()
+    const granted = await isNotificationPermissionGranted()
+    console.log("[ritual save] permission after enable prompt", { granted, pendingSave })
+    if (pendingSave && granted) {
+      try {
+        await commitRitualSave()
+      } catch (error) {
+        console.error("[ritual save] commitRitualSave error (after enable prompt)", error)
+        Alert.alert("Couldn't save ritual", "Something went wrong. Please try again.")
+      }
+      return
+    }
+    if (pendingSave && !granted) {
+      setShowAdd(true)
     }
   }
 
-  const handleAddNotifPromptSecondary = async () => {
-    const pendingSave = pendingFormSaveAfterNotifRef.current
-    pendingFormSaveAfterNotifRef.current = false
-    dismissAddNotifPrompt()
-    if (pendingSave) {
-      await commitRitualSave()
-    }
+  const handleAddNotifPromptSecondary = () => {
+    dismissReminderNotifPrompt()
   }
 
   const handleAddNotifPromptClose = () => {
-    const pendingSave = pendingFormSaveAfterNotifRef.current
-    pendingFormSaveAfterNotifRef.current = false
-    dismissAddNotifPrompt()
-    if (pendingSave) {
-      setShowAdd(true)
-    }
+    dismissReminderNotifPrompt()
   }
 
   return (
@@ -357,7 +464,7 @@ export default function RitualsScreen() {
                       </ThemedText>
                       <Pressable
                         style={styles.addRitualBtn}
-                        onPress={() => void openAddRitualModal()}
+                        onPress={openAddRitualModal}
                       >
                         <ThemedText type="defaultSemiBold" style={[styles.addButtonText, styles.addRitualText]}>
                           + add ritual
@@ -451,7 +558,7 @@ export default function RitualsScreen() {
                       </View>
                       <Pressable
                         style={styles.emptyAddButton}
-                        onPress={() => void openAddRitualModal()}
+                        onPress={openAddRitualModal}
                       >
                         <ThemedText type="defaultSemiBold" style={styles.emptyAddButtonText}>
                           Add ritual
@@ -867,16 +974,18 @@ export default function RitualsScreen() {
         </View>
       </Modal>
 
+      {showReminderNotifPrompt && !showAdd ? (
       <NotificationPermissionModal
-        visible={showReminderNotifPrompt && !showAdd}
+        visible
         title={STAY_IN_RHYTHM_PROMPT.title}
         body={STAY_IN_RHYTHM_PROMPT.body}
         primaryLabel={STAY_IN_RHYTHM_PROMPT.primaryLabel}
         secondaryLabel={STAY_IN_RHYTHM_PROMPT.secondaryLabel}
         onPrimary={() => void handleAddNotifPromptPrimary()}
-        onSecondary={() => void handleAddNotifPromptSecondary()}
+        onSecondary={handleAddNotifPromptSecondary}
         onRequestClose={handleAddNotifPromptClose}
       />
+      ) : null}
     </View>
   )
 }
