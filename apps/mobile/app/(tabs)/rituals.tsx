@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback } from "react"
 import { useFocusEffect } from "expo-router"
 import {
   View,
@@ -11,6 +11,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   Keyboard,
+  Alert,
   useWindowDimensions,
   type FlatList as RNFlatList,
 } from "react-native"
@@ -158,6 +159,46 @@ export default function RitualsScreen() {
   const [activeISO, setActiveISO] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Ritual | null>(null)
   const [showReminderNotifPrompt, setShowReminderNotifPrompt] = useState(false)
+  const addNotifPromptBypassRef = useRef(false)
+  const pendingFormSaveAfterNotifRef = useRef(false)
+
+  const closeAddRitualModal = useCallback(() => {
+    setShowAdd(false)
+    setShowReminderNotifPrompt(false)
+    pendingFormSaveAfterNotifRef.current = false
+    setEditRitualId(null)
+    setName("")
+    setIntention("")
+    setReminderEnabled(false)
+    setReminderTime(new Date())
+  }, [])
+
+  const openAddRitualModalDirect = useCallback(() => {
+    setEditRitualId(null)
+    setName("")
+    setIntention("")
+    setReminderEnabled(false)
+    setReminderTime(new Date())
+    setShowReminderNotifPrompt(false)
+    pendingFormSaveAfterNotifRef.current = false
+    setShowAdd(true)
+  }, [])
+
+  const openAddRitualModal = useCallback(async () => {
+    const granted = await isNotificationPermissionGranted()
+    if (!granted && !addNotifPromptBypassRef.current) {
+      closeAddRitualModal()
+      pendingFormSaveAfterNotifRef.current = false
+      setShowReminderNotifPrompt(true)
+      return
+    }
+    openAddRitualModalDirect()
+  }, [closeAddRitualModal, openAddRitualModalDirect])
+
+  const dismissAddNotifPrompt = useCallback(() => {
+    setShowReminderNotifPrompt(false)
+    addNotifPromptBypassRef.current = true
+  }, [])
 
   const commitRitualSave = async () => {
     if (!name.trim()) return
@@ -203,12 +244,7 @@ export default function RitualsScreen() {
         updatedAt: now,
       })
 
-      setEditRitualId(null)
-      setName("")
-      setIntention("")
-      setReminderEnabled(false)
-      setReminderTime(new Date())
-      setShowAdd(false)
+      closeAddRitualModal()
       return
     }
 
@@ -244,21 +280,49 @@ export default function RitualsScreen() {
       updatedAt: now,
     })
     requestAnimationFrame(() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true }))
-    setEditRitualId(null)
-    setName("")
-    setIntention("")
-    setReminderEnabled(false)
-    setReminderTime(new Date())
-    setShowAdd(false)
-}
+    closeAddRitualModal()
+  }
 
   const addRitual = async () => {
-    if (!name.trim()) return
+    if (!name.trim()) {
+      Alert.alert("Name required", "Give your ritual a name before saving.")
+      return
+    }
     if (reminderEnabled && !(await isNotificationPermissionGranted())) {
+      setShowAdd(false)
+      pendingFormSaveAfterNotifRef.current = true
       setShowReminderNotifPrompt(true)
       return
     }
     await commitRitualSave()
+  }
+
+  const handleAddNotifPromptPrimary = async () => {
+    const pendingSave = pendingFormSaveAfterNotifRef.current
+    pendingFormSaveAfterNotifRef.current = false
+    dismissAddNotifPrompt()
+    await enableNotificationsFromPrompt()
+    if (pendingSave) {
+      await commitRitualSave()
+    }
+  }
+
+  const handleAddNotifPromptSecondary = async () => {
+    const pendingSave = pendingFormSaveAfterNotifRef.current
+    pendingFormSaveAfterNotifRef.current = false
+    dismissAddNotifPrompt()
+    if (pendingSave) {
+      await commitRitualSave()
+    }
+  }
+
+  const handleAddNotifPromptClose = () => {
+    const pendingSave = pendingFormSaveAfterNotifRef.current
+    pendingFormSaveAfterNotifRef.current = false
+    dismissAddNotifPrompt()
+    if (pendingSave) {
+      setShowAdd(true)
+    }
   }
 
   return (
@@ -293,10 +357,7 @@ export default function RitualsScreen() {
                       </ThemedText>
                       <Pressable
                         style={styles.addRitualBtn}
-                        onPress={() => {
-                          setEditRitualId(null)
-                          setShowAdd(true)
-                        }}
+                        onPress={() => void openAddRitualModal()}
                       >
                         <ThemedText type="defaultSemiBold" style={[styles.addButtonText, styles.addRitualText]}>
                           + add ritual
@@ -390,7 +451,7 @@ export default function RitualsScreen() {
                       </View>
                       <Pressable
                         style={styles.emptyAddButton}
-                        onPress={() => setShowAdd(true)}
+                        onPress={() => void openAddRitualModal()}
                       >
                         <ThemedText type="defaultSemiBold" style={styles.emptyAddButtonText}>
                           Add ritual
@@ -426,6 +487,8 @@ export default function RitualsScreen() {
                         <View style={styles.ritualActions}>
                           <Pressable
                             onPress={() => {
+                              setShowReminderNotifPrompt(false)
+                              pendingFormSaveAfterNotifRef.current = false
                               setEditRitualId(r.id)
                               setName(r.name)
                               setIntention(r.intention ?? "")
@@ -503,17 +566,12 @@ export default function RitualsScreen() {
       </ScreenContent>
       <BottomFade />
 
+      {showAdd ? (
       <Modal
-        visible={showAdd}
+        visible
         transparent
         animationType="fade"
-        onRequestClose={() => {
-          setEditRitualId(null)
-          setShowAdd(false)
-          setIntention("")
-          setReminderEnabled(false)
-          setReminderTime(new Date())
-        }}
+        onRequestClose={closeAddRitualModal}
       >
         <View style={styles.ritualFormModalRoot}>
           <BlurView
@@ -524,15 +582,10 @@ export default function RitualsScreen() {
           <Pressable
             accessibilityRole="button"
             style={styles.ritualFormModalDim}
-            onPress={() => {
-              setEditRitualId(null)
-              setShowAdd(false)
-              setIntention("")
-              setReminderEnabled(false)
-              setReminderTime(new Date())
-            }}
+            onPress={closeAddRitualModal}
           />
           <KeyboardAvoidingView
+            pointerEvents="box-none"
             style={styles.ritualFormKeyboardAvoid}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
             keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
@@ -627,13 +680,7 @@ export default function RitualsScreen() {
                   <View style={styles.ritualFormButtons}>
                     <Pressable
                       style={styles.ritualFormGhostButton}
-                      onPress={() => {
-                        setEditRitualId(null)
-                        setShowAdd(false)
-                        setIntention("")
-                        setReminderEnabled(false)
-                        setReminderTime(new Date())
-                      }}
+                      onPress={closeAddRitualModal}
                     >
                       <ThemedText type="defaultSemiBold" style={styles.ritualFormGhostButtonText}>
                         Cancel
@@ -653,6 +700,7 @@ export default function RitualsScreen() {
           </KeyboardAvoidingView>
         </View>
       </Modal>
+      ) : null}
 
       <Modal
         visible={markOpen}
@@ -820,21 +868,14 @@ export default function RitualsScreen() {
       </Modal>
 
       <NotificationPermissionModal
-        visible={showReminderNotifPrompt}
+        visible={showReminderNotifPrompt && !showAdd}
         title={STAY_IN_RHYTHM_PROMPT.title}
         body={STAY_IN_RHYTHM_PROMPT.body}
         primaryLabel={STAY_IN_RHYTHM_PROMPT.primaryLabel}
         secondaryLabel={STAY_IN_RHYTHM_PROMPT.secondaryLabel}
-        onPrimary={async () => {
-          setShowReminderNotifPrompt(false)
-          await enableNotificationsFromPrompt()
-          await commitRitualSave()
-        }}
-        onSecondary={async () => {
-          setShowReminderNotifPrompt(false)
-          await commitRitualSave()
-        }}
-        onRequestClose={() => setShowReminderNotifPrompt(false)}
+        onPrimary={() => void handleAddNotifPromptPrimary()}
+        onSecondary={() => void handleAddNotifPromptSecondary()}
+        onRequestClose={handleAddNotifPromptClose}
       />
     </View>
   )
