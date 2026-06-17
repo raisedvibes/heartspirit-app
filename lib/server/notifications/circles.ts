@@ -32,8 +32,38 @@ export type CircleNotificationRecipients = {
   tokensFound: number
 }
 
-const LOOKBACK_HOURS = 26
 const CIRCLE_PUSH_TIMEZONE = "America/Los_Angeles"
+
+function pacificYmd(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: CIRCLE_PUSH_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date)
+}
+
+/** Whole Pacific calendar days from cron date to event date (0 = same day). */
+function pacificCalendarDaysUntil(cronNow: Date, startsAtIso: string): number {
+  const event = new Date(startsAtIso)
+  if (Number.isNaN(event.getTime())) return NaN
+
+  const eventYmd = pacificYmd(event)
+  const cronYmd = pacificYmd(cronNow)
+  const [ey, em, ed] = eventYmd.split("-").map(Number)
+  const [cy, cm, cd] = cronYmd.split("-").map(Number)
+  const eventUtc = Date.UTC(ey, em - 1, ed)
+  const cronUtc = Date.UTC(cy, cm - 1, cd)
+  return Math.round((eventUtc - cronUtc) / 86_400_000)
+}
+
+function isWeekBeforeDue(now: Date, startsAt: string): boolean {
+  return pacificCalendarDaysUntil(now, startsAt) === 7
+}
+
+function isDayBeforeDue(now: Date, startsAt: string): boolean {
+  return pacificCalendarDaysUntil(now, startsAt) === 1
+}
 
 function formatCircleReminderTime(iso: string): string {
   const date = new Date(iso)
@@ -90,17 +120,6 @@ function formatCircleStartsAtForPush(iso: string): string {
 
 function iso(d: Date): string {
   return d.toISOString()
-}
-
-function shiftDays(dateIso: string, days: number): Date {
-  const d = new Date(dateIso)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d
-}
-
-function isDueWindow(target: Date, now: Date, lookbackHours = LOOKBACK_HOURS): boolean {
-  const lookback = new Date(now.getTime() - lookbackHours * 60 * 60 * 1000)
-  return target <= now && target > lookback
 }
 
 function hashPayload(input: string): string {
@@ -213,11 +232,18 @@ export async function sendCircleRemindersNow(supabase: SupabaseClient): Promise<
 
   for (const circle of upcoming) {
     const startsAt = circle.starts_at as string
-    const weekReminderAt = shiftDays(startsAt, -7)
-    const dayReminderAt = shiftDays(startsAt, -1)
+    const daysUntil = pacificCalendarDaysUntil(now, startsAt)
+    const weekDue = isWeekBeforeDue(now, startsAt)
+    const dayDue = isDayBeforeDue(now, startsAt)
 
-    const weekDue = isDueWindow(weekReminderAt, now)
-    const dayDue = isDueWindow(dayReminderAt, now)
+    console.log("[circle reminders] eligibility", {
+      circleId: circle.id,
+      startsAt,
+      daysUntil,
+      weekDue,
+      dayDue,
+    })
+
     if (!weekDue && !dayDue) continue
 
     for (const userId of userIds) {
@@ -249,7 +275,7 @@ export async function sendCircleRemindersNow(supabase: SupabaseClient): Promise<
       }
 
       for (const kind of reminderKinds) {
-        const scheduledFor = kind === "week_before" ? weekReminderAt.toISOString() : dayReminderAt.toISOString()
+        const scheduledFor = startsAt
         const reserved = await reserveSend(supabase, {
           userId,
           circleId: circle.id,
