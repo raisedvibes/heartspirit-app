@@ -70,7 +70,7 @@ function SlotAssignmentRow({
   slotDescription?: string
   currentPlacement: PlacementRow | null
   practices: Practice[]
-  onSave: (practiceId: string) => Promise<void>
+  onSave: (practiceId: string | null) => Promise<void>
   saving: boolean
 }) {
   const [selectedId, setSelectedId] = useState(currentPlacement?.practice_id ?? "")
@@ -80,18 +80,22 @@ function SlotAssignmentRow({
     setSelectedId(currentPlacement?.practice_id ?? "")
   }, [currentPlacement?.practice_id])
 
-  const currentPractice = currentPlacement?.practice ?? null
-  const hasChanges = selectedId !== (currentPlacement?.practice_id ?? "")
+  const savedPracticeId = currentPlacement?.practice_id ?? ""
+  const currentPractice =
+    selectedId && selectedId === savedPracticeId ? (currentPlacement?.practice ?? null) : null
+  const hasChanges = selectedId !== savedPracticeId
 
   async function handleSave() {
-    if (!selectedId.trim()) return
-
     setSavingSlot(true)
     try {
-      await onSave(selectedId)
+      await onSave(selectedId.trim() || null)
     } finally {
       setSavingSlot(false)
     }
+  }
+
+  function handleSelectChange(nextId: string) {
+    setSelectedId(nextId)
   }
 
   return (
@@ -121,7 +125,7 @@ function SlotAssignmentRow({
       <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[320px] sm:flex-row sm:items-center">
         <select
           value={selectedId}
-          onChange={(e) => setSelectedId(e.target.value)}
+          onChange={(e) => handleSelectChange(e.target.value)}
           className="w-full rounded-xl border border-white/20 bg-black/20 px-4 py-2 text-white outline-none focus:border-white/35"
         >
           <option value="">Select practice…</option>
@@ -136,7 +140,7 @@ function SlotAssignmentRow({
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving || savingSlot || !selectedId || !hasChanges}
+          disabled={saving || savingSlot || !hasChanges}
           className="glass-btn flex shrink-0 items-center justify-center gap-2 px-3 py-2 text-sm disabled:opacity-50"
         >
           <Check className="size-4" />
@@ -206,7 +210,7 @@ export default function AdminPlacementsPage() {
     placementGroup: "today" | "season" | "custom",
     slotSlug: string,
     seasonKey: string | null,
-    practiceId: string
+    practiceId: string | null
   ) {
     setSaving(true)
     setError(null)
@@ -219,7 +223,7 @@ export default function AdminPlacementsPage() {
           placement_group: placementGroup,
           slot_slug: slotSlug,
           season_key: seasonKey,
-          practice_id: practiceId,
+          practice_id: practiceId || null,
         }),
       })
 

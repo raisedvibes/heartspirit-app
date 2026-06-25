@@ -59,13 +59,6 @@ export async function POST(req: Request) {
       )
     }
 
-    if (!practice_id?.trim()) {
-      return NextResponse.json(
-        { error: "practice_id is required" },
-        { status: 400 }
-      )
-    }
-
     const sortOrder =
       placement_group === "today"
         ? TODAY_SLOT_ORDER[slot_slug] ?? 0
@@ -95,6 +88,10 @@ export async function POST(req: Request) {
         { error: `Failed to deactivate existing placement: ${deactivateError.message}` },
         { status: 500 }
       )
+    }
+
+    if (!practice_id?.trim()) {
+      return NextResponse.json({ success: true, placement: null, cleared: true }, { status: 200 })
     }
 
     const insertRow: Record<string, unknown> = {
