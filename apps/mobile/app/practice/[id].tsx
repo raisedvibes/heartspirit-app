@@ -1093,13 +1093,13 @@ export default function PracticeDetailScreen() {
                           </ThemedText>
                           <View style={styles.createSpaceBody}>
                             <ThemedText type="muted" style={styles.createSpaceText}>
-                              The completion chime will play even if your screen locks.
+                              • Completion chime plays even if your screen locks.
                             </ThemedText>
                             <ThemedText type="muted" style={styles.createSpaceText}>
-                              Make sure your volume is ON.
+                              • Silent Mode (Do Not Disturb, etc.) OFF.
                             </ThemedText>
                             <ThemedText type="muted" style={styles.createSpaceText}>
-                              Turn off Silent Mode (Do Not Disturb, Sleep, etc.).
+                              • Phone volume ON.
                             </ThemedText>
                           </View>
                         </View>
@@ -1546,12 +1546,12 @@ const styles = StyleSheet.create({
   },
 
   createSpaceBody: {
-    gap: 6,
+    gap: 2,
   },
 
   createSpaceText: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 18,
   },
 
   timerCard: {
