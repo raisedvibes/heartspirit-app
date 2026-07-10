@@ -1129,7 +1129,7 @@ export default function PracticeDetailScreen() {
                             Note
                           </ThemedText>
                           <ThemedText type="muted" style={styles.noteIntro}>
-                            The completion chime will play—even if your phone locks—when:
+                            The completion chime plays—even if your phone locks. Ensure:
                           </ThemedText>
                           <View style={styles.noteBody}>
                             <ThemedText type="muted" style={styles.noteText}>
