@@ -1087,23 +1087,6 @@ export default function PracticeDetailScreen() {
 
                     {showPracticeTimer ? (
                       <>
-                        <View style={styles.createSpaceCard}>
-                          <ThemedText type="defaultSemiBold" style={styles.createSpaceLabel}>
-                            Create Space
-                          </ThemedText>
-                          <View style={styles.createSpaceBody}>
-                            <ThemedText type="muted" style={styles.createSpaceText}>
-                              • Completion chime plays even if your screen locks.
-                            </ThemedText>
-                            <ThemedText type="muted" style={styles.createSpaceText}>
-                              • Silent Mode (Do Not Disturb, etc.) OFF.
-                            </ThemedText>
-                            <ThemedText type="muted" style={styles.createSpaceText}>
-                              • Phone volume ON.
-                            </ThemedText>
-                          </View>
-                        </View>
-
                         <View style={styles.timerCard}>
                           <View style={styles.timerHeaderRow}>
                             <ThemedText type="defaultSemiBold" style={styles.timerLabel}>
@@ -1138,6 +1121,23 @@ export default function PracticeDetailScreen() {
                                 Reset
                               </ThemedText>
                             </Pressable>
+                          </View>
+                        </View>
+
+                        <View style={styles.noteCard}>
+                          <ThemedText type="defaultSemiBold" style={styles.noteLabel}>
+                            Note
+                          </ThemedText>
+                          <ThemedText type="muted" style={styles.noteIntro}>
+                            The completion chime will play—even if your phone locks—when:
+                          </ThemedText>
+                          <View style={styles.noteBody}>
+                            <ThemedText type="muted" style={styles.noteText}>
+                              • Silent Mode (Do Not Disturb, etc.) OFF.
+                            </ThemedText>
+                            <ThemedText type="muted" style={styles.noteText}>
+                              • Phone volume ON.
+                            </ThemedText>
                           </View>
                         </View>
                       </>
@@ -1531,7 +1531,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  createSpaceCard: {
+  noteCard: {
     marginTop: 16,
     padding: 14,
     borderRadius: 14,
@@ -1540,16 +1540,22 @@ const styles = StyleSheet.create({
     borderColor: GLASS.borderDark,
   },
 
-  createSpaceLabel: {
+  noteLabel: {
     fontSize: 13,
     marginBottom: 6,
   },
 
-  createSpaceBody: {
+  noteIntro: {
+    fontSize: 14,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+
+  noteBody: {
     gap: 2,
   },
 
-  createSpaceText: {
+  noteText: {
     fontSize: 14,
     lineHeight: 18,
   },
