@@ -175,7 +175,7 @@ export async function schedulePracticeTimerCompletion(
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title,
+      ...(title.trim() ? { title: title.trim() } : {}),
       body,
       sound: Platform.OS === "ios" ? PRACTICE_TIMER_SOUND_IOS : PRACTICE_TIMER_SOUND_ANDROID,
       data: { type: PRACTICE_TIMER_NOTIFICATION_TYPE },

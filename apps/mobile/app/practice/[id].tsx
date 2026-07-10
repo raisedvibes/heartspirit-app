@@ -507,8 +507,8 @@ export default function PracticeDetailScreen() {
     await ensureSilentLoopForTimer()
     await cancelTimerNotification()
     timerNotificationIdRef.current = await schedulePracticeTimerCompletion(
-      "Practice complete",
-      practice?.title ? `${practice.title} is complete.` : "Your practice is complete.",
+      practice?.title?.trim() || "",
+      "Practice Complete",
       baseSeconds,
       endAt
     )
@@ -1086,51 +1086,61 @@ export default function PracticeDetailScreen() {
                     )}
 
                     {showPracticeTimer ? (
-                      <View style={styles.timerCard}>
-                        <View style={styles.timerHeaderRow}>
-                          <ThemedText type="defaultSemiBold" style={styles.timerLabel}>
-                            Practice Timer
+                      <>
+                        <View style={styles.createSpaceCard}>
+                          <ThemedText type="defaultSemiBold" style={styles.createSpaceLabel}>
+                            Create Space
                           </ThemedText>
-                          <ThemedText type="muted" style={styles.timerMeta}>
-                            {timerMinutes} min
-                          </ThemedText>
-                        </View>
-
-                        <ThemedText type="title" style={styles.timerClock}>
-                          {formatClock(timeLeft)}
-                        </ThemedText>
-
-                        <View style={styles.timerButtonsRow}>
-                          {!isTimerRunning ? (
-                            <Pressable onPress={() => void handleStartTimerPress()} style={styles.timerStartButton}>
-                              <ThemedText type="defaultSemiBold" style={styles.timerStartButtonText}>
-                                {hasTimerStarted ? "Resume" : "Start"}
-                              </ThemedText>
-                            </Pressable>
-                          ) : (
-                            <Pressable onPress={pauseTimer} style={styles.timerPauseButton}>
-                              <ThemedText type="defaultSemiBold" style={styles.timerPauseButtonText}>
-                                Pause
-                              </ThemedText>
-                            </Pressable>
-                          )}
-
-                          <Pressable onPress={resetTimer} style={styles.timerResetButton}>
-                            <ThemedText type="defaultSemiBold" style={styles.timerResetButtonText}>
-                              Reset
+                          <View style={styles.createSpaceBody}>
+                            <ThemedText type="muted" style={styles.createSpaceText}>
+                              The completion chime will play even if your screen locks.
                             </ThemedText>
-                          </Pressable>
+                            <ThemedText type="muted" style={styles.createSpaceText}>
+                              Make sure your volume is ON.
+                            </ThemedText>
+                            <ThemedText type="muted" style={styles.createSpaceText}>
+                              Turn off Silent Mode (Do Not Disturb, Sleep, etc.).
+                            </ThemedText>
+                          </View>
                         </View>
 
-                        <ThemedText type="muted" style={styles.timerSoundHint}>
-                          For the full experience, make sure your sound is on so you can hear the completion chime.
-                        </ThemedText>
+                        <View style={styles.timerCard}>
+                          <View style={styles.timerHeaderRow}>
+                            <ThemedText type="defaultSemiBold" style={styles.timerLabel}>
+                              Practice Timer
+                            </ThemedText>
+                            <ThemedText type="muted" style={styles.timerMeta}>
+                              {timerMinutes} min
+                            </ThemedText>
+                          </View>
 
-                        <ThemedText type="muted" style={styles.timerHint}>
-                          After this practice, check in with your energy.
-                          {"\n"}How has it shifted?
-                        </ThemedText>
-                      </View>
+                          <ThemedText type="title" style={styles.timerClock}>
+                            {formatClock(timeLeft)}
+                          </ThemedText>
+
+                          <View style={styles.timerButtonsRow}>
+                            {!isTimerRunning ? (
+                              <Pressable onPress={() => void handleStartTimerPress()} style={styles.timerStartButton}>
+                                <ThemedText type="defaultSemiBold" style={styles.timerStartButtonText}>
+                                  {hasTimerStarted ? "Resume" : "Start"}
+                                </ThemedText>
+                              </Pressable>
+                            ) : (
+                              <Pressable onPress={pauseTimer} style={styles.timerPauseButton}>
+                                <ThemedText type="defaultSemiBold" style={styles.timerPauseButtonText}>
+                                  Pause
+                                </ThemedText>
+                              </Pressable>
+                            )}
+
+                            <Pressable onPress={resetTimer} style={styles.timerResetButton}>
+                              <ThemedText type="defaultSemiBold" style={styles.timerResetButtonText}>
+                                Reset
+                              </ThemedText>
+                            </Pressable>
+                          </View>
+                        </View>
+                      </>
                     ) : null}
                   </>
                 )}
@@ -1521,6 +1531,29 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
+  createSpaceCard: {
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: GLASS.bgDark,
+    borderWidth: 1,
+    borderColor: GLASS.borderDark,
+  },
+
+  createSpaceLabel: {
+    fontSize: 13,
+    marginBottom: 6,
+  },
+
+  createSpaceBody: {
+    gap: 6,
+  },
+
+  createSpaceText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+
   timerCard: {
     marginTop: 18,
     padding: 16,
@@ -1602,19 +1635,5 @@ const styles = StyleSheet.create({
   timerResetButtonText: {
     color: "#111",
     fontSize: 14,
-  },
-
-  timerSoundHint: {
-    fontSize: 11,
-    lineHeight: 16,
-    textAlign: "center",
-    opacity: 0.72,
-  },
-
-  timerHint: {
-    fontSize: 12,
-    lineHeight: 18,
-    textAlign: "center",
-    marginTop: 4,
   },
 })
