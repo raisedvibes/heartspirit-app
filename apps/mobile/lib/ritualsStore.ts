@@ -6,6 +6,12 @@ import {
   cancelRitualReminderNotifications,
   reconcileRitualReminderNotifications,
 } from "./ritualNotifications"
+import {
+  applyNotificationIdPatchesToRituals,
+  shouldCancelLeftoverRitualRemindersOnEmptyHydrate,
+  shouldCancelOutgoingRitualReminders,
+  type RitualNotificationIdPatch,
+} from "./ritualReminderReconcile"
 
 export type Mark = "empty" | "yes" | "no" | "skip"
 
@@ -197,6 +203,27 @@ export const useRitualsStore = create<RitualsState>()(
   )
 )
 
+export function persistRitualReminderNotificationPatches(
+  patches: RitualNotificationIdPatch[]
+) {
+  if (patches.length === 0) return
+  const current = useRitualsStore.getState().rituals
+  const nextRituals = applyNotificationIdPatchesToRituals(current, patches)
+  if (nextRituals !== current) {
+    useRitualsStore.setState({ rituals: nextRituals })
+  }
+}
+
+/** Reconcile OS ritual reminders and immediately persist any notificationId repairs. */
+export async function reconcileAndPersistRitualReminders(
+  rituals?: Ritual[]
+): Promise<RitualNotificationIdPatch[]> {
+  const list = rituals ?? useRitualsStore.getState().rituals
+  const patches = await reconcileRitualReminderNotifications(list)
+  persistRitualReminderNotificationPatches(patches)
+  return patches
+}
+
 /**
  * Call whenever the Supabase auth user changes (initial session, login, logout, account switch).
  * Persists under `heartspirit:rituals:${userId}`; logged-out uses `heartspirit:rituals:__anonymous__`.
@@ -209,8 +236,12 @@ export async function syncRitualsStoreWithAuthUserId(userId: string | null): Pro
     return
   }
 
-  const switchingAccount = ritualsPersistUserId !== undefined && ritualsPersistUserId !== userId
-  if (switchingAccount) {
+  const previousUserId = ritualsPersistUserId
+  const switchingAwayFromAuthenticatedUser = shouldCancelOutgoingRitualReminders(
+    previousUserId,
+    userId
+  )
+  if (switchingAwayFromAuthenticatedUser) {
     const rituals = useRitualsStore.getState().rituals
     await cancelRitualReminderNotifications(rituals.map((r) => r.notificationId))
   }
@@ -239,9 +270,20 @@ export async function syncRitualsStoreWithAuthUserId(userId: string | null): Pro
     console.log("[rituals-persist] post-hydration ritualCount:", hydratedRituals.length)
   }
   if (hydratedRituals.length === 0) {
-    await cancelRitualReminderNotifications()
+    // Skip transient anonymous hydration (session-null restore).
+    // Empty authenticated accounts and authenticated→authenticated switches
+    // still clear leftover ritual schedules. Explicit logout/delete in Settings
+    // already cancel ritual notifications.
+    if (
+      shouldCancelLeftoverRitualRemindersOnEmptyHydrate(
+        switchingAwayFromAuthenticatedUser,
+        userId
+      )
+    ) {
+      await cancelRitualReminderNotifications()
+    }
   } else {
-    await reconcileRitualReminderNotifications(hydratedRituals)
+    await reconcileAndPersistRitualReminders(hydratedRituals)
   }
 }
 

@@ -41,6 +41,7 @@ import {
   useRitualsStore,
   todayISO,
   localISODate,
+  reconcileAndPersistRitualReminders,
   type Ritual,
   type Mark,
 } from "../../lib/ritualsStore"
@@ -48,7 +49,6 @@ import { computeStreak } from "../../lib/ritualStats"
 import {
   cancelScheduledNotification,
   hasNotifPermissions,
-  reconcileRitualReminderNotifications,
   scheduleDailyReminder,
 } from "../../lib/ritualNotifications"
 
@@ -956,7 +956,7 @@ export default function RitualsScreen() {
                         }
 
                         remove(target.id)
-                        await reconcileRitualReminderNotifications(
+                        await reconcileAndPersistRitualReminders(
                           useRitualsStore.getState().rituals
                         )
                         setDeleteTarget(null)

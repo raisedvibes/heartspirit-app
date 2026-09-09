@@ -2,6 +2,12 @@ import * as Notifications from "expo-notifications"
 import { Platform } from "react-native"
 import { configureGlobalNotificationHandler } from "./notificationHandler"
 import type { Ritual } from "./ritualsStore"
+import {
+  notificationLooksLikeRitualReminder as pendingLooksLikeRitualReminder,
+  planRitualReminderReconciliation,
+  type PendingLocalNotification,
+  type RitualNotificationIdPatch,
+} from "./ritualReminderReconcile"
 
 const RITUAL_CHANNEL_ID = "ritual-reminders"
 const PRACTICE_TIMER_CHANNEL_ID = "practice_timer_v2"
@@ -212,22 +218,23 @@ export async function cancelScheduledNotification(
   }
 }
 
+function toPendingLocalNotification(
+  notification: Notifications.NotificationRequest
+): PendingLocalNotification {
+  return {
+    identifier: notification.identifier,
+    content: {
+      title: notification.content.title ?? null,
+      data: (notification.content.data ?? {}) as Record<string, unknown>,
+    },
+    trigger: notification.trigger,
+  }
+}
+
 function notificationLooksLikeRitualReminder(
   notification: Notifications.NotificationRequest
 ): boolean {
-  const data = (notification.content.data ?? {}) as ReminderData
-  const title = notification.content.title ?? ""
-  const trigger = notification.trigger
-  const triggerChannelId =
-    trigger && typeof trigger === "object" && "channelId" in trigger
-      ? String(trigger.channelId ?? "")
-      : ""
-
-  if (data.type === RITUAL_NOTIFICATION_TYPE) return true
-  if (data.ritualId) return true
-  if (triggerChannelId === RITUAL_CHANNEL_ID) return true
-  if (title.startsWith("Ritual:")) return true
-  return false
+  return pendingLooksLikeRitualReminder(toPendingLocalNotification(notification))
 }
 
 /**
@@ -249,19 +256,57 @@ export async function cancelRitualReminderNotifications(
 
 /**
  * Ensure scheduled ritual reminders match the hydrated rituals list.
- * - No rituals -> no pending ritual reminders.
- * - Existing rituals -> keep only their known ids, cancel ritual orphans/legacy reminders.
+ * Verifies existing schedules, repairs stale notificationIds, recreates missing
+ * reminders, then cancels leftover ritual orphans/duplicates.
  */
-export async function reconcileRitualReminderNotifications(rituals: Ritual[]) {
-  const knownIds = rituals.map((ritual) => ritual.notificationId).filter(Boolean) as string[]
-  const knownSet = new Set(knownIds)
+export async function reconcileRitualReminderNotifications(
+  rituals: Ritual[]
+): Promise<RitualNotificationIdPatch[]> {
   const pending = await Notifications.getAllScheduledNotificationsAsync()
+  const plan = planRitualReminderReconciliation(
+    rituals,
+    pending.map(toPendingLocalNotification)
+  )
 
-  for (const notification of pending) {
-    const isKnown = knownSet.has(notification.identifier)
-    const isRitual = notificationLooksLikeRitualReminder(notification)
-    if (!isKnown && isRitual) {
-      await cancelScheduledNotification(notification.identifier)
+  for (const ritualId of plan.verifiedRitualIds) {
+    console.log("[ritual reminder reconcile] existing reminder verified", { ritualId })
+  }
+  for (const patch of plan.patches) {
+    console.log("[ritual reminder reconcile] stale notificationId repaired", {
+      ritualId: patch.ritualId,
+      notificationId: patch.notificationId,
+    })
+  }
+
+  const keepIds = new Set(plan.keepIds)
+  const patches: RitualNotificationIdPatch[] = [...plan.patches]
+
+  if (plan.recreate.length > 0 && (await hasNotifPermissions())) {
+    for (const item of plan.recreate) {
+      const notificationId = await scheduleRitualReminder(
+        item.ritualId,
+        item.ritualName,
+        item.hhmm
+      )
+      if (!notificationId) continue
+      keepIds.add(notificationId)
+      patches.push({ ritualId: item.ritualId, notificationId })
+      console.log("[ritual reminder reconcile] missing reminder recreated", {
+        ritualId: item.ritualId,
+        notificationId,
+      })
     }
   }
+
+  const pendingAfter = await Notifications.getAllScheduledNotificationsAsync()
+  for (const notification of pendingAfter) {
+    if (!notificationLooksLikeRitualReminder(notification)) continue
+    if (keepIds.has(notification.identifier)) continue
+    await cancelScheduledNotification(notification.identifier)
+    console.log("[ritual reminder reconcile] orphan reminder removed", {
+      notificationId: notification.identifier,
+    })
+  }
+
+  return patches
 }
